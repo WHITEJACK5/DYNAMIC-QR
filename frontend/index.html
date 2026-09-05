@@ -131,9 +131,18 @@
         <h3><span style="width:10px;height:10px;background:var(--neon);border:1px solid var(--black);border-radius:50%;display:inline-block;box-shadow:0 0 8px var(--neon)"></span> Live Preview • NARE & CO.</h3>
         <span class="preview-status" id="previewType">URL • Static</span>
       </div>
-      <div class="qr-stage">
-        <div class="qr-frame" id="qrFrame">
-          <img id="qrImage" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://nareandco.com" alt="QR Preview">
+      <div class="qr-stage" style="position:relative">
+        <div class="qr-frame" id="qrFrame" style="position:relative">
+          <img id="qrImage" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://nareandco.com" alt="QR Preview" style="transition:opacity .2s">
+          <div id="qrLoading" style="position:absolute;inset:0;background:rgba(255,255,255,0.85);display:none;place-items:center;border-radius:18px;backdrop-filter:blur(2px)">
+            <div style="text-align:center">
+              <div style="width:28px;height:28px;border:3px solid var(--black);border-top-color:var(--neon);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto"></div>
+              <div style="font-size:11px;font-weight:800;margin-top:8px;letter-spacing:.06em">GENERATING...</div>
+            </div>
+          </div>
+        </div>
+        <div id="qrNoPreview" style="display:none;position:absolute;inset:0;background:rgba(248,250,252,0.96);place-items:center;padding:20px;text-align:center">
+          <div style="color:#666;font-size:12px">Enter a valid URL or fill required fields to preview</div>
         </div>
       </div>
       <div class="custom-panel">
@@ -196,23 +205,41 @@
           </div>
         </div>
         <div class="custom-pane" id="pane-logo" style="display:none">
-          <input type="file" id="logoInput" accept="image/*" style="width:100%;padding:10px;border:1.5px dashed var(--black);border-radius:12px;background:white">
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button class="btn btn-ghost btn-sm" id="removeLogo" style="flex:1">Remove Logo</button>
-            <span style="font-size:11px;color:#666;display:flex;align-items:center">500KB-1MB • PNG/JPG • Square</span>
+          <div class="field">
+            <label>Upload Logo (center of QR)</label>
+            <div style="position:relative;border:1.5px dashed var(--black);border-radius:12px;background:var(--grid-white);padding:14px;text-align:center;transition:.15s" id="logoDropZone">
+              <input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
+              <div style="pointer-events:none">
+                <div style="width:40px;height:40px;margin:0 auto 8px;background:white;border:1.5px solid var(--black);border-radius:10px;display:grid;place-items:center;font-size:18px">⬆</div>
+                <strong style="font-size:12px">Drop logo or click to browse</strong><br>
+                <span style="font-size:11px;color:#666">PNG/JPG/WebP • Square • 500KB–2MB • Transparent recommended</span>
+              </div>
+            </div>
           </div>
-          <div id="logoPreview" style="margin-top:8px;display:none;place-items:center;padding:8px;border:1px solid #EEE;border-radius:10px;background:white">
-            <img id="logoThumb" style="max-height:48px">
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="btn btn-ghost btn-sm" id="removeLogo" style="flex:1">✕ Remove Logo</button>
+            <span style="font-size:11px;color:#666;display:flex;align-items:center">Centered at 22% • White rounded bg • H-correction ensures scan</span>
+          </div>
+          <div id="logoPreview" style="margin-top:10px;display:none;place-items:center;padding:10px;border:1.5px solid var(--black);border-radius:12px;background:white;box-shadow:2px 2px 0 var(--black)">
+            <img id="logoThumb" style="max-height:56px;max-width:100px;object-fit:contain;border-radius:6px">
+            <span style="font-size:11px;font-weight:700;margin-top:6px;display:block;color:var(--neon);background:var(--black);padding:2px 8px;border-radius:999px">Logo applied — Live Preview updated</span>
           </div>
         </div>
         <div class="custom-pane" id="pane-frame" style="display:none">
-          <label class="help">Frame Text (CTA)</label>
-          <input type="text" id="frameText" placeholder="SCAN ME • NARE & CO." style="width:100%;padding:12px;border:1.5px solid var(--black);border-radius:12px">
-          <div class="color-row" style="margin-top:8px">
-            <span style="font-size:12px;font-weight:700">Frame Color</span>
-            <input type="color" id="frameColor" value="#00FF88">
+          <div class="field">
+            <label>Frame Text (CTA) — Shown below QR</label>
+            <input type="text" id="frameText" placeholder="SCAN ME • NARE & CO." maxlength="32" style="width:100%;padding:12px;border:1.5px solid var(--black);border-radius:12px">
           </div>
-          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          <div class="color-row" style="margin-top:10px">
+            <div class="field" style="flex:1;min-width:160px">
+              <label>Frame Color</label>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="color" id="frameColor" value="#00FF88" style="width:48px;height:48px">
+                <span style="font-size:12px;color:#666">High contrast = better scan</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
             <button class="chip" data-frame="SCAN ME">SCAN ME</button>
             <button class="chip" data-frame="SCAN ME • NARE & CO.">NARE & CO.</button>
             <button class="chip" data-frame="WIFI CONNECT">WIFI CONNECT</button>
@@ -457,20 +484,51 @@
   </div>
 </footer>
 
-<!-- Modals -->
+<!-- Auth Modal — PROFESSIONAL -->
 <div class="modal" id="authModal">
   <div class="modal-card">
     <div class="modal-head">
-      <h3 id="authTitle">Log In to NARE & CO.</h3>
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('authModal')">✕</button>
+      <div>
+        <h3 id="authTitle">Log In to NARE & CO.</h3>
+        <div style="font-size:11px;color:#666;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-top:2px" id="authSubtitle">Grid White • Black • Neon Green • Secure</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('authModal')" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
-      <div class="field"><label>Email</label><input id="authEmail" type="email" placeholder="you@nareandco.com"></div>
-      <div class="field"><label>Password</label><input id="authPass" type="password" placeholder="••••••••"></div>
-      <div class="field" id="nameField" style="display:none"><label>Name</label><input id="authName" type="text" placeholder="Your name"></div>
+      <div id="authError" class="auth-error"></div>
+      <div id="authSuccess" class="auth-success"></div>
+      <div class="field">
+        <label for="authEmail">Email Address <span style="color:#DC2626">*</span></label>
+        <input id="authEmail" type="email" placeholder="you@nareandco.com" autocomplete="email" required>
+        <div class="field-error" id="emailError"></div>
+      </div>
+      <div class="field">
+        <label for="authPass">Password <span style="color:#DC2626">*</span></label>
+        <div class="input-wrap">
+          <input id="authPass" type="password" placeholder="••••••••" autocomplete="current-password" required>
+          <button type="button" id="togglePass" aria-label="Show password" title="Show/Hide">👁</button>
+        </div>
+        <div class="field-error" id="passError"></div>
+        <div style="font-size:11px;color:#666;margin-top:6px;display:flex;justify-content:space-between;gap:8px">
+          <span id="passHint" style="display:none">Min 6 chars • Use strong password</span>
+          <a href="#" id="forgotLink" style="color:var(--black);font-weight:700;text-decoration:underline;display:none">Forgot?</a>
+        </div>
+      </div>
+      <div class="field" id="nameField" style="display:none">
+        <label for="authName">Full Name</label>
+        <input id="authName" type="text" placeholder="Your name" autocomplete="name">
+        <div class="field-error" id="nameError"></div>
+      </div>
+      <label style="display:flex;gap:8px;align-items:center;font-size:12px;font-weight:600;cursor:pointer">
+        <input type="checkbox" id="rememberMe" style="accent-color:var(--neon)"> <span>Remember me on this device</span>
+      </label>
       <button class="btn btn-primary" style="width:100%;justify-content:center" id="authSubmit">Continue →</button>
+      <div id="authLoading" style="display:none;text-align:center;font-size:12px;color:#666">⟳ Processing securely...</div>
       <div class="divider"></div>
-      <div style="font-size:12px;color:#666;text-align:center">Secure • Encrypted • GDPR Ready • 2FA available<br><a href="#" id="switchAuth" style="color:var(--black);font-weight:800;text-decoration:underline">Need an account? Register</a></div>
+      <div style="font-size:12px;color:#666;text-align:center;line-height:1.6">
+        <span style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center">🔒 Secure • Encrypted • GDPR Ready • 2FA available</span><br>
+        <a href="#" id="switchAuth" style="color:var(--black);font-weight:800;text-decoration:underline">Need an account? Register</a>
+      </div>
       <div id="authMsg" style="font-size:12px;color:#c00;text-align:center;display:none"></div>
     </div>
   </div>

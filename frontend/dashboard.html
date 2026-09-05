@@ -45,7 +45,6 @@
   </aside>
 
   <main class="dash-main">
-    <!-- Top stats -->
     <div class="stats" style="grid-template-columns:repeat(4,1fr)" id="statsRow">
       <div class="stat"><strong id="sTotal">—</strong><span>Total QRs</span></div>
       <div class="stat"><strong id="sScans">—</strong><span>Total Scans</span></div>
@@ -53,17 +52,15 @@
       <div class="stat"><strong id="sStatic">—</strong><span>Static</span></div>
     </div>
 
-    <!-- Controls -->
     <div style="display:flex;gap:10px;margin:16px 0;flex-wrap:wrap;align-items:center">
       <input id="search" placeholder="Search QRs by name/type…" style="flex:1;min-width:220px;padding:12px 14px;border:1.5px solid var(--black);border-radius:12px">
       <select id="filterType" style="padding:12px;border:1.5px solid var(--black);border-radius:12px;background:white;font-weight:700">
         <option value="">All Types</option>
-        <option value="url">URL</option><option value="vcard">vCard</option><option value="file">File</option><option value="wifi">WiFi</option>
+        <option value="url">URL</option><option value="vcard">vCard</option><option value="file">File</option><option value="wifi">WiFi</option><option value="text">Text</option><option value="email">Email</option><option value="whatsapp">WhatsApp</option>
       </select>
       <button class="btn btn-primary btn-sm" onclick="location.href='/'">＋ Create New QR</button>
     </div>
 
-    <!-- View: QRs -->
     <div id="view-qrs">
       <div class="qr-list" id="qrList"></div>
       <div id="empty" style="display:none;text-align:center;padding:40px;background:white;border:1.5px dashed var(--black);border-radius:18px">
@@ -74,7 +71,6 @@
       </div>
     </div>
 
-    <!-- View: Analytics -->
     <div id="view-analytics" style="display:none">
       <div class="card">
         <h3>Scan Analytics Overview</h3>
@@ -82,11 +78,10 @@
       </div>
     </div>
 
-    <!-- View: Bulk -->
     <div id="view-bulk" style="display:none">
       <div class="card">
         <h3>Bulk QR Generator — up to 3,000</h3>
-        <p style="color:#666;font-size:13px">Upload CSV with <b>url,name</b> per line. First row can be header.</p>
+        <p style="color:#666;font-size:13px">Upload CSV with <b>url,name</b> per line. First row can be header. Stored instantly in your local DB.</p>
         <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
           <select id="bulkType" style="padding:12px;border:1.5px solid var(--black);border-radius:12px">
             <option value="url">URL</option><option value="text">Text</option>
@@ -94,22 +89,65 @@
           <input type="file" id="bulkFile" accept=".csv" style="flex:1;padding:10px;border:1.5px dashed var(--black);border-radius:12px;background:white">
           <button class="btn btn-primary" id="bulkBtn">Generate Bulk →</button>
         </div>
-        <pre id="bulkOut" style="margin-top:12px;background:var(--black);color:var(--neon);padding:12px;border-radius:12px;overflow:auto;display:none"></pre>
+        <pre id="bulkOut" style="margin-top:12px;background:var(--black);color:var(--neon);padding:12px;border-radius:12px;overflow:auto;display:none;max-height:240px"></pre>
       </div>
     </div>
 
-    <!-- View: Folders etc placeholder -->
     <div id="view-folders" style="display:none"><div class="card"><h3>Folders</h3><div id="folderList" style="margin-top:10px"></div><div style="display:flex;gap:8px;margin-top:10px"><input id="newFolder" placeholder="New folder name" style="flex:1;padding:10px;border:1.5px solid var(--black);border-radius:10px"><button class="btn btn-dark btn-sm" id="addFolder">Add</button></div></div></div>
     <div id="view-templates" style="display:none"><div class="card"><h3>Saved Templates</h3><div id="tplList"></div></div></div>
-    <div id="view-settings" style="display:none"><div class="card"><h3>Settings & Security</h3><p style="color:#666;font-size:13px">NARE & CO. — Grid White / Black / Neon Green • GDPR • 2FA • Password QRs • Expiry controls</p><div style="margin-top:12px;display:grid;gap:10px"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked> Enable 2FA</label><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked> Anonymize data</label><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked> Email alerts for spikes</label></div></div></div>
+    <div id="view-settings" style="display:none"><div class="card"><h3>Settings & Security</h3><p style="color:#666;font-size:13px">NARE & CO. — Grid White / Black / Neon Green • GDPR • 2FA • Password QRs • Expiry controls • Local SQLite DB <code>data/nare.db</code></p><div style="margin-top:12px;display:grid;gap:10px"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked> Enable 2FA</label><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked> Anonymize data</label><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked> Email alerts for spikes</label></div><div style="margin-top:14px;display:flex;gap:8px"><button class="btn btn-ghost btn-sm" onclick="localStorage.clear(); toast('Local storage cleared')">Clear Local Cache</button><button class="btn btn-dark btn-sm" onclick="load()">Reload Data</button></div></div></div>
 
   </main>
 </div>
 
 <div class="modal" id="qrModal">
-  <div class="modal-card" style="max-width:520px">
+  <div class="modal-card" style="max-width:560px">
     <div class="modal-head"><h3 id="qrModalTitle">QR Details</h3><button class="btn btn-ghost btn-sm" onclick="closeModal('qrModal')">✕</button></div>
     <div class="modal-body" id="qrModalBody"></div>
+  </div>
+</div>
+
+<!-- PROFESSIONAL EDIT MODAL -->
+<div class="modal" id="editModal">
+  <div class="modal-card" style="max-width:560px">
+    <div class="modal-head">
+      <div>
+        <h3>Edit QR — All Fields</h3>
+        <div style="font-size:11px;color:#666;font-weight:600" id="editSubtitle">Change anything, saved to SQLite instantly</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('editModal')">✕</button>
+    </div>
+    <div class="modal-body" id="editBody" style="max-height:70vh;overflow:auto">
+      <div class="field"><label>QR Name</label><input id="editName" placeholder="My QR"></div>
+      <div class="field"><label>Type</label>
+        <select id="editType">
+          <option value="url">URL</option><option value="text">Text</option><option value="vcard">vCard</option><option value="wifi">WiFi</option><option value="email">Email</option><option value="sms">SMS</option><option value="whatsapp">WhatsApp</option><option value="location">Location</option><option value="event">Event</option><option value="file">File</option><option value="instagram">Instagram</option><option value="youtube">YouTube</option><option value="facebook">Facebook</option>
+        </select>
+      </div>
+      <div class="field"><label>Content (for static QRs) / Original URL</label><textarea id="editContent" rows="3" placeholder="https://... or text content"></textarea></div>
+      <div class="field"><label>Data JSON (advanced — overrides content)</label><textarea id="editDataJson" rows="3" placeholder='{"url":"https://..."}' style="font-family:monospace;font-size:12px"></textarea></div>
+      <div class="two-col">
+        <div class="field"><label>Foreground</label><input id="editFg" type="color" value="#0A0A0A" style="height:44px"></div>
+        <div class="field"><label>Background</label><input id="editBg" type="color" value="#FFFFFF" style="height:44px"></div>
+      </div>
+      <div class="two-col">
+        <div class="field"><label>Pattern</label><select id="editPattern"><option value="square">Square</option><option value="dots">Dots</option><option value="rounded">Rounded</option><option value="gapped">Gapped</option></select></div>
+        <div class="field"><label>Eyes</label><select id="editEye"><option value="square">Square</option><option value="circle">Circle</option><option value="rounded">Rounded</option></select></div>
+      </div>
+      <div class="field"><label>Frame Text</label><input id="editFrameText" placeholder="SCAN ME • NARE & CO."></div>
+      <div class="field"><label>Frame Color</label><input id="editFrameColor" type="color" value="#00FF88" style="height:44px"></div>
+      <div class="field"><label>Password (leave blank to remove)</label><input id="editPassword" type="text" placeholder="New password or blank"></div>
+      <div class="two-col">
+        <div class="field"><label>Scan Limit</label><input id="editScanLimit" type="number" placeholder="e.g. 500"></div>
+        <div class="field"><label>Expiry Date</label><input id="editExpiry" type="datetime-local"></div>
+      </div>
+      <div id="editError" class="auth-error" style="display:none"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" style="flex:1" id="editSave">💾 Save Changes</button>
+        <button class="btn btn-ghost" onclick="closeModal('editModal')">Cancel</button>
+      </div>
+      <div style="font-size:11px;color:#666">Dynamic QR content remains at <code>/r/&lt;short&gt;</code> — editing updates destination & style, rescanned instantly. Static QR content updates directly.</div>
+    </div>
   </div>
 </div>
 
@@ -117,24 +155,23 @@
 
 <script>
 const API = location.origin;
-function toast(m,err=false){ const t=document.getElementById('toast'); t.textContent=(err?'⚠ ':'✔ ')+m; t.classList.add('show'); t.style.background=err?'#c00':'var(--black)'; setTimeout(()=>t.classList.remove('show'),2500); }
-function auth(){ const tok=localStorage.getItem('nare_token'); if(!tok){ location.href='/?needAuth=1'; } return tok; }
+function toast(m,err=false){ const t=document.getElementById('toast'); t.textContent=(err?'⚠ ':'✔ ')+m; t.classList.add('show'); t.style.background=err?'#DC2626':'var(--black)'; setTimeout(()=>t.classList.remove('show'),3000); }
+function auth(){ const tok=localStorage.getItem('nare_token'); if(!tok){ location.href='/?needAuth=1'; return null; } return tok; }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 
 let allQrs=[];
+let currentEditId=null;
 async function load(){
   const token=auth();
   if(!token) return;
   const u=JSON.parse(localStorage.getItem('nare_user')||'{}');
   document.getElementById('userEmail').textContent=u.email||'User';
-  // QRS
   try{
     const r=await fetch(`${API}/api/qrcodes`,{headers:{Authorization:`Bearer ${token}`}});
     const j=await r.json();
     if(!r.ok) throw new Error(j.error);
     allQrs=j;
     renderQrs(allQrs);
-    // stats
     const dyn=allQrs.filter(q=>q.is_dynamic).length;
     const sta=allQrs.length-dyn;
     const scans=allQrs.reduce((s,q)=>s+(q.scan_count||0),0);
@@ -143,30 +180,27 @@ async function load(){
     document.getElementById('sDynamic').textContent=dyn;
     document.getElementById('sStatic').textContent=sta;
     document.getElementById('countBadge').textContent=allQrs.length;
-  }catch(e){ toast(e.message,true); }
-  // analytics overview
+  }catch(e){ toast(e.message,true); if(e.message.includes('Missing token')||e.message.includes('Invalid')){ localStorage.removeItem('nare_token'); location.href='/?needAuth=1'; } }
   try{
     const r=await fetch(`${API}/api/analytics/overview`,{headers:{Authorization:`Bearer ${token}`}});
     const j=await r.json();
     document.getElementById('analyticsBody').innerHTML=`
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div><strong>Timeline (last scans)</strong><pre style="background:var(--grid-white);padding:10px;border-radius:10px;overflow:auto">${JSON.stringify(j.timeline.slice(0,7),null,2)}</pre></div>
-        <div><strong>Devices</strong><pre style="background:var(--grid-white);padding:10px;border-radius:10px;overflow:auto">${JSON.stringify(j.devices,null,2)}</pre></div>
+        <div><strong>Timeline</strong><pre style="background:var(--grid-white);padding:10px;border-radius:10px;overflow:auto;max-height:160px;font-size:11px">${JSON.stringify(j.timeline.slice(0,7),null,2)}</pre></div>
+        <div><strong>Devices</strong><pre style="background:var(--grid-white);padding:10px;border-radius:10px;overflow:auto;max-height:160px;font-size:11px">${JSON.stringify(j.devices,null,2)}</pre></div>
       </div>
-      <div style="margin-top:10px"><strong>Top QRs</strong><div style="display:grid;gap:6px;margin-top:6px">${j.top.map(t=>`<div style="display:flex;justify-content:space-between;padding:8px;background:var(--grid-white);border-radius:8px"><span>${t.name} <small style="color:#666">${t.type}</small></span><span style="background:var(--neon);padding:2px 8px;border-radius:999px;border:1px solid var(--black);font-weight:800">${t.scan_count} scans</span></div>`).join('')||'<span style="color:#888">No scans yet</span>'}</div></div>
+      <div style="margin-top:10px"><strong>Top QRs</strong><div style="display:grid;gap:6px;margin-top:6px">${j.top.map(t=>`<div style="display:flex;justify-content:space-between;padding:8px;background:var(--grid-white);border-radius:8px;border:1px solid #EEE"><span>${t.name} <small style="color:#666">${t.type}</small></span><span style="background:var(--neon);padding:2px 8px;border-radius:999px;border:1px solid var(--black);font-weight:800">${t.scan_count} scans</span></div>`).join('')||'<span style="color:#888">No scans yet</span>'}</div></div>
     `;
   }catch{}
-  // folders
   try{
     const r=await fetch(`${API}/api/folders`,{headers:{Authorization:`Bearer ${token}`}});
     const j=await r.json();
-    document.getElementById('folderList').innerHTML=j.map(f=>`<div style="padding:8px;border:1px solid #EEE;border-radius:8px;display:flex;justify-content:space-between"><span>📁 ${f.name}</span><small>${f.created_at?.slice(0,10)||''}</small></div>`).join('')||'<small style="color:#888">No folders</small>';
+    document.getElementById('folderList').innerHTML=j.map(f=>`<div style="padding:8px;border:1px solid #EEE;border-radius:8px;display:flex;justify-content:space-between;align-items:center"><span>📁 ${f.name}</span><small>${f.created_at?.slice(0,10)||''}</small></div>`).join('')||'<small style="color:#888">No folders</small>';
   }catch{}
-  // templates
   try{
     const r=await fetch(`${API}/api/templates`,{headers:{Authorization:`Bearer ${token}`}});
     const j=await r.json();
-    document.getElementById('tplList').innerHTML=j.map(t=>`<div style="padding:10px;border:1px solid #EEE;border-radius:10px;margin-bottom:6px"><strong>${t.name}</strong><pre style="font-size:11px;white-space:pre-wrap">${t.config_json.slice(0,300)}</pre></div>`).join('')||'<small>No templates</small>';
+    document.getElementById('tplList').innerHTML=j.map(t=>`<div style="padding:10px;border:1px solid #EEE;border-radius:10px;margin-bottom:6px"><strong>${t.name}</strong><pre style="font-size:11px;white-space:pre-wrap;background:var(--grid-white);padding:8px;border-radius:8px">${t.config_json.slice(0,400)}</pre></div>`).join('')||'<small>No templates — save from generator</small>';
   }catch{}
 }
 
@@ -175,31 +209,34 @@ function renderQrs(list){
   const empty=document.getElementById('empty');
   if(!list.length){ el.innerHTML=""; empty.style.display="block"; return; }
   empty.style.display="none";
-  el.innerHTML=list.map(q=>`
+  el.innerHTML=list.map(q=>{
+    const shortUrl = q.is_dynamic ? `${API}/r/${q.short_code}` : q.content;
+    return `
     <div class="qr-item">
       <div class="qr-item-top">
-        <img src="${API}/api/preview" data-content="${encodeURIComponent(q.content)}" alt="qr" id="img-${q.id}" style="background:white">
+        <img src="${API}/api/preview" alt="qr" id="img-${q.id}" style="background:white">
         <div class="qr-meta">
-          <strong>${q.name}</strong>
-          <div style="font-size:11px;color:#666">${q.type.toUpperCase()} • ${q.is_dynamic?'<span style="background:var(--neon);padding:2px 6px;border-radius:999px;border:1px solid var(--black);font-weight:800">DYNAMIC</span>':'STATIC'} • ${new Date(q.created_at).toLocaleDateString()}</div>
-          <div style="font-size:11px;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px">${q.content.slice(0,42)}</div>
+          <strong title="${q.name}">${q.name}</strong>
+          <div style="font-size:11px;color:#666;display:flex;gap:4px;flex-wrap:wrap;align-items:center">${q.type.toUpperCase()} • ${q.is_dynamic?'<span style="background:var(--neon);padding:2px 6px;border-radius:999px;border:1px solid var(--black);font-weight:800">DYNAMIC</span>':'STATIC'} • ${new Date(q.created_at).toLocaleDateString()}</div>
+          <div style="font-size:11px;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px" title="${shortUrl}">${shortUrl.slice(0,48)}</div>
         </div>
       </div>
-      <div style="padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;background:#F8F9FA">
+      <div style="padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;background:#F8F9FA;border-top:1px solid #EEE;border-bottom:1px solid #EEE">
         <span class="chip">${q.scan_count||0} scans</span>
         <span class="chip" style="background:var(--black);color:var(--neon)">● Live</span>
-        <span class="chip">${q.fg_color||''} ${q.bg_color||''}</span>
+        <span class="chip" title="Colors">${q.fg_color||''} → ${q.bg_color||''}</span>
+        ${q.frame_text?`<span class="chip">${q.frame_text.slice(0,12)}</span>`:''}
       </div>
       <div class="qr-item-actions">
         <button class="btn btn-primary btn-sm" onclick="openQr(${q.id})">View</button>
-        <button class="btn btn-ghost btn-sm" onclick="editQr(${q.id})">Edit</button>
-        <button class="btn btn-ghost btn-sm" onclick="duplicateQr(${q.id})">Duplicate</button>
-        <button class="btn btn-ghost btn-sm" onclick="downloadQr(${q.id})">PNG</button>
-        <button class="btn btn-ghost btn-sm" style="color:#c00" onclick="delQr(${q.id})">Delete</button>
+        <button class="btn btn-ghost btn-sm" onclick="editQr(${q.id})">✎ Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="duplicateQr(${q.id})">⎘ Duplicate</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadQr(${q.id},'png')">PNG</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadQr(${q.id},'pdf')">PDF</button>
+        <button class="btn btn-ghost btn-sm" style="color:#DC2626" onclick="delQr(${q.id})">Delete</button>
       </div>
     </div>
-  `).join('');
-  // load preview images async via backend preview
+  `}).join('');
   list.forEach(async q=>{
     try{
       const payload={content: q.is_dynamic ? `${API}/r/${q.short_code}` : q.content, fg_color:q.fg_color, bg_color:q.bg_color, pattern:q.pattern, eye_style:q.eye_style, gradient:q.gradient, frame_text:q.frame_text, frame_color:q.frame_color};
@@ -221,8 +258,9 @@ document.getElementById('search').oninput=filtered;
 document.getElementById('filterType').onchange=filtered;
 
 async function openQr(id){
-  const token=auth();
+  const token=auth(); if(!token) return;
   const r=await fetch(`${API}/api/qrcodes/${id}`,{headers:{Authorization:`Bearer ${token}`}});
+  if(!r.ok){ toast('Not found',true); return; }
   const q=await r.json();
   const ar=await fetch(`${API}/api/qrcodes/${id}/analytics`,{headers:{Authorization:`Bearer ${token}`}});
   const a=await ar.json();
@@ -230,28 +268,95 @@ async function openQr(id){
   document.getElementById('qrModalBody').innerHTML=`
     <div style="background:var(--grid-white);padding:12px;border-radius:12px;border:1px solid var(--black)">
       <div style="font-size:11px;font-weight:800;letter-spacing:.08em">CONTENT → ${q.is_dynamic?'SHORT URL (trackable)':'STATIC'}</div>
-      <div style="word-break:break-all;font-size:13px;background:white;padding:10px;border-radius:8px;margin-top:6px;border:1px solid #EEE">${q.is_dynamic?`${API}/r/${q.short_code} → <small style="color:#666">${q.content}</small>` : q.content}</div>
+      <div style="word-break:break-all;font-size:13px;background:white;padding:10px;border-radius:8px;margin-top:6px;border:1px solid #EEE">${q.is_dynamic?`${API}/r/${q.short_code}<br><small style="color:#666">→ ${q.content.slice(0,120)}</small>` : q.content}</div>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-        <span class="chip chip-neon">${q.scan_count} scans</span><span class="chip">${q.type}</span><span class="chip">${q.pattern} • ${q.eye_style}</span>
+        <span class="chip chip-neon">${q.scan_count} scans</span><span class="chip">${q.type}</span><span class="chip">${q.pattern||'square'} • ${q.eye_style||'square'}</span><span class="chip">${q.fg_color}→${q.bg_color}</span>
       </div>
     </div>
-    <div style="margin-top:12px"><strong>Analytics</strong><pre style="background:var(--black);color:var(--neon);padding:10px;border-radius:10px;overflow:auto;font-size:11px">${JSON.stringify(a.timeline.slice(-8),null,2)}</pre>
-    <div style="margin-top:6px"><strong>Recent scans</strong><div style="max-height:160px;overflow:auto;display:grid;gap:4px">${a.scans.slice(0,10).map(s=>`<div style="font-size:11px;padding:6px;background:var(--grid-white);border-radius:6px;display:flex;justify-content:space-between"><span>${s.device} • ${s.browser} • ${s.os}</span><span>${new Date(s.timestamp).toLocaleString()}</span></div>`).join('')||'<small>No scans</small>'}</div></div></div>
-    <div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-primary" onclick="downloadQr(${q.id})">Download PNG</button><button class="btn btn-ghost" onclick="closeModal('qrModal')">Close</button></div>
+    <div style="margin-top:12px"><strong>Analytics</strong><pre style="background:var(--black);color:var(--neon);padding:10px;border-radius:10px;overflow:auto;font-size:11px;max-height:120px">${JSON.stringify(a.timeline.slice(-8),null,2)}</pre>
+    <div style="margin-top:6px"><strong>Recent scans</strong><div style="max-height:160px;overflow:auto;display:grid;gap:4px;margin-top:6px">${a.scans.slice(0,10).map(s=>`<div style="font-size:11px;padding:6px;background:var(--grid-white);border-radius:6px;display:flex;justify-content:space-between;border:1px solid #EEE"><span>${s.device} • ${s.browser} • ${s.os}</span><span>${new Date(s.timestamp).toLocaleString()}</span></div>`).join('')||'<small>No scans yet — scan the QR!</small>'}</div></div></div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn btn-primary" onclick="downloadQr(${q.id},'png')">⬇ PNG</button><button class="btn btn-ghost" onclick="downloadQr(${q.id},'pdf')">PDF</button><button class="btn btn-ghost" onclick="closeModal('qrModal')">Close</button></div>
   `;
   document.getElementById('qrModal').classList.add('open');
 }
-async function delQr(id){ if(!confirm('Delete this QR? If scans ≥8, note policy. Continue?')) return; const token=auth(); const r=await fetch(`${API}/api/qrcodes/${id}`,{method:"DELETE",headers:{Authorization:`Bearer ${token}`}}); if(r.ok){ toast('Deleted'); load(); } else toast('Failed',true); }
-async function duplicateQr(id){ const token=auth(); const r=await fetch(`${API}/api/qrcodes/${id}/duplicate`,{method:"POST",headers:{Authorization:`Bearer ${token}`}}); if(r.ok){ toast('Duplicated'); load(); } }
-function downloadQr(id){ const token=auth(); window.location=`${API}/api/download/${id}?format=png&token=${token}`; }
-async function editQr(id){
-  const name=prompt('New name:'); if(!name) return;
-  const token=auth();
-  const r=await fetch(`${API}/api/qrcodes/${id}`,{method:"PUT",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({name})});
-  if(r.ok){ toast('Updated'); load(); }
+async function delQr(id){
+  if(!confirm('Delete this QR? This removes all scans. Continue?')) return;
+  const token=auth(); if(!token) return;
+  const r=await fetch(`${API}/api/qrcodes/${id}`,{method:"DELETE",headers:{Authorization:`Bearer ${token}`}});
+  if(r.ok){ toast('Deleted'); load(); } else { const j=await r.json(); toast(j.error||'Failed',true); }
 }
+async function duplicateQr(id){
+  const token=auth(); if(!token) return;
+  const r=await fetch(`${API}/api/qrcodes/${id}/duplicate`,{method:"POST",headers:{Authorization:`Bearer ${token}`}});
+  if(r.ok){ toast('Duplicated'); load(); } else toast('Failed',true);
+}
+function downloadQr(id, fmt='png'){
+  const token=auth(); if(!token) return;
+  window.location=`${API}/api/download/${id}?format=${fmt}&token=${token}`;
+}
+async function editQr(id){
+  const token=auth(); if(!token) return;
+  const r=await fetch(`${API}/api/qrcodes/${id}`,{headers:{Authorization:`Bearer ${token}`}});
+  if(!r.ok){ toast('Not found',true); return; }
+  const q=await r.json();
+  currentEditId=id;
+  document.getElementById('editName').value=q.name||'';
+  document.getElementById('editType').value=q.type||'url';
+  document.getElementById('editContent').value=q.content||'';
+  document.getElementById('editDataJson').value=q.data_json||'';
+  document.getElementById('editFg').value=q.fg_color||'#0A0A0A';
+  document.getElementById('editBg').value=q.bg_color||'#FFFFFF';
+  document.getElementById('editPattern').value=q.pattern||'square';
+  document.getElementById('editEye').value=q.eye_style||'square';
+  document.getElementById('editFrameText').value=q.frame_text||'';
+  document.getElementById('editFrameColor').value=q.frame_color||'#00FF88';
+  document.getElementById('editPassword').value='';
+  document.getElementById('editScanLimit').value=q.scan_limit||'';
+  document.getElementById('editExpiry').value=q.expiry_date ? new Date(q.expiry_date).toISOString().slice(0,16) : '';
+  document.getElementById('editError').style.display='none';
+  document.getElementById('editModal').classList.add('open');
+}
+document.getElementById('editSave').onclick=async()=>{
+  if(!currentEditId) return;
+  const token=auth(); if(!token) return;
+  const payload={
+    name: document.getElementById('editName').value.trim() || 'My QR',
+    type: document.getElementById('editType').value,
+    content: document.getElementById('editContent').value.trim(),
+    data_json: document.getElementById('editDataJson').value.trim() || undefined,
+    fg_color: document.getElementById('editFg').value,
+    bg_color: document.getElementById('editBg').value,
+    pattern: document.getElementById('editPattern').value,
+    eye_style: document.getElementById('editEye').value,
+    frame_text: document.getElementById('editFrameText').value,
+    frame_color: document.getElementById('editFrameColor').value,
+    password: document.getElementById('editPassword').value || undefined,
+    scan_limit: document.getElementById('editScanLimit').value ? parseInt(document.getElementById('editScanLimit').value) : null,
+    expiry_date: document.getElementById('editExpiry').value ? new Date(document.getElementById('editExpiry').value).toISOString() : null,
+  };
+  // if data_json is JSON string, parse
+  if(payload.data_json){
+    try{ const parsed=JSON.parse(payload.data_json); payload.data=parsed; delete payload.data_json; } catch{ /* keep as string will be handled */ }
+  }
+  document.getElementById('editSave').disabled=true;
+  document.getElementById('editSave').textContent='Saving…';
+  try{
+    const r=await fetch(`${API}/api/qrcodes/${currentEditId}`,{method:"PUT",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify(payload)});
+    const j=await r.json();
+    if(!r.ok) throw new Error(j.error||'Update failed');
+    toast('Updated — QR regenerated');
+    closeModal('editModal');
+    load();
+  }catch(e){
+    const err=document.getElementById('editError');
+    err.textContent=e.message; err.style.display='block';
+  } finally {
+    document.getElementById('editSave').disabled=false;
+    document.getElementById('editSave').textContent='💾 Save Changes';
+  }
+};
 
-document.getElementById('logout').onclick=()=>{ localStorage.removeItem('nare_token'); location.href='/'; };
+document.getElementById('logout').onclick=()=>{ localStorage.removeItem('nare_token'); localStorage.removeItem('nare_user'); toast('Logged out'); setTimeout(()=>location.href='/', 400); };
 document.querySelectorAll('.sidebar a').forEach(a=>{
   a.onclick=e=>{
     e.preventDefault();
@@ -266,21 +371,27 @@ document.getElementById('bulkBtn').onclick=async()=>{
   const fd=new FormData();
   fd.append('file',f);
   fd.append('type',document.getElementById('bulkType').value);
-  const token=auth();
-  const r=await fetch(`${API}/api/qrcodes/bulk`,{method:"POST",headers:{Authorization:`Bearer ${token}`},body:fd});
-  const j=await r.json();
-  const out=document.getElementById('bulkOut');
-  out.style.display="block";
-  out.textContent=JSON.stringify(j,null,2);
-  if(r.ok){ toast(`Bulk: ${j.count} created`); load(); }
+  const token=auth(); if(!token) return;
+  document.getElementById('bulkBtn').disabled=true;
+  document.getElementById('bulkBtn').textContent='Processing…';
+  try{
+    const r=await fetch(`${API}/api/qrcodes/bulk`,{method:"POST",headers:{Authorization:`Bearer ${token}`},body:fd});
+    const j=await r.json();
+    const out=document.getElementById('bulkOut');
+    out.style.display="block";
+    out.textContent=JSON.stringify(j,null,2);
+    if(r.ok){ toast(`Bulk: ${j.count} created — saved to DB`); load(); } else toast(j.error||'Bulk failed',true);
+  } catch(e){ toast(e.message,true); }
+  finally { document.getElementById('bulkBtn').disabled=false; document.getElementById('bulkBtn').textContent='Generate Bulk →'; }
 };
 document.getElementById('addFolder').onclick=async()=>{
-  const name=document.getElementById('newFolder').value.trim(); if(!name) return;
-  const token=auth();
-  await fetch(`${API}/api/folders`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({name})});
-  toast('Folder added'); load();
+  const name=document.getElementById('newFolder').value.trim(); if(!name) return toast('Enter name',true);
+  const token=auth(); if(!token) return;
+  const r=await fetch(`${API}/api/folders`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({name})});
+  if(r.ok){ toast('Folder added'); document.getElementById('newFolder').value=''; load(); } else toast('Failed',true);
 };
 document.getElementById('qrModal').onclick=e=>{ if(e.target.id==='qrModal') closeModal('qrModal'); };
+document.getElementById('editModal').onclick=e=>{ if(e.target.id==='editModal') closeModal('editModal'); };
 
 load();
 </script>
