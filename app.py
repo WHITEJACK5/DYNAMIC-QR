@@ -31,6 +31,14 @@ FRONTEND_DIR = os.path.join(APP_DIR, "frontend")
 os.makedirs(os.path.join(APP_DIR, "data"), exist_ok=True)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(STATIC_DIR, exist_ok=True)
+# ensure .gitkeep exists for fresh clones (keeps empty folders in git)
+for _d in [os.path.join(APP_DIR, "data"), UPLOAD_DIR]:
+    _keep = os.path.join(_d, ".gitkeep")
+    if not os.path.exists(_keep):
+        try:
+            open(_keep, "a").close()
+        except:
+            pass
 
 SECRET_KEY = "nare-co-secret-2026-neon-green-grid-white-black-super-secure-key"
 JWT_SECRET = SECRET_KEY
@@ -49,6 +57,7 @@ def get_db():
     return db
 
 def init_db():
+    is_fresh = not os.path.exists(DB_PATH) or os.path.getsize(DB_PATH) == 0
     db = get_db()
     cur = db.cursor()
     cur.execute("""
@@ -121,7 +130,30 @@ def init_db():
         created_at TEXT
     )""")
     db.commit()
+    # ensure at least one index on short_code for fast lookup
+    try:
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_qr_short ON qrcodes(short_code)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_scans_qr ON scans(qr_id)")
+        db.commit()
+    except:
+        pass
     db.close()
+    if is_fresh:
+        print(f"[NARE & CO.] Fresh DB created at {DB_PATH} — tables: users, qrcodes, scans, folders, templates")
+        print(f"[NARE & CO.] Local DB ready for personal use — login + QR managing + analytics (SQLite)")
+    else:
+        # also print existing DB status for personal use
+        try:
+            _db = get_db()
+            _cur = _db.cursor()
+            _cur.execute("SELECT COUNT(*) FROM users")
+            _u = _cur.fetchone()[0]
+            _cur.execute("SELECT COUNT(*) FROM qrcodes")
+            _q = _cur.fetchone()[0]
+            _db.close()
+            print(f"[NARE & CO.] DB loaded — {DB_PATH} — users:{_u} qrs:{_q}")
+        except:
+            pass
 
 init_db()
 
