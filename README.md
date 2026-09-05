@@ -1,7 +1,6 @@
 # NARE & CO. — QR Code Generator (Personal Use)
 
 **Theme:** Grid White / Black / Neon Green  
-**Location:** `C:\Users\BHARADWAJA REDDY\Downloads\ai_project\nare-and-co`  
 **Personal build — Pricing & FAQ removed, local DB only**
 
 Full QR Tiger clone for personal use — no pricing panel, no FAQ, pure generator + dashboard.
@@ -10,9 +9,10 @@ Full QR Tiger clone for personal use — no pricing panel, no FAQ, pure generato
 
 When someone clones this repo on a **fresh computer**, everything auto-creates:
 
-```powershell
+```bash
 git clone https://github.com/WHITEJACK5/NARE-CO..git
 cd NARE-CO.
+cp .env.example .env   # or use start.sh which auto-creates .env with random SECRET_KEY
 pip install -r requirements.txt
 python app.py
 # → [NARE & CO.] Fresh DB created at data/nare.db — tables: users, qrcodes, scans, folders, templates
@@ -46,11 +46,13 @@ If DB already exists, it loads: `DB loaded — users:X qrs:Y`. Deleting `data/na
 
 ## Quick Start (Personal)
 
-```powershell
-cd "C:\Users\BHARADWAJA REDDY\Downloads\ai_project\nare-and-co"
+```bash
+# Unix/macOS
+chmod +x start.sh && ./start.sh
+# Windows PowerShell
 pip install -r requirements.txt
 python app.py
-# or .\start.ps1 / .\run.bat
+# or .\start.ps1 / .\run.bat / ./stop.sh
 ```
 
 **Test Health**

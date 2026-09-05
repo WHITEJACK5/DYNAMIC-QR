@@ -454,6 +454,28 @@
   </div>
 </div>
 
+<!-- 2FA Verify Modal -->
+<div class="modal" id="twofaModal">
+  <div class="modal-card" style="max-width:400px">
+    <div class="modal-head">
+      <div>
+        <h3>Two-Factor Check</h3>
+        <div style="font-size:11px;color:#666;font-weight:600">Enter code from your authenticator app</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('twofaModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="twofaError" class="auth-error" style="display:none"></div>
+      <div class="field">
+        <label for="twofaCode">6-digit code</label>
+        <input id="twofaCode" type="text" placeholder="123456" maxlength="6" inputmode="numeric" autocomplete="one-time-code" style="letter-spacing:.3em;text-align:center;font-size:18px;font-weight:800">
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" id="twofaSubmit">Verify →</button>
+      <div style="font-size:11px;color:#666;text-align:center">Open Google Authenticator / Authy • Code refreshes every 30s</div>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="demoModal">
   <div class="modal-card" style="max-width:560px">
     <div class="modal-head"><h3>NARE & CO. — Platform Demo</h3><button class="btn btn-ghost btn-sm" onclick="closeModal('demoModal')">✕</button></div>

@@ -431,6 +431,17 @@ async function submitAuth(){
     const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
     const j=await r.json();
     if(!r.ok) throw new Error(j.error|| (authMode==='login'?'Invalid email or password':'Registration failed'));
+    // 2FA required?
+    if(j.need_2fa){
+      window._temp2FA = j.temp_token;
+      closeModal('authModal');
+      document.getElementById('twofaModal').classList.add('open');
+      document.getElementById('twofaError').style.display='none';
+      document.getElementById('twofaCode').value='';
+      setTimeout(()=>document.getElementById('twofaCode').focus(), 200);
+      toast("2FA code required");
+      return;
+    }
     // success
     localStorage.setItem('nare_token', j.token);
     localStorage.setItem('nare_user', JSON.stringify(j.user));
@@ -444,7 +455,6 @@ async function submitAuth(){
       closeModal('authModal');
       updateAuthUI();
       if(authMode==='register'){
-        // after register, encourage first QR
         document.getElementById('generateBtn')?.scrollIntoView({behavior:'smooth', block:'center'});
       }
     }, 700);
@@ -452,9 +462,9 @@ async function submitAuth(){
     const errEl=document.getElementById('authError');
     errEl.textContent=e.message;
     errEl.classList.add('show');
-    // map common errors to fields
     if(e.message.toLowerCase().includes('email already')) showFieldError('authEmail','emailError',e.message);
     if(e.message.toLowerCase().includes('invalid credentials')) showFieldError('authPass','passError',e.message);
+    if(e.message.toLowerCase().includes('at least 8') || e.message.toLowerCase().includes('uppercase') || e.message.toLowerCase().includes('password must')) showFieldError('authPass','passError',e.message);
   } finally {
     btn.disabled=false; btn.textContent=orig; btn.classList.remove('btn-loading');
     document.getElementById('authLoading').style.display='none';
@@ -721,7 +731,52 @@ document.addEventListener('DOMContentLoaded', ()=>{
       }
     };
   }
-  // Forgot link
+  // Forgot link — professional flow
   const forgot=document.getElementById('forgotLink');
-  if(forgot) forgot.onclick=e=>{ e.preventDefault(); toast("Password reset — contact support@nareandco.com", true); };
+  if(forgot) forgot.onclick=async e=>{
+    e.preventDefault();
+    const email = document.getElementById('authEmail').value.trim() || prompt("Enter your email for reset:");
+    if(!email) return;
+    if(!validateEmail(email)){ toast("Enter valid email", true); return; }
+    try{
+      const r=await fetch(`${API}/api/forgot-password`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})});
+      const j=await r.json();
+      if(!r.ok) throw new Error(j.error);
+      // For personal local use, show token directly
+      if(j.reset_token){
+        const newPwd = prompt(`Reset token (from server logs): ${j.reset_token}\n\nEnter NEW password (min 8, 3 categories):`);
+        if(!newPwd) return;
+        const r2=await fetch(`${API}/api/reset-password`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email, token:j.reset_token, new_password:newPwd})});
+        const j2=await r2.json();
+        if(!r2.ok) throw new Error(j2.error);
+        toast("Password reset — log in with new password");
+        document.getElementById('authPass').value="";
+      } else {
+        toast(j.message||"Check server logs for reset token");
+      }
+    }catch(err){ toast(err.message, true); }
+  };
+  // 2FA verify
+  const twofaBtn=document.getElementById('twofaSubmit');
+  if(twofaBtn) twofaBtn.onclick=async()=>{
+    const code=document.getElementById('twofaCode').value.trim();
+    if(!code || code.length!==6){ document.getElementById('twofaError').textContent="Enter 6-digit code"; document.getElementById('twofaError').style.display="block"; return; }
+    twofaBtn.disabled=true; twofaBtn.textContent="Verifying…";
+    try{
+      const r=await fetch(`${API}/api/2fa/login-verify`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({temp_token:window._temp2FA, code})});
+      const j=await r.json();
+      if(!r.ok) throw new Error(j.error);
+      localStorage.setItem('nare_token', j.token);
+      // fetch user
+      const me=await fetch(`${API}/api/me`,{headers:{Authorization:`Bearer ${j.token}`}});
+      const u=await me.json();
+      localStorage.setItem('nare_user', JSON.stringify(u));
+      closeModal('twofaModal');
+      toast(`2FA verified — welcome ${u.email}`);
+      updateAuthUI();
+    }catch(e){ document.getElementById('twofaError').textContent=e.message; document.getElementById('twofaError').style.display="block"; }
+    finally{ twofaBtn.disabled=false; twofaBtn.textContent="Verify →"; }
+  };
+  document.getElementById('twofaModal').onclick=e=>{ if(e.target.id==="twofaModal") closeModal('twofaModal'); };
+  document.getElementById('twofaCode')?.addEventListener('keydown', e=>{ if(e.key==="Enter") document.getElementById('twofaSubmit').click(); });
 });

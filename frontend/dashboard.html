@@ -94,7 +94,26 @@
 
     <div id="view-folders" style="display:none"><div class="card"><h3>Folders</h3><div id="folderList" style="margin-top:10px"></div><div style="display:flex;gap:8px;margin-top:10px"><input id="newFolder" placeholder="New folder name" style="flex:1;padding:10px;border:1.5px solid var(--black);border-radius:10px"><button class="btn btn-dark btn-sm" id="addFolder">Add</button></div></div></div>
     <div id="view-templates" style="display:none"><div class="card"><h3>Saved Templates</h3><div id="tplList"></div></div></div>
-    <div id="view-settings" style="display:none"><div class="card"><h3>Settings & Security</h3><p style="color:#666;font-size:13px">NARE & CO. — Grid White / Black / Neon Green • GDPR • 2FA • Password QRs • Expiry controls • Local SQLite DB <code>data/nare.db</code></p><div style="margin-top:12px;display:grid;gap:10px"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked> Enable 2FA</label><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked> Anonymize data</label><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked> Email alerts for spikes</label></div><div style="margin-top:14px;display:flex;gap:8px"><button class="btn btn-ghost btn-sm" onclick="localStorage.clear(); toast('Local storage cleared')">Clear Local Cache</button><button class="btn btn-dark btn-sm" onclick="load()">Reload Data</button></div></div></div>
+    <div id="view-settings" style="display:none">
+      <div class="card"><h3>Settings & Security</h3><p style="color:#666;font-size:13px">NARE & CO. — Grid White / Black / Neon Green • GDPR • Local SQLite DB <code>data/nare.db</code> • HOST restricted to 127.0.0.1 • Rate-limited • POST-only passwords</p>
+        <div style="margin-top:14px;background:var(--grid-white);border:1.5px solid var(--black);border-radius:12px;padding:14px">
+          <strong style="font-size:13px">🔐 Two-Factor Authentication (TOTP)</strong>
+          <div style="font-size:12px;color:#666;margin:6px 0">Protect your account with authenticator app (Google Authenticator, Authy). Secret stored encrypted in <code>users.twofa_secret</code>.</div>
+          <div id="twofaStatus" style="font-size:12px;font-weight:700;margin:8px 0">Checking…</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" id="btn2faSetup">Setup 2FA →</button>
+            <button class="btn btn-ghost btn-sm" id="btn2faDisable">Disable 2FA</button>
+          </div>
+          <div id="twofaBox" style="display:none;margin-top:12px;background:white;border:1.5px solid var(--black);border-radius:12px;padding:12px">
+            <div style="text-align:center"><img id="twofaQR" style="width:200px;height:200px;object-fit:contain;border:1px solid #EEE;border-radius:8px;background:white;padding:8px"><div style="font-size:11px;color:#666;margin-top:6px">Scan with authenticator, then enter code</div></div>
+            <div style="font-size:11px;font-family:monospace;background:var(--black);color:var(--neon);padding:6px 8px;border-radius:8px;margin:8px 0;word-break:break-all" id="twofaSecret"></div>
+            <div style="display:flex;gap:8px"><input id="twofaCodeSetup" placeholder="123456" maxlength="6" style="flex:1;padding:10px;border:1.5px solid var(--black);border-radius:10px;text-align:center;letter-spacing:.2em;font-weight:800"><button class="btn btn-primary btn-sm" id="btn2faVerify">Verify & Enable</button></div>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:grid;gap:10px"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked disabled> Anonymize scan IP (GDPR)</label><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked disabled> Rate limiting (5/min login)</label><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked disabled> CORS restricted to ALLOWED_ORIGINS</label></div>
+        <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="localStorage.clear(); toast('Local storage cleared')">Clear Local Cache</button><button class="btn btn-dark btn-sm" onclick="load()">Reload Data</button><button class="btn btn-ghost btn-sm" onclick="if(confirm('Reset local DB? This deletes data/nare.db')){fetch('/api/health').then(()=>toast('Delete data/nare.db and restart server'))}">Reset DB Help</button></div>
+      </div>
+    </div>
 
   </main>
 </div>
@@ -392,7 +411,48 @@ document.getElementById('addFolder').onclick=async()=>{
 document.getElementById('qrModal').onclick=e=>{ if(e.target.id==='qrModal') closeModal('qrModal'); };
 document.getElementById('editModal').onclick=e=>{ if(e.target.id==='editModal') closeModal('editModal'); };
 
+// 2FA
+async function refresh2FA(){
+  const token=auth(); if(!token) return;
+  try{
+    const r=await fetch(`${API}/api/me`,{headers:{Authorization:`Bearer ${token}`}});
+    const me=await r.json();
+    const enabled = me.twofa_enabled;
+    document.getElementById('twofaStatus').innerHTML = enabled ? '<span style="color:#16A34A">● Enabled</span> — 2FA protects login' : '<span style="color:#DC2626">● Disabled</span> — Enable for extra security';
+  }catch{}
+}
+document.getElementById('btn2faSetup').onclick=async()=>{
+  const token=auth(); if(!token) return;
+  const r=await fetch(`${API}/api/2fa/setup`,{method:"POST",headers:{Authorization:`Bearer ${token}`}});
+  const j=await r.json();
+  if(!r.ok){ toast(j.error,true); return; }
+  document.getElementById('twofaQR').src=j.qr_base64;
+  document.getElementById('twofaSecret').textContent=j.secret;
+  document.getElementById('twofaBox').style.display='block';
+  toast("Scan QR with authenticator");
+};
+document.getElementById('btn2faVerify').onclick=async()=>{
+  const code=document.getElementById('twofaCodeSetup').value.trim();
+  if(!code) return toast("Enter code",true);
+  const token=auth(); if(!token) return;
+  const r=await fetch(`${API}/api/2fa/verify-setup`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({code})});
+  const j=await r.json();
+  if(r.ok){ toast("2FA enabled"); document.getElementById('twofaBox').style.display='none'; refresh2FA(); }
+  else toast(j.error,true);
+};
+document.getElementById('btn2faDisable').onclick=async()=>{
+  const code=prompt("Enter current 2FA code to disable:");
+  if(!code) return;
+  const token=auth(); if(!token) return;
+  const r=await fetch(`${API}/api/2fa/disable`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({code})});
+  const j=await r.json();
+  if(r.ok){ toast("2FA disabled"); refresh2FA(); } else toast(j.error,true);
+};
+// refresh 2FA status when settings opened
+document.querySelector('[data-view="settings"]').onclick=()=>{ setTimeout(refresh2FA,100); };
+
 load();
+refresh2FA();
 </script>
 </body>
 </html>
