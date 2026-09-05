@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual — NARE & CO.</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<style>
+  .manual{max-width:900px;margin:0 auto;padding:24px;background:white;border:1.5px solid var(--black);border-radius:20px;box-shadow:6px 6px 0 var(--black);overflow:hidden}
+  .manual h1{font-size:32px;letter-spacing:-.04em;margin-bottom:8px}
+  .manual h2{font-size:20px;margin:28px 0 10px;padding-bottom:6px;border-bottom:1.5px solid var(--black)}
+  .manual h3{font-size:14px;margin:18px 0 8px;letter-spacing:.04em;text-transform:uppercase}
+  .manual pre{background:var(--black);color:var(--neon);padding:14px;border-radius:12px;overflow:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6}
+  .manual code{font-family:'JetBrains Mono',monospace;background:var(--grid-white);padding:2px 6px;border-radius:6px;border:1px solid #E5E7EB;font-size:12px}
+  .manual table{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0}
+  .manual th{ text-align:left;background:var(--black);color:white;padding:8px;border:1px solid #222}
+  .manual td{padding:8px;border:1px solid #E5E7EB}
+  .manual a{color:var(--black);text-decoration:underline;font-weight:700}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="container header-inner">
+    <a href="/" class="logo"><div class="logo-mark">N</div><div class="logo-type">NARE <span>& CO.</span></div></a>
+    <nav class="nav">
+      <a href="/">Generator</a>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/manual.html" class="active">Manual</a>
+      <a href="/api-docs">API Docs</a>
+    </nav>
+    <div class="header-cta">
+      <a class="btn btn-primary btn-sm" href="/">Create QR →</a>
+    </div>
+  </div>
+</header>
+<section class="section">
+  <div class="container">
+    <div class="manual">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+        <span class="badge badge-neon">Working Manual</span>
+        <span class="badge badge-white">Personal Edition</span>
+        <span class="badge badge-black">v1.1.0</span>
+      </div>
+      <h1>NARE & CO. — Working Manual</h1>
+      <p style="color:#666">Grid White / Black / Neon Green • Local SQLite <code>data/nare.db</code> • Tested on fresh Windows 11 + Python 3.11. Every command below was executed.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0">
+        <a class="btn btn-primary btn-sm" href="/MANUAL.md">View Markdown →</a>
+        <a class="btn btn-ghost btn-sm" href="/api/health">Health Check</a>
+        <a class="btn btn-ghost btn-sm" href="/dashboard">Dashboard</a>
+      </div>
+      <h2>Fresh Install (Any PC)</h2>
+      <pre>git clone https://github.com/WHITEJACK5/NARE-CO..git
+cd NARE-CO.
+cp .env.example .env   # or ./start.sh auto-creates
+pip install -r requirements.txt
+python app.py
+# → Fresh DB created at data/nare.db
+# open http://127.0.0.1:5000</pre>
+      <p>No manual DB steps. <code>app.py:31</code> creates <code>data/</code> + <code>.gitkeep</code>, <code>init_db()</code> creates tables. Delete <code>data/nare.db</code> → restart → fresh.</p>
+      <h2>Run Daily</h2>
+      <pre># Windows
+pip install -r requirements.txt
+python app.py
+# or .\start.ps1 / .\run.bat
+# Unix/macOS
+chmod +x start.sh && ./start.sh
+# verify
+curl http://127.0.0.1:5000/api/health</pre>
+      <h2>Generator</h2>
+      <p>Pick type (All 25+), choose <b>Static</b> (free) vs <b>Dynamic</b> (trackable, needs login), fill form, customize Pattern/Eyes/Colors/Logo (drag PNG ≤5MB → 22% center)/Frame, Generate → Download PNG/SVG (real vector)/PDF. No confirm dialog.</p>
+      <h2>Dashboard</h2>
+      <p><code>/dashboard</code> (auth-guarded) — Search/filter, View (analytics), <b>Edit all fields</b> (name/type/content/colors/pattern/frame/password/limit/expiry) → <code>PUT /api/qrcodes/&lt;id&gt;</code>, Duplicate, Delete, Bulk CSV, Folders, Templates, Settings (2FA).</p>
+      <h2>2FA & Forgot</h2>
+      <p>Register → Login; if 2FA enabled, `need_2fa` → enter 6-digit code (`/api/2fa/login-verify`). Dashboard Settings → Setup 2FA (scan QR) → Verify. Forgot? → Login modal `Forgot?` → `POST /api/forgot-password` → token in server logs → `POST /api/reset-password`.</p>
+      <h2>Security</h2>
+      <p>SECRET_KEY via <code>.env</code> (auto-generated), <code>HOST=127.0.0.1</code> <code>FLASK_DEBUG=false</code>, rate limit 5/min, CORS whitelist, password via POST not GET, real geo via ip-api.com, real SVG/GS1/smart URL.</p>
+      <h2>API</h2>
+      <table>
+        <tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+        <tr><td>POST</td><td>/api/register</td><td>Register</td></tr>
+        <tr><td>POST</td><td>/api/login</td><td>Login</td></tr>
+        <tr><td>POST</td><td>/api/generate</td><td>Generate QR</td></tr>
+        <tr><td>GET</td><td>/r/&lt;code&gt;</td><td>Redirect (track)</td></tr>
+        <tr><td>GET</td><td>/api/download/&lt;id&gt;</td><td>PNG/SVG/PDF</td></tr>
+      </table>
+      <p>See <code>MANUAL.md</code> for full 25-type table + troubleshooting.</p>
+      <div style="margin-top:18px;padding:12px;background:var(--grid-white);border:1px dashed var(--black);border-radius:12px;font-size:12px;color:#666">
+        Full working manual: <code>MANUAL.md</code> at repo root — also served at <a href="/MANUAL.md">/MANUAL.md</a>. This page is a quick start; read <code>MANUAL.md</code> for complete steps, API table, and troubleshooting.
+      </div>
+    </div>
+  </div>
+</section>
+<footer class="footer"><div class="container" style="font-size:12px;display:flex;justify-content:space-between"><span>© 2026 NARE & CO. — Manual v1.1.0</span><span style="color:var(--neon)">Personal Use • Local DB</span></div></footer>
+</body>
+</html>

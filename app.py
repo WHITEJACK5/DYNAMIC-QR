@@ -776,6 +776,14 @@ def api_docs_page():
         return send_from_directory(os.path.join(APP_DIR, "frontend"), "api-docs.html")
     return "API docs not found", 404
 
+@app.route("/MANUAL.md")
+def manual_md():
+    return send_from_directory(APP_DIR, "MANUAL.md", mimetype="text/markdown")
+
+@app.route("/manual")
+def manual_page():
+    return send_from_directory(os.path.join(APP_DIR, "frontend"), "manual.html")
+
 @app.route("/frontend/<path:path>")
 def frontend_static(path):
     return send_from_directory(os.path.join(APP_DIR, "frontend"), path)
