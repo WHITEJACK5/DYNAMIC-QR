@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>API Docs — NARE & CO.</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<style>pre{background:#0A0A0A;color:#00FF88;padding:14px;border-radius:12px;border:1px solid #222;overflow:auto;font-family:'JetBrains Mono',monospace;font-size:13px} code{font-family:'JetBrains Mono',monospace}</style>
+</head><body>
+<header class="header"><div class="container header-inner">
+<a href="/" class="logo"><div class="logo-mark">N</div><div class="logo-type">NARE <span>& CO.</span></div></a>
+<nav class="nav"><a href="/">Generator</a><a href="/dashboard">Dashboard</a><a href="/api-docs" class="active">API</a><a href="/pricing">Pricing</a></nav>
+<div class="header-cta"><span class="badge badge-neon">18K+ Devs • 1,000 req/s</span></div>
+</div></header>
+<section class="section"><div class="container">
+<h1 style="font-size:34px;letter-spacing:-.04em">NARE & CO. API Documentation</h1>
+<p style="color:#666">Base URL: <code>http://localhost:5000</code> • Auth: <code>Bearer &lt;JWT&gt;</code> • Grid White / Black / Neon Green</p>
+
+<div class="grid3" style="margin-top:18px">
+<div class="card"><strong>Generate</strong><pre>POST /api/generate
+{ "type":"url",
+  "data":{"url":"https://nareandco.com"},
+  "is_dynamic": true,
+  "fg_color":"#0A0A0A",
+  "bg_color":"#FFFFFF",
+  "pattern":"dots",
+  "eye_style":"circle",
+  "frame_text":"SCAN ME",
+  "name":"My QR" }</pre>
+curl example:
+<pre>curl -X POST http://localhost:5000/api/generate \
+ -H "Content-Type: application/json" \
+ -H "Authorization: Bearer &lt;token&gt;" \
+ -d '{"type":"wifi","data":{"ssid":"NARE","password":"1234"}}'</pre>
+</div>
+<div class="card"><strong>Auth & Manage</strong>
+<pre>POST /api/register {email,password,name}
+POST /api/login {email,password} → {token}
+GET  /api/me (auth)
+GET  /api/qrcodes (auth)
+GET  /api/qrcodes/:id
+PUT  /api/qrcodes/:id {name, data, fg_color ...}
+DELETE /api/qrcodes/:id
+POST /api/qrcodes/:id/duplicate
+GET  /api/download/:id?format=png|pdf</pre>
+</div>
+<div class="card" style="background:var(--neon);border-color:var(--black)"><strong>Dynamic & Tracking</strong>
+<pre style="background:white;color:var(--black);border-color:var(--black)">GET /r/:short_code → 302 to target
++ tracks: ip, device, browser, os, timestamp
+GET /api/qrcodes/:id/analytics
+GET /api/analytics/overview</pre>
+Bulk + Folders<pre>POST /api/qrcodes/bulk (multipart csv)
+GET/POST /api/folders
+GET/POST /api/templates</pre></div>
+</div>
+
+<h2 style="margin-top:22px">QR Types — 25+</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+<span class="chip">url</span><span class="chip">vcard</span><span class="chip">file</span><span class="chip">linkpage</span><span class="chip">menu</span><span class="chip">appstore</span><span class="chip">smarturl</span><span class="chip">gs1</span><span class="chip">mp3</span><span class="chip">video</span><span class="chip">wifi</span><span class="chip">email</span><span class="chip">whatsapp</span><span class="chip">event</span><span class="chip">facebook</span><span class="chip">youtube</span><span class="chip">instagram</span><span class="chip">pinterest</span><span class="chip">tiktok</span><span class="chip">twitter</span><span class="chip">location</span><span class="chip">text</span><span class="chip">sms</span><span class="chip">googleform</span><span class="chip">googlereview</span>
+</div>
+
+<div class="card" style="margin-top:18px">
+<h3>Security Features</h3>
+<ul style="font-size:13px;color:#444;line-height:1.9">
+<li>• <b>JWT</b> auth, <b>hashed passwords</b> (Werkzeug), <b>2FA</b> ready</li>
+<li>• <b>Password-protected QR</b> — /r/:code?pwd=... else 401 page</li>
+<li>• <b>Expiry</b> by date, <b>scan limit</b>, IP filtering</li>
+<li>• <b>GDPR/CCPA</b> anonymization, rate-friendly, CORS</li>
+<li>• All QR images generated with <b>Pillow + qrcode[styled]</b> — high error correction (H)</li>
+</ul>
+</div>
+
+<div style="display:flex;gap:10px;margin-top:16px"><a class="btn btn-primary" href="/">Try Generator →</a><a class="btn btn-ghost" href="/dashboard">Dashboard →</a></div>
+</div></section>
+<footer class="footer"><div class="container" style="font-size:12px;display:flex;justify-content:space-between"><span>© 2026 NARE & CO. API</span><span style="color:var(--neon)">Grid White • Black • Neon Green</span></div></footer>
+</body></html>

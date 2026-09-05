@@ -1,0 +1,8 @@
+Flask==3.0.3
+Flask-Cors==4.0.1
+PyJWT==2.8.0
+qrcode[pil]==8.0
+Pillow==10.4.0
+Werkzeug==3.0.3
+reportlab==4.2.0
+python-dotenv==1.0.1

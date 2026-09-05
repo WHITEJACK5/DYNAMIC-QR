@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NARE & CO. — Most Advanced QR Code Generator with Logo</title>
+<meta name="description" content="NARE & CO. - Create unlimited free QR codes, dynamic trackable, 25+ types, bulk, API. Grid White / Black / Neon Green.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<style>
+  .type-grid::-webkit-scrollbar{width:6px;height:6px}
+  .type-grid::-webkit-scrollbar-thumb{background:#0A0A0A;border-radius:999px}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="container header-inner">
+    <a href="/" class="logo">
+      <div class="logo-mark">N</div>
+      <div class="logo-type">NARE <span>& CO.</span></div>
+    </a>
+    <nav class="nav" id="nav">
+      <a href="#" class="active">Generator</a>
+      <a href="#features">Solutions</a>
+      <a href="#pricing">Pricing</a>
+      <a href="/api-docs">API Docs</a>
+      <a href="#faq">FAQ</a>
+      <a href="/dashboard" id="navDash" style="display:none;background:var(--neon);color:var(--black);border:1px solid var(--black)">Dashboard →</a>
+    </nav>
+    <div class="header-cta">
+      <button class="btn btn-ghost btn-sm" id="loginBtn">Log In</button>
+      <button class="btn btn-primary btn-sm" id="registerBtn">Register — Free</button>
+      <button class="hamburger" id="ham">☰</button>
+    </div>
+  </div>
+</header>
+
+<!-- HERO + GENERATOR -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <!-- Left: intro -->
+      <div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span class="badge badge-neon">● Most Advanced QR Generator</span>
+          <span class="badge badge-white">850,000+ Brands Trust Us</span>
+          <span class="badge badge-black">Grid White • Black • Neon Green</span>
+        </div>
+        <h1>The Most Advanced <span class="neon">QR Code Generator</span> with Logo Online</h1>
+        <p>Create unlimited free QR codes, or choose <b>Dynamic</b> to track scans, edit destinations, and manage <b>25 QR types</b> from a single dashboard. Fully customizable, secure, GDPR-ready — built for <b>NARE & CO.</b></p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" onclick="document.getElementById('generator').scrollIntoView({behavior:'smooth'})">Create FREE QR →</button>
+          <button class="btn btn-ghost" onclick="openModal('demo')">Watch Demo ▸</button>
+        </div>
+        <div class="trustbar">
+          <div class="trust-avatars">
+            <img src="https://i.pravatar.cc/100?img=11"><img src="https://i.pravatar.cc/100?img=12"><img src="https://i.pravatar.cc/100?img=32"><img src="https://i.pravatar.cc/100?img=33">
+          </div>
+          <span><b>4.8★ G2</b> • 5★ SourceForge • 4.6★ Trustpilot</span>
+          <span style="color:#0A0A0A;background:var(--neon);padding:4px 8px;border-radius:999px;border:1px solid var(--black);font-weight:800">Trusted by 18K+ developers via API</span>
+        </div>
+
+        <!-- Feature mini -->
+        <div class="grid3" style="margin-top:22px;gap:12px">
+          <div class="card" style="padding:14px;box-shadow:3px 3px 0 var(--black)">
+            <div class="feature-ico" style="width:36px;height:36px;font-size:16px;margin-bottom:8px">◎</div>
+            <strong style="font-size:13px">Fully Customizable</strong>
+            <div style="font-size:12px;color:#555">Logo, colors, eyes, pattern, frame — brand it.</div>
+          </div>
+          <div class="card" style="padding:14px;box-shadow:3px 3px 0 var(--black)">
+            <div class="feature-ico" style="width:36px;height:36px;font-size:16px;margin-bottom:8px">◉</div>
+            <strong style="font-size:13px">Trackable Analytics</strong>
+            <div style="font-size:12px;color:#555">Scans, time, location, device — real insights.</div>
+          </div>
+          <div class="card" style="padding:14px;box-shadow:3px 3px 0 var(--black)">
+            <div class="feature-ico" style="width:36px;height:36px;font-size:16px;margin-bottom:8px">⬢</div>
+            <strong style="font-size:13px">Editable Anytime</strong>
+            <div style="font-size:12px;color:#555">Change URL after print. No reprinting.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Generator -->
+      <div id="generator" class="gen-card">
+        <div class="gen-tabs-top" id="topCats">
+          <button class="tab-pill active" data-filter="all">All 25+</button>
+          <button class="tab-pill" data-filter="popular">Popular</button>
+          <button class="tab-pill" data-filter="business">Business</button>
+          <button class="tab-pill" data-filter="social">Social</button>
+          <button class="tab-pill" data-filter="utility">Utility</button>
+        </div>
+
+        <div class="type-grid" id="typeGrid">
+          <!-- injected by JS -->
+        </div>
+
+        <div class="toggle-row">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:11px;font-weight:900;letter-spacing:.08em">STATIC</span>
+            <label style="position:relative;display:inline-block;width:52px;height:30px">
+              <input type="checkbox" id="dynamicToggle" style="opacity:0;width:0;height:0">
+              <span id="toggleBg" style="position:absolute;inset:0;background:#333;border-radius:999px;transition:.2s;border:1px solid #444"></span>
+              <span id="toggleKnob" style="position:absolute;top:3px;left:3px;width:22px;height:22px;background:white;border-radius:50%;transition:.2s;box-shadow:0 2px 6px rgba(0,0,0,.3)"></span>
+            </label>
+            <span style="font-size:11px;font-weight:900;letter-spacing:.08em">DYNAMIC <span style="background:var(--neon);color:var(--black);padding:2px 6px;border-radius:999px">RECOMMENDED</span></span>
+          </div>
+          <span style="font-size:11px;color:#AAA">Edit • Track • Retarget • Password • Expiry</span>
+        </div>
+
+        <div class="gen-body" id="formArea">
+          <!-- dynamic form -->
+        </div>
+
+        <div style="padding:0 18px 16px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" style="flex:1" id="generateBtn">⚡ Generate QR Code</button>
+          <button class="btn btn-ghost" id="resetBtn">Reset</button>
+        </div>
+        <div class="help" id="formHelp">We recommend <b>Dynamic QR</b> if you want to track performance and edit data even after printing.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PREVIEW FLOAT ON MOBILE SEPARATE, DESKTOP SIDE -->
+<section style="padding:0 0 28px">
+  <div class="container hero-grid" style="align-items:start">
+    <div></div>
+    <div class="preview-card" id="previewCard">
+      <div class="preview-head">
+        <h3><span style="width:10px;height:10px;background:var(--neon);border:1px solid var(--black);border-radius:50%;display:inline-block;box-shadow:0 0 8px var(--neon)"></span> Live Preview • NARE & CO.</h3>
+        <span class="preview-status" id="previewType">URL • Static</span>
+      </div>
+      <div class="qr-stage">
+        <div class="qr-frame" id="qrFrame">
+          <img id="qrImage" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://nareandco.com" alt="QR Preview">
+        </div>
+      </div>
+      <div class="custom-panel">
+        <div class="custom-head">
+          <h4>Customize Your QR</h4>
+          <span style="font-size:11px;color:#666">Scan to test</span>
+        </div>
+        <div class="tabs-small" id="customTabs">
+          <button class="active" data-tab="pattern">Pattern</button>
+          <button data-tab="eyes">Eyes</button>
+          <button data-tab="colors">Colors</button>
+          <button data-tab="logo">Logo</button>
+          <button data-tab="frame">Frame</button>
+          <button data-tab="templates">Templates</button>
+        </div>
+
+        <!-- Pattern -->
+        <div class="custom-pane" id="pane-pattern">
+          <div class="opts-grid">
+            <button class="opt-btn active" data-pattern="square"><span>■</span> Square</button>
+            <button class="opt-btn" data-pattern="dots"><span>●</span> Dots</button>
+            <button class="opt-btn" data-pattern="rounded"><span>⬢</span> Rounded</button>
+            <button class="opt-btn" data-pattern="gapped"><span>▦</span> Gapped</button>
+          </div>
+        </div>
+        <div class="custom-pane" id="pane-eyes" style="display:none">
+          <div class="opts-grid">
+            <button class="opt-btn active" data-eye="square">◧ Square Eyes</button>
+            <button class="opt-btn" data-eye="circle">◎ Circle Eyes</button>
+            <button class="opt-btn" data-eye="rounded">⬔ Rounded</button>
+          </div>
+        </div>
+        <div class="custom-pane" id="pane-colors" style="display:none">
+          <div class="color-row">
+            <div style="flex:1">
+              <label class="help" style="margin-bottom:6px;display:block">Foreground</label>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="color" id="fgColor" value="#0A0A0A">
+                <input type="text" id="fgText" value="#0A0A0A" style="flex:1;padding:10px;border:1.5px solid var(--black);border-radius:10px;font-family:monospace">
+              </div>
+            </div>
+            <div style="flex:1">
+              <label class="help" style="margin-bottom:6px;display:block">Background</label>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="color" id="bgColor" value="#FFFFFF">
+                <input type="text" id="bgText" value="#FFFFFF" style="flex:1;padding:10px;border:1.5px solid var(--black);border-radius:10px;font-family:monospace">
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="opt-btn active" data-gradient="solid" style="flex:1;justify-content:center">Solid</button>
+            <button class="opt-btn" data-gradient="linear" style="flex:1;justify-content:center">Linear Gradient</button>
+            <button class="opt-btn" data-gradient="radial" style="flex:1;justify-content:center">Radial</button>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+            <span style="font-size:11px;font-weight:800">Quick:</span>
+            <button class="chip" data-preset="#0A0A0A,#FFFFFF" style="cursor:pointer">Black/White</button>
+            <button class="chip chip-neon" data-preset="#0A0A0A,#00FF88" style="cursor:pointer">Black/Neon</button>
+            <button class="chip" data-preset="#00FF88,#0A0A0A" style="cursor:pointer">Neon/Black</button>
+          </div>
+        </div>
+        <div class="custom-pane" id="pane-logo" style="display:none">
+          <input type="file" id="logoInput" accept="image/*" style="width:100%;padding:10px;border:1.5px dashed var(--black);border-radius:12px;background:white">
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-ghost btn-sm" id="removeLogo" style="flex:1">Remove Logo</button>
+            <span style="font-size:11px;color:#666;display:flex;align-items:center">500KB-1MB • PNG/JPG • Square</span>
+          </div>
+          <div id="logoPreview" style="margin-top:8px;display:none;place-items:center;padding:8px;border:1px solid #EEE;border-radius:10px;background:white">
+            <img id="logoThumb" style="max-height:48px">
+          </div>
+        </div>
+        <div class="custom-pane" id="pane-frame" style="display:none">
+          <label class="help">Frame Text (CTA)</label>
+          <input type="text" id="frameText" placeholder="SCAN ME • NARE & CO." style="width:100%;padding:12px;border:1.5px solid var(--black);border-radius:12px">
+          <div class="color-row" style="margin-top:8px">
+            <span style="font-size:12px;font-weight:700">Frame Color</span>
+            <input type="color" id="frameColor" value="#00FF88">
+          </div>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+            <button class="chip" data-frame="SCAN ME">SCAN ME</button>
+            <button class="chip" data-frame="SCAN ME • NARE & CO.">NARE & CO.</button>
+            <button class="chip" data-frame="WIFI CONNECT">WIFI CONNECT</button>
+            <button class="chip" data-frame="OPEN MENU">OPEN MENU</button>
+          </div>
+        </div>
+        <div class="custom-pane" id="pane-templates" style="display:none">
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+            <button class="opt-btn" data-template="neon" style="flex-direction:column;align-items:flex-start"><b>Neon Pop</b><span style="font-weight:400">Black/Neon • Dots • Rounded</span></button>
+            <button class="opt-btn" data-template="mono" style="flex-direction:column;align-items:flex-start"><b>Mono Black</b><span style="font-weight:400">Minimal • Square</span></button>
+            <button class="opt-btn" data-template="grid" style="flex-direction:column;align-items:flex-start"><b>Grid White</b><span style="font-weight:400">Soft • Gapped</span></button>
+            <button class="opt-btn" data-template="neonBlack" style="flex-direction:column;align-items:flex-start"><b>Neon Night</b><span style="font-weight:400">Neon on Black</span></button>
+          </div>
+          <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px" id="saveTemplateBtn">Save as Template</button>
+        </div>
+      </div>
+      <div class="download-row">
+        <button class="btn btn-ghost btn-sm" data-dl="png">PNG</button>
+        <button class="btn btn-ghost btn-sm" data-dl="svg">SVG</button>
+        <button class="btn btn-ghost btn-sm" data-dl="pdf">PDF</button>
+        <button class="btn btn-primary btn-sm" style="flex:1.5" id="downloadBtn">⬇ Download QR</button>
+      </div>
+      <div style="padding:10px 14px;background:#0A0A0A;color:#AAA;font-size:11px;display:flex;gap:8px;justify-content:space-between;align-items:center">
+        <span>© 2026 NARE & CO. • Secure • GDPR Ready</span>
+        <span style="color:var(--neon)">● Live</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="features">
+  <div class="container">
+    <div style="text-align:center;max-width:760px;margin:0 auto 28px">
+      <span class="badge badge-neon">How it Works</span>
+      <h2 style="font-size:32px;letter-spacing:-.04em;margin:10px 0">How to create a free QR code</h2>
+      <p style="color:#555">Generate branded QR codes with logo in seconds — with NARE & CO.’s neon-grade engine.</p>
+    </div>
+    <div class="grid3">
+      <div class="card" style="text-align:center">
+        <div style="width:48px;height:48px;border-radius:50%;background:var(--neon);border:1.5px solid var(--black);display:grid;place-items:center;margin:0 auto 12px;font-weight:900">1</div>
+        <h3>Select a QR & fill details</h3>
+        <p style="font-size:13px;color:#555;margin-top:6px">Choose from URL, vCard, File, Link Page, Menu, App Stores, Smart URL, GS1, MP3, WiFi, Event +20 more. Static FREE, Dynamic editable.</p>
+      </div>
+      <div class="card" style="text-align:center">
+        <div style="width:48px;height:48px;border-radius:50%;background:var(--black);color:var(--neon);border:1.5px solid var(--black);display:grid;place-items:center;margin:0 auto 12px;font-weight:900">2</div>
+        <h3>Customize your QR</h3>
+        <p style="font-size:13px;color:#555;margin-top:6px">Pattern, eyes, colors, logo, frame, CTA. Upload brand logo, match palette — grid-white/black/neon themes.</p>
+      </div>
+      <div class="card" style="text-align:center">
+        <div style="width:48px;height:48px;border-radius:50%;background:white;border:1.5px solid var(--black);display:grid;place-items:center;margin:0 auto 12px;font-weight:900;box-shadow:2px 2px 0 var(--black)">3</div>
+        <h3>Download & share</h3>
+        <p style="font-size:13px;color:#555;margin-top:6px">Preview, test scan, then download PNG/SVG/PDF. Share, print, or manage via Dashboard + API.</p>
+      </div>
+    </div>
+
+    <!-- Benefits -->
+    <div class="grid3" style="margin-top:22px">
+      <div class="card card-dark">
+        <div class="feature-ico">◈</div>
+        <h3>Fully Customizable</h3>
+        <p style="color:#AAA;font-size:13px">Brand colors, logo center, eye shapes, frames, templates — save & reuse.</p>
+      </div>
+      <div class="card card-dark">
+        <div class="feature-ico">◎</div>
+        <h3>Scan Analytics</h3>
+        <p style="color:#AAA;font-size:13px">Total scans, time, location, device — compare campaigns, optimize.</p>
+      </div>
+      <div class="card card-dark">
+        <div class="feature-ico">⬢</div>
+        <h3>Lifetime Valid</h3>
+        <p style="color:#AAA;font-size:13px">Static never expires. Dynamic unlimited scans with active plan.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Trusted -->
+<section class="section-dark">
+  <div class="container" style="position:relative;z-index:1;padding:28px 24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
+      <div>
+        <div class="kicker neon">Built for businesses of all sizes</div>
+        <h2 style="font-size:28px;margin-top:10px">Safe • GDPR & CCPA Ready • Fast • Flexible • Reliable • Scalable</h2>
+        <p style="color:#AAA;max-width:640px">99.9% uptime on AWS, auto-scaling clusters, 60B+ clicks tracked yearly, 18K+ devs via API. 2FA, anonymized data, 24/7 monitoring.</p>
+      </div>
+      <div class="stats" style="grid-template-columns:repeat(2,1fr);min-width:280px">
+        <div class="stat" style="background:#111;color:white;border-color:#222;box-shadow:none"><strong style="color:var(--neon)">60B+</strong><span>Clicks tracked /yr</span></div>
+        <div class="stat" style="background:#111;color:white;border-color:#222;box-shadow:none"><strong style="color:var(--neon)">99.9%</strong><span>Uptime</span></div>
+      </div>
+    </div>
+
+    <div class="grid3" style="margin-top:22px">
+      <div class="card" style="background:#0F0F0F;color:white;border-color:#222;box-shadow:4px 4px 0 rgba(0,255,136,0.2)">
+        <strong>Run smarter campaigns at scale</strong>
+        <ul style="margin-top:8px;color:#AAA;font-size:13px;line-height:1.8">
+          <li>• Stay in control — folders, alerts, edit anytime</li>
+          <li>• Learn from real scan data</li>
+          <li>• White-labeled links</li>
+          <li>• Bulk up to 3,000 via CSV</li>
+          <li>• API + Zapier/HubSpot/Canva</li>
+        </ul>
+        <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="document.getElementById('generator').scrollIntoView({behavior:'smooth'})">Create Free QR →</button>
+      </div>
+      <div class="card" style="background:white">
+        <h4 style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;background:var(--neon);border-radius:50%;box-shadow:0 0 8px var(--neon)"></span> Intelligent Analytics</h4>
+        <p style="font-size:13px;color:#555;margin:6px 0">Dashboard with scans over time, top campaigns, device & location, retargeting via GTM/FB Pixel.</p>
+        <div style="background:var(--grid-white);border:1px solid var(--black);border-radius:12px;padding:10px;margin-top:8px">
+          <div style="height:6px;background:#0A0A0A;border-radius:999px;overflow:hidden"><div style="width:72%;height:100%;background:var(--neon)"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;margin-top:6px"><span>Scans over time</span><span style="color:var(--neon);background:var(--black);padding:2px 6px;border-radius:999px">+28%</span></div>
+        </div>
+      </div>
+      <div class="card" style="background:var(--neon);border-color:var(--black)">
+        <h4>Software Integrations</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+          <span class="badge-white" style="justify-content:center;background:white">Zapier</span>
+          <span class="badge-white" style="justify-content:center;background:white">HubSpot</span>
+          <span class="badge-white" style="justify-content:center;background:white">Canva</span>
+          <span class="badge-white" style="justify-content:center;background:white">GA4</span>
+          <span class="badge-white" style="justify-content:center;background:white">GTM</span>
+          <span class="badge-white" style="justify-content:center;background:white">Monday</span>
+        </div>
+        <p style="font-size:12px;margin-top:10px">Automate workflows, sync CRM, design in Canva — all from NARE & CO.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" id="pricing">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:22px">
+      <span class="badge badge-neon">Pricing — Flexible & Scalable</span>
+      <h2 style="font-size:32px;letter-spacing:-.04em">Choose your NARE & CO. plan</h2>
+      <p style="color:#666">Start free, upgrade when you need dynamic, bulk & analytics.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <h3>Free Forever</h3>
+        <div class="price">$0 <small>/ lifetime</small></div>
+        <ul style="font-size:13px;color:#444;line-height:1.9;list-style:none">
+          <li>✓ 3 Dynamic QRs (500 scans each)</li>
+          <li>✓ Unlimited Static QRs</li>
+          <li>✓ Basic customization</li>
+          <li>✓ PNG / SVG</li>
+          <li>✓ 1 user</li>
+        </ul>
+        <button class="btn btn-ghost" style="margin-top:auto" onclick="openModal('register')">Start Free →</button>
+      </div>
+      <div class="price-card popular">
+        <h3>Regular</h3>
+        <div class="price">$7 <small>/ month</small></div>
+        <ul style="font-size:13px;color:#444;line-height:1.9;list-style:none">
+          <li>✓ 12 Dynamic QRs, unlimited scans</li>
+          <li>✓ Full customization + logo</li>
+          <li>✓ Track + Edit • Folders</li>
+          <li>✓ Bulk 100 via CSV</li>
+          <li>✓ API access</li>
+        </ul>
+        <button class="btn btn-primary" style="margin-top:auto">Go Regular →</button>
+      </div>
+      <div class="price-card">
+        <h3>Premium</h3>
+        <div class="price">$37 <small>/ month</small></div>
+        <ul style="font-size:13px;color:#444;line-height:1.9;list-style:none">
+          <li>✓ 100 Dynamic QRs</li>
+          <li>✓ Team + White label</li>
+          <li>✓ Password & expiry control</li>
+          <li>✓ Bulk 3,000 • Zapier/HubSpot</li>
+          <li>✓ Priority support</li>
+        </ul>
+        <button class="btn btn-dark" style="margin-top:auto">Go Premium →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section" id="faq" style="background:white;border-top:1.5px solid var(--black)">
+  <div class="container">
+    <h2 style="text-align:center;font-size:28px;letter-spacing:-.04em">Frequently asked questions</h2>
+    <div class="faq" style="margin-top:18px">
+      <details class="faq-item" open>
+        <summary class="faq-q">What is the difference between static and dynamic QR? <span>+</span></summary>
+        <div class="faq-a"><b>Static</b> encodes data directly — free, not editable, denser. <b>Dynamic</b> points to a short URL (nare.co/r/…) — editable destination, trackable, clean design, retargeting. NARE & CO. recommends dynamic for business.</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">Do QR codes expire? <span>+</span></summary>
+        <div class="faq-a">Static never expires if data stays live. Dynamic valid while subscription active; you can also set expiry by date, scan limit, or IP (NARE & CO. security).</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">Can I add a logo and edit design after? <span>+</span></summary>
+        <div class="faq-a">Yes — upload square logo (500KB-1MB, PNG/JPG), pick pattern/eyes/colors/frame. Premium can edit design post-generation. Always test scan!</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">How many free QRs can I make? <span>+</span></summary>
+        <div class="faq-a">Unlimited static QRs free forever. Free plan includes 3 dynamic with logo & tracking (500 scans each). No ads.</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">Is NARE & CO. secure & GDPR ready? <span>+</span></summary>
+        <div class="faq-a">Yes — 2FA, human + AI monitoring, data anonymized pre-storage, CCPA/GDPR support, password-protected QRs, encrypted storage.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="logo" style="color:white;margin-bottom:10px"><div class="logo-mark" style="background:var(--neon);color:var(--black)">N</div><div class="logo-type">NARE <span>& CO.</span></div></div>
+        <p style="font-size:13px;line-height:1.7">Most advanced QR generator with logo — grid white, black & neon green. Build, track, and scale campaigns. Made with NARE & CO. design system.</p>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <a href="#" class="badge-white" style="background:#111;color:#AAA;border-color:#222">LinkedIn</a>
+          <a href="#" class="badge-white" style="background:#111;color:#AAA;border-color:#222">YouTube</a>
+          <a href="#" class="badge-white" style="background:#111;color:#AAA;border-color:#222">Instagram</a>
+        </div>
+      </div>
+      <div>
+        <strong style="color:white;font-size:12px;letter-spacing:.08em">RESOURCES</strong>
+        <div style="display:grid;gap:8px;margin-top:10px;font-size:13px">
+          <a href="#">Bulk Generator</a><a href="#">API Documentation</a><a href="#">Enterprise</a><a href="#">Integrations</a>
+        </div>
+      </div>
+      <div>
+        <strong style="color:white;font-size:12px;letter-spacing:.08em">SUPPORT</strong>
+        <div style="display:grid;gap:8px;margin-top:10px;font-size:13px">
+          <a href="#">Help Center</a><a href="#">Contact Us</a><a href="#">Status</a><a href="#">Pricing</a>
+        </div>
+      </div>
+      <div>
+        <strong style="color:white;font-size:12px;letter-spacing:.08em">LEGAL</strong>
+        <div style="display:grid;gap:8px;margin-top:10px;font-size:13px">
+          <a href="#">Privacy Policy</a><a href="#">Terms</a><a href="#">Cookies</a><a href="#">GDPR</a>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:22px;padding-top:16px;border-top:1px solid #222;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px">
+      <span>© 2026 NARE & CO. — “QR Code” is a trademark of DENSO WAVE. All rights reserved.</span>
+      <span style="color:var(--neon)">Grid White • Black • Neon Green • Secure by design</span>
+    </div>
+  </div>
+</footer>
+
+<!-- Modals -->
+<div class="modal" id="authModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="authTitle">Log In to NARE & CO.</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('authModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Email</label><input id="authEmail" type="email" placeholder="you@nareandco.com"></div>
+      <div class="field"><label>Password</label><input id="authPass" type="password" placeholder="••••••••"></div>
+      <div class="field" id="nameField" style="display:none"><label>Name</label><input id="authName" type="text" placeholder="Your name"></div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" id="authSubmit">Continue →</button>
+      <div class="divider"></div>
+      <div style="font-size:12px;color:#666;text-align:center">Secure • Encrypted • GDPR Ready • 2FA available<br><a href="#" id="switchAuth" style="color:var(--black);font-weight:800;text-decoration:underline">Need an account? Register</a></div>
+      <div id="authMsg" style="font-size:12px;color:#c00;text-align:center;display:none"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="demoModal">
+  <div class="modal-card" style="max-width:560px">
+    <div class="modal-head"><h3>NARE & CO. — Platform Demo</h3><button class="btn btn-ghost btn-sm" onclick="closeModal('demoModal')">✕</button></div>
+    <div class="modal-body">
+      <div style="background:var(--black);color:var(--neon);padding:16px;border-radius:12px;font-family:monospace;font-size:12px;line-height:1.7">
+        POST /api/generate { type:"url", data:{url:"https://nareandco.com"}, is_dynamic:true }<br>
+        → 201 Created { short_code:"aB3x9Zq", image_base64:"data:image/png...", qr_id: 42 }<br><br>
+        curl -X POST http://localhost:5000/api/generate \<br>
+        &nbsp;&nbsp;-H "Authorization: Bearer &lt;token&gt;" \<br>
+        &nbsp;&nbsp;-d '{"type":"wifi","data":{"ssid":"NARE-WIFI","password":"neon123"}}'
+      </div>
+      <div style="display:flex;gap:8px"><a class="btn btn-primary" href="/api-docs" style="flex:1;justify-content:center">API Docs →</a><button class="btn btn-ghost" onclick="closeModal('demoModal')">Close</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">✔ Done</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

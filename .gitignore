@@ -1,0 +1,12 @@
+﻿__pycache__/
+*.pyc
+*.pyo
+data/nare.db
+uploads/*.png
+uploads/*.jpg
+uploads/tmp_*.png
+.env
+venv/
+.venv/
+*.log
+.DS_Store
