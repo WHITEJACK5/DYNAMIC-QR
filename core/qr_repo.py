@@ -63,6 +63,12 @@ def get_owned(db, qr_id, user_id):
     return cur.fetchone()
 
 
+def get_by_short(db, code):
+    cur = db.cursor()
+    cur.execute("SELECT * FROM qrcodes WHERE short_code=?", (code,))
+    return cur.fetchone()
+
+
 def delete_owned(db, qr_id, user_id):
     """Delete QR + its scans. Returns False when not found; raises on SQL error."""
     cur = db.cursor()
