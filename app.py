@@ -1,4 +1,4 @@
-﻿import os
+import os
 import re
 import json
 import base64
@@ -7,6 +7,7 @@ import secrets
 import datetime
 import string
 import logging
+import threading
 from io import BytesIO
 from functools import wraps
 from urllib.parse import urlparse
@@ -367,8 +368,11 @@ def build_gs1_content(data):
     # fallback
     return data.get("url") or data.get("content") or gtin or "https://id.gs1.org/"
 
-def resolve_smart_url(qr_row, req):
+def resolve_smart_url(qr_row, req, country="unknown"):
     # Smart URL: data_json contains {"primaryUrl": "...", "rules": [{"condition":"android","url":"..."}]}
+    # NOTE: country must be passed in — this function never does network I/O
+    # itself, so the redirect path stays fast. Geo enrichment happens async
+    # after the redirect is sent (see _enrich_scan_geo_async).
     try:
         data = json.loads(qr_row["data_json"]) if qr_row["data_json"] else {}
     except Exception:
@@ -379,25 +383,17 @@ def resolve_smart_url(qr_row, req):
         # try parse lines like "device:android -> https://..."
         parsed = []
         for line in rules.splitlines():
-            if "->" in line or "â†’" in line:
-                sep = "->" if "->" in line else "â†’"
+            if "->" in line or "→" in line:
+                sep = "->" if "->" in line else "→"
                 cond, url = line.split(sep, 1)
                 parsed.append({"condition": cond.strip().lower(), "url": url.strip()})
         rules = parsed
     if not isinstance(rules, list):
         return primary
-    # detect
+    # detect — UA + Accept-Language only, no network
     ua = (req.headers.get("User-Agent") or "").lower()
     device, browser, os_name = detect_device(ua)
-    # get country via geo (if available, but we can use ip geo quickly)
-    ip = req.remote_addr or "127.0.0.1"
-    country = "unknown"
-    try:
-        # try to get from scans? fallback
-        geo = get_geo_from_ip(ip)
-        country = geo.get("country", "unknown").lower()
-    except Exception:
-        pass
+    country = (country or "unknown").lower()
     # evaluate rules in order — flexible matching for personal use
     for rule in rules:
         cond = (rule.get("condition") or "").lower().strip()
@@ -582,6 +578,31 @@ def get_geo_from_ip(ip):
     except Exception as e:
         logger.debug(f"Geo fallback failed for {ip}: {e}")
     return {"country": "Unknown", "city": "Unknown"}
+
+def _enrich_scan_geo_async(scan_id, ip):
+    """Background geo enrichment — never blocks the redirect response.
+
+    Opens its own SQLite connection (the request's connection is already
+    closed by the time this runs). Failures are logged, never raised.
+    Phase 2 will replace this thread with a proper job queue (RQ/Celery).
+    """
+    def _run():
+        try:
+            geo = get_geo_from_ip(ip)
+            db = get_db()
+            try:
+                cur = db.cursor()
+                cur.execute("UPDATE scans SET country=?, city=? WHERE id=?",
+                            (geo.get("country", "Unknown"),
+                             geo.get("city", "Unknown"), scan_id))
+                db.commit()
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning(f"Async geo enrichment failed for scan {scan_id}: {e}")
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+    return t
 
 def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="square", eye_style="square", gradient=None, logo_path=None, frame_text=None, frame_color="#00FF88", size=1000, error_correction=qrcode.constants.ERROR_CORRECT_H):
     if pattern == "dots" or pattern == "dot":
@@ -1612,17 +1633,18 @@ def redirect_dynamic(code):
             <p style="font-size:12px;color:#888;margin-top:12px">Secured by NARE & CO. â€¢ Grid White / Black / Neon Green â€¢ POST only, not logged in URL</p>
             </div></html>
             """,401
-    # Track scan â€” real geo!
+    # Track scan: fast local write now, geo enriched async after redirect.
     ip = request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(",")[0].strip()
     ua=request.headers.get("User-Agent","")
     device,browser,os_name=detect_device(ua)
     now=datetime.datetime.utcnow().isoformat()
-    geo = get_geo_from_ip(ip)
-    country = geo.get("country","Unknown")
-    city = geo.get("city","Unknown")
+    # Pending geo: enriched in background AFTER the redirect (see below).
+    # Never block the redirect on external geo-IP HTTP calls.
+    scan_id = None
     try:
         cur.execute("INSERT INTO scans (qr_id,timestamp,ip,user_agent,device,browser,os,country,city) VALUES (?,?,?,?,?,?,?,?,?)",
-                    (row["id"],now,ip,ua,device,browser,os_name,country,city))
+                    (row["id"],now,ip,ua,device,browser,os_name,"Pending","Pending"))
+        scan_id = cur.lastrowid
         cur.execute("UPDATE qrcodes SET scan_count=scan_count+1, updated_at=? WHERE id=?", (now,row["id"]))
         db.commit()
     except Exception as e:
@@ -1635,13 +1657,19 @@ def redirect_dynamic(code):
     target = row["content"]
     if row["type"] in ("smarturl","smart url","multiurl") and row["is_dynamic"]:
         try:
-            smarter = resolve_smart_url(row, request)
+            smarter = resolve_smart_url(row, request, country="unknown")
             if smarter and smarter != target:
                 target = smarter
-                logger.info(f"Smart URL resolved for {code} -> {target} (device={device} country={country})")
+                logger.info(f"Smart URL resolved for {code} -> {target} (device={device})")
         except Exception as e:
             logger.warning(f"Smart resolve failed: {e}")
     db.close()
+    if scan_id is not None:
+        try:
+            _enrich_scan_geo_async(scan_id, ip)
+        except Exception as e:
+            logger.warning(f"Failed to queue geo enrichment: {e}")
+    country = "Pending"
     if target.startswith("http"):
         return redirect(target, code=302)
     else:
