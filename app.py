@@ -1267,43 +1267,120 @@ def bulk_generate():
     bg=request.form.get("bg_color","#FFFFFF")
     try:
         data=file.read().decode('utf-8')
-        lines=[l.strip() for l in data.splitlines() if l.strip()]
-        header=lines[0].lower() if lines else ""
-        start=1 if "url" in header or "name" in header else 0
-        created=[]
+    except Exception as e:
+        logger.exception(f"Bulk failed: {e}")
+        return jsonify({"error":"Bulk failed"}),500
+    lines=[l.strip() for l in data.splitlines() if l.strip()]
+    header=lines[0].lower() if lines else ""
+    start=1 if "url" in header or "name" in header else 0
+    rows=[]
+    for line in lines[start:]:
+        parts=[p.strip() for p in line.split(",")]
+        url=parts[0] if parts else ""
+        name=parts[1] if len(parts)>1 else f"Bulk {secrets.token_hex(2)}"
+        if not url:
+            continue
+        rows.append((url, name))
+        if len(rows) >= 3000:
+            break
+    # Phase 2o: RQ when configured (202 + status poll), else inline (200).
+    # Local dev / CI without REDIS_URL always takes the inline path, so the
+    # dashboard's sync {created,count} contract is unchanged there.
+    from core.jobs import get_queue
+
+    queue = get_queue()
+    if queue is not None:
+        try:
+            job = queue.enqueue(
+                _bulk_job, g.user_id, rows, typ, fg, bg, get_base_url(request),
+                meta={"user_id": g.user_id}, result_ttl=86400,
+            )
+            return jsonify({"job_id": job.id, "status_url": f"/api/v1/qrcodes/bulk/{job.id}"}), 202
+        except Exception as e:
+            logger.warning(f"Bulk enqueue failed, inline fallback: {e}")
+    try:
         db=get_db()
-        for line in lines[start:]:
-            parts=[p.strip() for p in line.split(",")]
-            url=parts[0] if parts else ""
-            name=parts[1] if len(parts)>1 else f"Bulk {secrets.token_hex(2)}"
-            if not url:
-                continue
-            content=build_qr_content(typ, {"url":url})
-            # Unique short_code (unchecked fresh fallback on repeated collision)
-            short = qr_repo.mint_unique_short(db, 5)
-            final=f"{get_base_url(request)}/r/{short}"
-            try:
-                qr_repo.create_full(
-                    db, user_id=g.user_id, name=name, type=typ, content=content,
-                    data_json=json.dumps({"url":url}), is_dynamic=1, short_code=short,
-                    fg_color=fg, bg_color=bg, pattern="square", eye_style="square")
-                created.append({"name":name,"url":url,"short_code":short,"qr_url":final})
-            except sqlite3.IntegrityError as e:
-                db.rollback()
-                logger.warning(f"Bulk insert collision for {url}: {e}")
-                continue
-            except Exception as e:
-                db.rollback()
-                logger.warning(f"Bulk insert failed for {url}: {e}")
-                continue
-            if len(created)>=3000:
-                break
-        db.close()
+        try:
+            created = _bulk_insert_rows(db, g.user_id, rows, typ, fg, bg, get_base_url(request))
+        finally:
+            db.close()
         logger.info(f"Bulk generated {len(created)} for user {g.user_id}")
         return jsonify({"created":created, "count":len(created)})
     except Exception as e:
         logger.exception(f"Bulk failed: {e}")
         return jsonify({"error":"Bulk failed"}),500
+
+
+def _bulk_insert_rows(db, user_id, rows, typ, fg, bg, base_url):
+    """Shared by the inline path and the RQ worker. Returns created list."""
+    created=[]
+    for url, name in rows[:3000]:
+        content=build_qr_content(typ, {"url":url})
+        short = qr_repo.mint_unique_short(db, 5)
+        try:
+            qr_repo.create_full(
+                db, user_id=user_id, name=name, type=typ, content=content,
+                data_json=json.dumps({"url":url}), is_dynamic=1, short_code=short,
+                fg_color=fg, bg_color=bg, pattern="square", eye_style="square")
+            created.append({"name":name,"url":url,"short_code":short,"qr_url":f"{base_url}/r/{short}"})
+        except sqlite3.IntegrityError as e:
+            db.rollback()
+            logger.warning(f"Bulk insert collision for {url}: {e}")
+            continue
+        except Exception as e:
+            db.rollback()
+            logger.warning(f"Bulk insert failed for {url}: {e}")
+            continue
+        if len(created) >= 3000:
+            break
+    return created
+
+
+def _bulk_job(user_id, rows, typ, fg, bg, base_url):
+    """RQ entrypoint (module-level so workers can import it)."""
+    db = get_db()
+    try:
+        created = _bulk_insert_rows(db, user_id, rows, typ, fg, bg, base_url)
+        logger.info(f"Bulk job generated {len(created)} for user {user_id}")
+        return {"created": created, "count": len(created)}
+    finally:
+        db.close()
+
+
+@app.route("/api/qrcodes/bulk/<job_id>", methods=["GET"])
+@app.route("/api/v1/qrcodes/bulk/<job_id>", methods=["GET"])
+@token_required
+def bulk_status(job_id):
+    from core.jobs import get_queue
+
+    queue = get_queue()
+    if queue is None:
+        return jsonify({"error":"Job queue not configured"}), 404
+    try:
+        from rq.job import Job
+
+        job = Job.fetch(job_id, connection=queue.connection)
+    except Exception:
+        return jsonify({"error":"Job not found"}), 404
+    try:
+        meta = job.meta or {}
+    except Exception:
+        meta = {}
+    if meta.get("user_id") != g.user_id:
+        return jsonify({"error":"Job not found"}), 404
+    try:
+        status = job.get_status()
+    except Exception:
+        status = "unknown"
+    if status == "finished":
+        try:
+            result = job.result or {}
+        except Exception:
+            result = {}
+        return jsonify({"status":"finished","count":result.get("count",0),"created":result.get("created",[])})
+    if status == "failed":
+        return jsonify({"status":"failed"}), 500
+    return jsonify({"status":status})
 
 @app.route("/api/folders", methods=["GET","POST"])
 @app.route("/api/v1/folders", methods=["GET","POST"])
