@@ -9,7 +9,7 @@
 <header class="header"><div class="container header-inner">
 <a href="/" class="logo"><div class="logo-mark">N</div><div class="logo-type">NARE <span>& CO.</span></div></a>
 <nav class="nav"><a href="/">Generator</a><a href="/dashboard">Dashboard</a><a href="/api-docs" class="active">API</a><a href="/pricing">Pricing</a></nav>
-<div class="header-cta"><span class="badge badge-neon">18K+ Devs • 1,000 req/s</span></div>
+<div class="header-cta"><span class="badge badge-neon">Local API • No SLA</span></div>
 </div></header>
 <section class="section"><div class="container">
 <h1 style="font-size:34px;letter-spacing:-.04em">NARE & CO. API Documentation</h1>
@@ -62,9 +62,9 @@ GET/POST /api/templates</pre></div>
 <h3>Security Features</h3>
 <ul style="font-size:13px;color:#444;line-height:1.9">
 <li>• <b>JWT</b> auth, <b>hashed passwords</b> (Werkzeug), <b>2FA</b> ready</li>
-<li>• <b>Password-protected QR</b> — /r/:code?pwd=... else 401 page</li>
-<li>• <b>Expiry</b> by date, <b>scan limit</b>, IP filtering</li>
-<li>• <b>GDPR/CCPA</b> anonymization, rate-friendly, CORS</li>
+<li>• <b>Password-protected QR</b> — POST <code>pwd</code> to <code>/r/:code</code>, else 401 page (never via query string)</li>
+<li>• <b>Expiry</b> by date, <b>scan limit</b></li>
+<li>• IPs stored in local SQLite <code>scans</code> table — no anonymization yet, no GDPR/CCPA claim</li>
 <li>• All QR images generated with <b>Pillow + qrcode[styled]</b> — high error correction (H)</li>
 </ul>
 </div>
