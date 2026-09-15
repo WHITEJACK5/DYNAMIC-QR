@@ -12,3 +12,4 @@ pyotp==2.9.0
 pydantic==2.12.5
 gunicorn==26.2.0
 redis==8.1.0
+rq==2.12.0
