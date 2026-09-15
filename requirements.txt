@@ -10,3 +10,4 @@ requests==2.32.3
 email-validator==2.2.0
 pyotp==2.9.0
 pydantic==2.12.5
+gunicorn==26.2.0
