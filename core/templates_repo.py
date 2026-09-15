@@ -1,11 +1,23 @@
-"""Templates repository: user-scoped micro-CRUD (Phase 2m)."""
+"""Templates repository: user-scoped micro-CRUD (Phase 2m/2p)."""
 import datetime
 import json
 
 
-def list_for_user(db, user_id):
+def count_for_user(db, user_id):
     cur = db.cursor()
-    cur.execute("SELECT * FROM templates WHERE user_id=?", (user_id,))
+    cur.execute("SELECT COUNT(*) FROM templates WHERE user_id=?", (user_id,))
+    return cur.fetchone()[0]
+
+
+def list_for_user(db, user_id, limit=None, offset=None):
+    cur = db.cursor()
+    if limit is None:
+        cur.execute("SELECT * FROM templates WHERE user_id=? ORDER BY id DESC", (user_id,))
+    else:
+        cur.execute(
+            "SELECT * FROM templates WHERE user_id=? ORDER BY id DESC LIMIT ? OFFSET ?",
+            (user_id, limit, offset),
+        )
     return [dict(r) for r in cur.fetchall()]
 
 
