@@ -35,20 +35,25 @@ from core.utils import (
     detect_device,
     generate_short_code,
     hex_to_rgb,
-    validate_email_format,
-    validate_password_strength,
+    validate_email_format,  # noqa: F401 — re-exported (schemas own validation now)
+    validate_password_strength,  # noqa: F401 — re-exported (schemas own validation now)
 )
 # Phase 2c: explicit request schemas (Pydantic v2) — auth slice first.
 from pydantic import ValidationError
 
 from core.schemas import (
+    Disable2FARequest,
     FolderCreateRequest,
+    ForgotRequest,
     GenerateRequest,
+    Login2FARequest,
     LoginRequest,
     PreviewRequest,
     QRUpdateRequest,
     RegisterRequest,
+    ResetRequest,
     TemplateCreateRequest,
+    TwoFACodeRequest,
     first_error,
 )
 
@@ -727,10 +732,11 @@ def login():
 @app.route("/api/v1/forgot-password", methods=["POST"])
 @rate_limit(limit=3, window=600)
 def forgot_password():
-    data = request.get_json() or {}
-    email = data.get("email","").strip().lower()
-    if not email or not validate_email_format(email):
-        return jsonify({"error":"Valid email required"}), 400
+    try:
+        req = ForgotRequest.model_validate(request.get_json(silent=True) or {})
+    except ValidationError as e:
+        return jsonify({"error": first_error(e)}), 400
+    email = req.email
     db = get_db()
     cur = db.cursor()
     cur.execute("SELECT id FROM users WHERE email=?", (email,))
@@ -754,15 +760,11 @@ def forgot_password():
 @app.route("/api/reset-password", methods=["POST"])
 @app.route("/api/v1/reset-password", methods=["POST"])
 def reset_password():
-    data = request.get_json() or {}
-    email = data.get("email","").strip().lower()
-    token = data.get("token","")
-    new_pwd = data.get("new_password") or data.get("password","")
-    if not email or not token or not new_pwd:
-        return jsonify({"error":"email, token and new_password required"}), 400
-    ok, msg = validate_password_strength(new_pwd)
-    if not ok:
-        return jsonify({"error": msg}), 400
+    try:
+        req = ResetRequest.model_validate(request.get_json(silent=True) or {})
+    except ValidationError as e:
+        return jsonify({"error": first_error(e)}), 400
+    email, token, new_pwd = req.email, req.token, req.new_password
     db = get_db()
     cur = db.cursor()
     cur.execute("SELECT reset_token, reset_expires FROM users WHERE email=?", (email,))
@@ -820,10 +822,11 @@ def setup_2fa():
 @app.route("/api/v1/2fa/verify-setup", methods=["POST"])
 @token_required
 def verify_2fa_setup():
-    data = request.get_json() or {}
-    code = data.get("code","").strip()
-    if not code:
-        return jsonify({"error":"code required"}), 400
+    try:
+        req = TwoFACodeRequest.model_validate(request.get_json(silent=True) or {})
+    except ValidationError as e:
+        return jsonify({"error": first_error(e)}), 400
+    code = req.code
     try:
         import pyotp
         db = get_db()
@@ -850,8 +853,7 @@ def verify_2fa_setup():
 @app.route("/api/v1/2fa/disable", methods=["POST"])
 @token_required
 def disable_2fa():
-    data = request.get_json() or {}
-    code = data.get("code","")
+    code = Disable2FARequest.model_validate(request.get_json(silent=True) or {}).code
     # If 2FA enabled, require code to disable
     db = get_db()
     cur = db.cursor()
@@ -879,11 +881,11 @@ def disable_2fa():
 @app.route("/api/2fa/login-verify", methods=["POST"])
 @app.route("/api/v1/2fa/login-verify", methods=["POST"])
 def login_2fa_verify():
-    data = request.get_json() or {}
-    temp_token = data.get("temp_token","")
-    code = data.get("code","").strip()
-    if not temp_token or not code:
-        return jsonify({"error":"temp_token and code required"}), 400
+    try:
+        req = Login2FARequest.model_validate(request.get_json(silent=True) or {})
+    except ValidationError as e:
+        return jsonify({"error": first_error(e)}), 400
+    temp_token, code = req.temp_token, req.code
     try:
         payload = jwt.decode(temp_token, JWT_SECRET, algorithms=[JWT_ALGO])
         if not payload.get("2fa_pending"):
