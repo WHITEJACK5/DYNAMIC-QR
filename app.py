@@ -40,6 +40,10 @@ from core.utils import (
     validate_email_format,
     validate_password_strength,
 )
+# Phase 2c: explicit request schemas (Pydantic v2) — auth slice first.
+from pydantic import ValidationError
+
+from core.schemas import LoginRequest, RegisterRequest, first_error
 
 # Load env
 load_dotenv()
@@ -641,17 +645,11 @@ def frontend_static(path):
 @app.route("/api/register", methods=["POST"])
 @rate_limit(limit=5, window=60, key_func=lambda: request.remote_addr or "unknown")
 def register():
-    data = request.get_json() or {}
-    email = data.get("email","").strip().lower()
-    password = data.get("password","")
-    name = data.get("name","")
-    if not email or not password:
-        return jsonify({"error":"Email and password required"}), 400
-    if not validate_email_format(email):
-        return jsonify({"error":"Invalid email format"}), 400
-    ok, msg = validate_password_strength(password)
-    if not ok:
-        return jsonify({"error": msg}), 400
+    try:
+        req = RegisterRequest.model_validate(request.get_json(silent=True) or {})
+    except ValidationError as e:
+        return jsonify({"error": first_error(e)}), 400
+    email, password, name = req.email, req.password, req.name
     db = get_db()
     try:
         cur = db.cursor()
@@ -680,11 +678,11 @@ def register():
 @app.route("/api/login", methods=["POST"])
 @rate_limit(limit=5, window=60, key_func=lambda: request.remote_addr or "unknown")
 def login():
-    data = request.get_json() or {}
-    email = data.get("email","").strip().lower()
-    password = data.get("password","")
-    if not email or not password:
-        return jsonify({"error":"Email and password required"}), 400
+    try:
+        req = LoginRequest.model_validate(request.get_json(silent=True) or {})
+    except ValidationError as e:
+        return jsonify({"error": first_error(e)}), 400
+    email, password = req.email, req.password
     db = get_db()
     cur = db.cursor()
     cur.execute("SELECT * FROM users WHERE email=?", (email,))
