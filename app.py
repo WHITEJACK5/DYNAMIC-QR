@@ -142,8 +142,9 @@ def _version_headers(resp):
 # Rate limiting — Redis-backed with in-memory fallback (Phase 2f, core/ratelimit.py).
 # `_rate_store` stays importable (tests clear it); `_is_rate_limited` keeps its signature.
 from core import ratelimit as _ratelimit
-from core import folders_repo, qr_repo, scans_repo, templates_repo
+from core import folders_repo, qr_repo, scans_repo, templates_repo, users_repo
 from core import redirect_service
+from core import tokens as _tokens
 from core import cache as _qr_cache
 from core import pagination
 
@@ -300,7 +301,7 @@ def token_required(f):
         if not token:
             return jsonify({"error":"Missing token"}), 401
         try:
-            data = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGO])
+            data = _tokens.decode(token, JWT_SECRET, JWT_ALGO)
             g.user_id = data['user_id']
             g.user_email = data['email']
         except jwt.ExpiredSignatureError:
@@ -318,7 +319,7 @@ def optional_auth():
         token = auth.split(' ',1)[1]
     if token:
         try:
-            data = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGO])
+            data = _tokens.decode(token, JWT_SECRET, JWT_ALGO)
             return data['user_id']
         except Exception:
             return None
@@ -612,18 +613,13 @@ def register():
     email, password, name = req.email, req.password, req.name
     db = get_db()
     try:
-        cur = db.cursor()
-        cur.execute("SELECT id FROM users WHERE email=?", (email,))
-        if cur.fetchone():
+        if users_repo.find_id_by_email(db, email):
+            db.close()
             return jsonify({"error":"Email already registered"}), 409
         pwd_hash = generate_password_hash(password)
-        now = datetime.datetime.utcnow().isoformat()
-        cur.execute("INSERT INTO users (email,password_hash,name,created_at) VALUES (?,?,?,?)", (email,pwd_hash,name,now))
-        db.commit()
-        uid = cur.lastrowid
-        cur.execute("INSERT INTO folders (user_id,name,created_at) VALUES (?,?,?)", (uid,"My QR Codes",now))
-        db.commit()
-        token = jwt.encode({"user_id":uid,"email":email,"exp": datetime.datetime.utcnow()+datetime.timedelta(days=7)}, JWT_SECRET, algorithm=JWT_ALGO)
+        uid = users_repo.create_user(db, email, pwd_hash, name)
+        folders_repo.create_for_user(db, uid, "My QR Codes")
+        token = _tokens.mint_user_token(uid, email, JWT_SECRET, JWT_ALGO)
         db.close()
         logger.info(f"New user registered: {email}")
         return jsonify({"token":token,"user":{"id":uid,"email":email,"name":name}})
@@ -645,19 +641,17 @@ def login():
         return jsonify({"error": first_error(e)}), 400
     email, password = req.email, req.password
     db = get_db()
-    cur = db.cursor()
-    cur.execute("SELECT * FROM users WHERE email=?", (email,))
-    row = cur.fetchone()
+    row = users_repo.find_by_email(db, email)
     db.close()
     if not row or not check_password_hash(row["password_hash"], password):
         logger.warning(f"Failed login attempt for {email} from {request.remote_addr}")
         return jsonify({"error":"Invalid credentials"}), 401
     # Check 2FA
     if row["twofa_enabled"]:
-        # Don't issue token yet â€” require 2FA step
-        temp_token = jwt.encode({"user_id":row["id"],"email":email,"exp": datetime.datetime.utcnow()+datetime.timedelta(minutes=5), "2fa_pending": True}, JWT_SECRET, algorithm=JWT_ALGO)
+        # Don't issue token yet — require 2FA step
+        temp_token = _tokens.mint_temp_token(row["id"], email, JWT_SECRET, JWT_ALGO)
         return jsonify({"need_2fa": True, "temp_token": temp_token, "message": "2FA required"})
-    token = jwt.encode({"user_id":row["id"],"email":email,"exp": datetime.datetime.utcnow()+datetime.timedelta(days=7)}, JWT_SECRET, algorithm=JWT_ALGO)
+    token = _tokens.mint_user_token(row["id"], email, JWT_SECRET, JWT_ALGO)
     logger.info(f"User login: {email}")
     return jsonify({"token":token,"user":{"id":row["id"],"email":email,"name":row["name"]}})
 
@@ -671,18 +665,14 @@ def forgot_password():
         return jsonify({"error": first_error(e)}), 400
     email = req.email
     db = get_db()
-    cur = db.cursor()
-    cur.execute("SELECT id FROM users WHERE email=?", (email,))
-    row = cur.fetchone()
-    if not row:
+    if not users_repo.find_id_by_email(db, email):
         db.close()
         # Don't reveal if email exists
         return jsonify({"message":"If that email exists, a reset link has been generated. Check server logs (personal use)."}), 200
     # Generate reset token valid 15 min
     reset_token = secrets.token_urlsafe(32)
     expires = (datetime.datetime.utcnow() + datetime.timedelta(minutes=15)).isoformat()
-    cur.execute("UPDATE users SET reset_token=?, reset_expires=? WHERE email=?", (generate_password_hash(reset_token), expires, email))
-    db.commit()
+    users_repo.set_reset_token(db, email, generate_password_hash(reset_token), expires)
     db.close()
     # For personal use, log token (in real app, email it)
     logger.info(f"Password reset token for {email}: {reset_token} (expires {expires})")
@@ -699,9 +689,7 @@ def reset_password():
         return jsonify({"error": first_error(e)}), 400
     email, token, new_pwd = req.email, req.token, req.new_password
     db = get_db()
-    cur = db.cursor()
-    cur.execute("SELECT reset_token, reset_expires FROM users WHERE email=?", (email,))
-    row = cur.fetchone()
+    row = users_repo.find_reset(db, email)
     if not row or not row["reset_token"]:
         db.close()
         return jsonify({"error":"Invalid or expired reset token"}), 400
@@ -715,8 +703,7 @@ def reset_password():
     if not check_password_hash(row["reset_token"], token):
         db.close()
         return jsonify({"error":"Invalid token"}), 400
-    cur.execute("UPDATE users SET password_hash=?, reset_token=NULL, reset_expires=NULL WHERE email=?", (generate_password_hash(new_pwd), email))
-    db.commit()
+    users_repo.complete_reset(db, email, generate_password_hash(new_pwd))
     db.close()
     logger.info(f"Password reset successful for {email}")
     return jsonify({"message":"Password updated"}), 200
@@ -729,13 +716,10 @@ def setup_2fa():
     try:
         import pyotp
         db = get_db()
-        cur = db.cursor()
-        cur.execute("SELECT twofa_secret FROM users WHERE id=?", (g.user_id,))
-        row = cur.fetchone()
+        row = users_repo.get_2fa(db, g.user_id)
         secret = row["twofa_secret"] if row and row["twofa_secret"] else pyotp.random_base32()
         if not row or not row["twofa_secret"]:
-            cur.execute("UPDATE users SET twofa_secret=? WHERE id=?", (secret, g.user_id))
-            db.commit()
+            users_repo.set_2fa_secret(db, g.user_id, secret)
         # Generate QR provisioning URI
         user_email = g.user_email
         totp = pyotp.TOTP(secret)
@@ -763,16 +747,13 @@ def verify_2fa_setup():
     try:
         import pyotp
         db = get_db()
-        cur = db.cursor()
-        cur.execute("SELECT twofa_secret FROM users WHERE id=?", (g.user_id,))
-        row = cur.fetchone()
+        row = users_repo.get_2fa(db, g.user_id)
         if not row or not row["twofa_secret"]:
             db.close()
             return jsonify({"error":"No secret, call /setup first"}), 400
         totp = pyotp.TOTP(row["twofa_secret"])
         if totp.verify(code, valid_window=1):
-            cur.execute("UPDATE users SET twofa_enabled=1 WHERE id=?", (g.user_id,))
-            db.commit()
+            users_repo.set_2fa_enabled(db, g.user_id, True)
             db.close()
             logger.info(f"2FA enabled for user {g.user_id}")
             return jsonify({"message":"2FA enabled"})
@@ -789,9 +770,7 @@ def disable_2fa():
     code = Disable2FARequest.model_validate(request.get_json(silent=True) or {}).code
     # If 2FA enabled, require code to disable
     db = get_db()
-    cur = db.cursor()
-    cur.execute("SELECT twofa_secret, twofa_enabled FROM users WHERE id=?", (g.user_id,))
-    row = cur.fetchone()
+    row = users_repo.get_2fa(db, g.user_id)
     if row and row["twofa_enabled"]:
         if not code:
             db.close()
@@ -806,8 +785,7 @@ def disable_2fa():
             logger.warning(f"2FA disable verify failed: {e}")
             db.close()
             return jsonify({"error":"Invalid code"}), 400
-    cur.execute("UPDATE users SET twofa_enabled=0, twofa_secret=NULL WHERE id=?", (g.user_id,))
-    db.commit()
+    users_repo.clear_2fa(db, g.user_id)
     db.close()
     return jsonify({"message":"2FA disabled"})
 
@@ -820,22 +798,20 @@ def login_2fa_verify():
         return jsonify({"error": first_error(e)}), 400
     temp_token, code = req.temp_token, req.code
     try:
-        payload = jwt.decode(temp_token, JWT_SECRET, algorithms=[JWT_ALGO])
+        payload = _tokens.decode(temp_token, JWT_SECRET, JWT_ALGO)
         if not payload.get("2fa_pending"):
             return jsonify({"error":"Invalid temp token"}), 400
         uid = payload["user_id"]
         email = payload["email"]
         db = get_db()
-        cur = db.cursor()
-        cur.execute("SELECT twofa_secret FROM users WHERE id=?", (uid,))
-        row = cur.fetchone()
+        row = users_repo.get_2fa(db, uid)
         db.close()
         if not row or not row["twofa_secret"]:
             return jsonify({"error":"2FA not set up"}), 400
         import pyotp
         totp = pyotp.TOTP(row["twofa_secret"])
         if totp.verify(code, valid_window=1):
-            token = jwt.encode({"user_id":uid,"email":email,"exp": datetime.datetime.utcnow()+datetime.timedelta(days=7)}, JWT_SECRET, algorithm=JWT_ALGO)
+            token = _tokens.mint_user_token(uid, email, JWT_SECRET, JWT_ALGO)
             return jsonify({"token": token, "user": {"id": uid, "email": email}})
         return jsonify({"error":"Invalid 2FA code"}), 401
     except jwt.ExpiredSignatureError:
@@ -849,13 +825,11 @@ def login_2fa_verify():
 @token_required
 def me():
     db = get_db()
-    cur = db.cursor()
-    cur.execute("SELECT id,email,name,created_at,is_premium,twofa_enabled FROM users WHERE id=?", (g.user_id,))
-    row = cur.fetchone()
+    user = users_repo.find_public_by_id(db, g.user_id)
     db.close()
-    if not row:
+    if not user:
         return jsonify({"error":"User not found"}), 404
-    return jsonify(dict(row))
+    return jsonify(user)
 
 # --------------- API: Generate ---------------
 @app.route("/api/generate", methods=["POST"])
@@ -1497,9 +1471,7 @@ def redirect_dynamic(code):
 def download_qr(qr_id):
     fmt=request.args.get("format","png").lower()
     db=get_db()
-    cur=db.cursor()
-    cur.execute("SELECT * FROM qrcodes WHERE id=? AND user_id=?", (qr_id,g.user_id))
-    row=cur.fetchone()
+    row = qr_repo.get_owned(db, qr_id, g.user_id)
     db.close()
     if not row:
         return jsonify({"error":"Not found"}),404
