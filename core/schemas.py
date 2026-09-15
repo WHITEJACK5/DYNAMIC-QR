@@ -10,7 +10,7 @@ import json
 import re
 from typing import Any, Optional
 
-from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from core.utils import validate_email_format, validate_password_strength
 
@@ -261,3 +261,103 @@ class PreviewRequest(QRStyle):
     @classmethod
     def _data(cls, v):
         return _norm_qr_data(v)
+
+
+class ForgotRequest(BaseModel):
+    model_config = ConfigDict(validate_default=True)
+
+    email: str = ""
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _email(cls, v):
+        e = _norm_email(v)
+        if not e or not validate_email_format(e):
+            raise ValueError("Valid email required")
+        return e
+
+
+class ResetRequest(BaseModel):
+    model_config = ConfigDict(validate_default=True, populate_by_name=True)
+
+    email: str = ""
+    token: str = ""
+    new_password: str = Field(default="", validation_alias=AliasChoices("new_password", "password"))
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _email(cls, v):
+        e = _norm_email(v)
+        if not e:
+            raise ValueError("email, token and new_password required")
+        return e
+
+    @field_validator("token", mode="before")
+    @classmethod
+    def _token(cls, v):
+        t = v if isinstance(v, str) else ""
+        if not t:
+            raise ValueError("email, token and new_password required")
+        return t
+
+    @field_validator("new_password", mode="before")
+    @classmethod
+    def _pwd(cls, v):
+        p = v if isinstance(v, str) else ""
+        if not p:
+            raise ValueError("email, token and new_password required")
+        ok, msg = validate_password_strength(p)
+        if not ok:
+            raise ValueError(msg)
+        return p
+
+
+class TwoFACodeRequest(BaseModel):
+    """Strict code (verify-setup). Empty -> 'code required'."""
+
+    model_config = ConfigDict(validate_default=True)
+
+    code: str = ""
+
+    @field_validator("code", mode="before")
+    @classmethod
+    def _code(cls, v):
+        c = v.strip() if isinstance(v, str) else ""
+        if not c:
+            raise ValueError("code required")
+        return c
+
+
+class Disable2FARequest(BaseModel):
+    """Lenient normalize only; the required-check stays in the handler
+    because code is mandatory solely when 2FA is currently enabled."""
+
+    code: str = ""
+
+    @field_validator("code", mode="before")
+    @classmethod
+    def _code(cls, v):
+        return v.strip() if isinstance(v, str) else ""
+
+
+class Login2FARequest(BaseModel):
+    model_config = ConfigDict(validate_default=True)
+
+    temp_token: str = ""
+    code: str = ""
+
+    @field_validator("temp_token", mode="before")
+    @classmethod
+    def _tok(cls, v):
+        t = v if isinstance(v, str) else ""
+        if not t:
+            raise ValueError("temp_token and code required")
+        return t
+
+    @field_validator("code", mode="before")
+    @classmethod
+    def _code(cls, v):
+        c = v.strip() if isinstance(v, str) else ""
+        if not c:
+            raise ValueError("temp_token and code required")
+        return c
