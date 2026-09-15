@@ -1,5 +1,4 @@
 import os
-import re
 import json
 import base64
 import sqlite3
@@ -42,7 +41,14 @@ from core.utils import (
 # Phase 2c: explicit request schemas (Pydantic v2) — auth slice first.
 from pydantic import ValidationError
 
-from core.schemas import LoginRequest, RegisterRequest, first_error
+from core.schemas import (
+    FolderCreateRequest,
+    LoginRequest,
+    QRUpdateRequest,
+    RegisterRequest,
+    TemplateCreateRequest,
+    first_error,
+)
 
 # Load env
 load_dotenv()
@@ -1254,23 +1260,19 @@ def update_qrcode(qr_id):
         db.close()
         return jsonify({"error":"Not found"}),404
     body=request.get_json() or {}
+    try:
+        QRUpdateRequest.model_validate(body)
+    except ValidationError as e:
+        db.close()
+        return jsonify({"error": first_error(e)}), 400
     fields=[]
     vals=[]
     for f in ["name","type","content","data_json","fg_color","bg_color","gradient","pattern","eye_style","frame_text","frame_color","folder_id"]:
         if f in body:
             fields.append(f"{f}=?")
             vals.append(body[f] if f!="data_json" or isinstance(body[f], str) else json.dumps(body[f]))
-    # Validate colors if provided
-    for col in ["fg_color","bg_color","frame_color"]:
-        if col in body and body[col]:
-            if not re.match(r"^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$", body[col]):
-                db.close()
-                return jsonify({"error": f"Invalid color {col}"}), 400
     if "password" in body:
         if body["password"]:
-            if len(body["password"]) < 4:
-                db.close()
-                return jsonify({"error":"Password too short"}), 400
             fields.append("has_password=1")
             fields.append("password_hash=?")
             vals.append(generate_password_hash(body["password"]))
@@ -1280,15 +1282,9 @@ def update_qrcode(qr_id):
     if "expiry_date" in body:
         fields.append("expiry_date=?"); vals.append(body["expiry_date"])
     if "scan_limit" in body:
-        # validate
-        try:
-            sl = int(body["scan_limit"]) if body["scan_limit"] is not None else None
-            if sl is not None and sl <= 0:
-                raise ValueError
-            fields.append("scan_limit=?"); vals.append(sl)
-        except Exception:
-            db.close()
-            return jsonify({"error":"Invalid scan_limit"}), 400
+        sl = body["scan_limit"]
+        sl = int(sl) if sl is not None else None
+        fields.append("scan_limit=?"); vals.append(sl)
     if "data" in body:
         new_content = build_qr_content(body.get("type", row["type"]), body["data"])
         fields.append("content=?"); vals.append(new_content)
@@ -1402,11 +1398,12 @@ def folders():
     db=get_db()
     cur=db.cursor()
     if request.method=="POST":
-        body=request.get_json() or {}
-        name=body.get("name","New Folder")
-        if not name or len(name) > 60:
+        try:
+            req = FolderCreateRequest.model_validate(request.get_json(silent=True) or {})
+        except ValidationError as e:
             db.close()
-            return jsonify({"error":"Invalid folder name"}), 400
+            return jsonify({"error": first_error(e)}), 400
+        name = req.name
         now=datetime.datetime.utcnow().isoformat()
         cur.execute("INSERT INTO folders (user_id,name,created_at) VALUES (?,?,?)", (g.user_id,name,now))
         db.commit()
@@ -1426,12 +1423,13 @@ def templates():
     db=get_db()
     cur=db.cursor()
     if request.method=="POST":
-        body=request.get_json() or {}
-        name=body.get("name","Template")
-        config=body.get("config",{})
-        if len(json.dumps(config)) > 10000:
+        try:
+            req = TemplateCreateRequest.model_validate(request.get_json(silent=True) or {})
+        except ValidationError as e:
             db.close()
-            return jsonify({"error":"Config too large"}), 400
+            return jsonify({"error": first_error(e)}), 400
+        name = req.name
+        config = req.config if req.config is not None else {}
         now=datetime.datetime.utcnow().isoformat()
         cur.execute("INSERT INTO templates (user_id,name,config_json,created_at) VALUES (?,?,?,?)", (g.user_id,name,json.dumps(config),now))
         db.commit()
