@@ -755,13 +755,6 @@ def dashboard_page():
         return send_from_directory(os.path.join(APP_DIR, "frontend"), "dashboard.html")
     return "Dashboard not found", 404
 
-@app.route("/analytics")
-def analytics_page():
-    fm = os.path.join(APP_DIR, "frontend", "analytics.html")
-    if os.path.exists(fm):
-        return send_from_directory(os.path.join(APP_DIR, "frontend"), "analytics.html")
-    return "Analytics not found", 404
-
 @app.route("/pricing")
 def pricing_page():
     fm = os.path.join(APP_DIR, "frontend", "pricing.html")
