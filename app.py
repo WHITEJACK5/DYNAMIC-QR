@@ -142,7 +142,7 @@ def _version_headers(resp):
 # Rate limiting — Redis-backed with in-memory fallback (Phase 2f, core/ratelimit.py).
 # `_rate_store` stays importable (tests clear it); `_is_rate_limited` keeps its signature.
 from core import ratelimit as _ratelimit
-from core import folders_repo, qr_repo, templates_repo
+from core import folders_repo, qr_repo, scans_repo, templates_repo
 from core import cache as _qr_cache
 
 _rate_store = _ratelimit.mem_store  # shared dict — same object tests already clear
@@ -448,11 +448,9 @@ def _geo_enrich_job(scan_id, ip):
         geo = get_geo_from_ip(ip)
         db = get_db()
         try:
-            cur = db.cursor()
-            cur.execute("UPDATE scans SET country=?, city=? WHERE id=?",
-                        (geo.get("country", "Unknown"),
-                         geo.get("city", "Unknown"), scan_id))
-            db.commit()
+            scans_repo.update_geo(
+                db, scan_id, geo.get("country", "Unknown"), geo.get("city", "Unknown")
+            )
         finally:
             db.close()
     except Exception as e:
@@ -1382,21 +1380,8 @@ def analytics_overview():
         _resp.headers["X-Cache"] = "HIT"
         return _resp
     db=get_db()
-    cur=db.cursor()
-    cur.execute("SELECT COUNT(*) as total, SUM(scan_count) as scans FROM qrcodes WHERE user_id=?", (g.user_id,))
-    row=cur.fetchone()
-    total=row["total"] or 0
-    scans=row["scans"] or 0
-    cur.execute("SELECT date(timestamp) as d, COUNT(*) as c FROM scans WHERE qr_id IN (SELECT id FROM qrcodes WHERE user_id=?) GROUP BY date(timestamp) ORDER BY d DESC LIMIT 14", (g.user_id,))
-    timeline=[dict(r) for r in cur.fetchall()]
-    cur.execute("SELECT device, COUNT(*) as c FROM scans WHERE qr_id IN (SELECT id FROM qrcodes WHERE user_id=?) GROUP BY device", (g.user_id,))
-    devices=[dict(r) for r in cur.fetchall()]
-    cur.execute("SELECT country, COUNT(*) as c FROM scans WHERE qr_id IN (SELECT id FROM qrcodes WHERE user_id=?) GROUP BY country", (g.user_id,))
-    countries=[dict(r) for r in cur.fetchall()]
-    cur.execute("SELECT id,name,type,scan_count FROM qrcodes WHERE user_id=? ORDER BY scan_count DESC LIMIT 10", (g.user_id,))
-    top=[dict(r) for r in cur.fetchall()]
+    _payload = scans_repo.overview_for_user(db, g.user_id)
     db.close()
-    _payload={"total_qrs":total,"total_scans":scans,"timeline":timeline,"devices":devices,"countries":countries,"top":top}
     _qr_cache.cache_set(_akey, json.dumps(_payload), 60)
     _resp = jsonify(_payload)
     _resp.headers["X-Cache"] = "MISS"
@@ -1407,22 +1392,13 @@ def analytics_overview():
 @token_required
 def qr_analytics(qr_id):
     db=get_db()
-    cur=db.cursor()
-    cur.execute("SELECT * FROM qrcodes WHERE id=? AND user_id=?", (qr_id,g.user_id))
-    qr=cur.fetchone()
+    qr = qr_repo.get_owned(db, qr_id, g.user_id)
     if not qr:
         db.close()
         return jsonify({"error":"Not found"}),404
-    cur.execute("SELECT * FROM scans WHERE qr_id=? ORDER BY timestamp DESC LIMIT 100", (qr_id,))
-    scans=[dict(r) for r in cur.fetchall()]
-    cur.execute("SELECT device, COUNT(*) as c FROM scans WHERE qr_id=? GROUP BY device", (qr_id,))
-    devices=[dict(r) for r in cur.fetchall()]
-    cur.execute("SELECT country, COUNT(*) as c FROM scans WHERE qr_id=? GROUP BY country", (qr_id,))
-    countries=[dict(r) for r in cur.fetchall()]
-    cur.execute("SELECT date(timestamp) as d, COUNT(*) as c FROM scans WHERE qr_id=? GROUP BY date(timestamp) ORDER BY d", (qr_id,))
-    timeline=[dict(r) for r in cur.fetchall()]
+    detail = scans_repo.detail_for_qr(db, qr_id)
     db.close()
-    return jsonify({"qr":dict(qr),"scans":scans,"devices":devices,"countries":countries,"timeline":timeline})
+    return jsonify({"qr":dict(qr), **detail})
 
 @app.route("/r/<code>", methods=["GET", "POST"])
 def redirect_dynamic(code):
@@ -1491,20 +1467,7 @@ def redirect_dynamic(code):
     now=datetime.datetime.utcnow().isoformat()
     # Pending geo: enriched in background AFTER the redirect (see below).
     # Never block the redirect on external geo-IP HTTP calls.
-    scan_id = None
-    try:
-        cur.execute("INSERT INTO scans (qr_id,timestamp,ip,user_agent,device,browser,os,country,city) VALUES (?,?,?,?,?,?,?,?,?)",
-                    (row["id"],now,ip,ua,device,browser,os_name,"Pending","Pending"))
-        scan_id = cur.lastrowid
-        cur.execute("UPDATE qrcodes SET scan_count=scan_count+1, updated_at=? WHERE id=?", (now,row["id"]))
-        db.commit()
-    except Exception as e:
-        logger.exception(f"Scan track failed: {e}")
-        try:
-            db.rollback()
-        except Exception:  # nosec B110
-            # Best-effort rollback only; the original error is logged above.
-            pass
+    scan_id = scans_repo.record_scan(db, row["id"], now, ip, ua, device, browser, os_name)
     # Resolve smart URL if applicable
     target = row["content"]
     if row["type"] in ("smarturl","smart url","multiurl") and row["is_dynamic"]:
