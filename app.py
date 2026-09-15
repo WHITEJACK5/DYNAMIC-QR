@@ -1712,6 +1712,8 @@ def catch_all(path):
         return send_from_directory(os.path.join(APP_DIR, "frontend"), "index.html")
     return "Not found", 404
 
+# DEV-ONLY entrypoint. Production serves wsgi:application via gunicorn
+# behind a reverse proxy — never app.run().
 if __name__=="__main__":
     print("=== NARE & CO. â€” Personal Edition ===")
     print("Grid White / Black / Neon Green")
