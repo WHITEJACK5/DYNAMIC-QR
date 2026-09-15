@@ -6,7 +6,6 @@ import sqlite3
 import secrets
 import datetime
 import logging
-import threading
 from io import BytesIO
 from functools import wraps
 
@@ -428,30 +427,33 @@ def get_geo_from_ip(ip):
         logger.debug(f"Geo fallback failed for {ip}: {e}")
     return {"country": "Unknown", "city": "Unknown"}
 
+def _geo_enrich_job(scan_id, ip):
+    """Module-level so RQ workers can import it (never enqueue a closure)."""
+    try:
+        geo = get_geo_from_ip(ip)
+        db = get_db()
+        try:
+            cur = db.cursor()
+            cur.execute("UPDATE scans SET country=?, city=? WHERE id=?",
+                        (geo.get("country", "Unknown"),
+                         geo.get("city", "Unknown"), scan_id))
+            db.commit()
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning(f"Async geo enrichment failed for scan {scan_id}: {e}")
+
+
 def _enrich_scan_geo_async(scan_id, ip):
     """Background geo enrichment — never blocks the redirect response.
 
     Opens its own SQLite connection (the request's connection is already
     closed by the time this runs). Failures are logged, never raised.
-    Phase 2 will replace this thread with a proper job queue (RQ/Celery).
+    Phase 2g: dispatched via core.jobs (RQ when REDIS_URL is set, else thread).
     """
-    def _run():
-        try:
-            geo = get_geo_from_ip(ip)
-            db = get_db()
-            try:
-                cur = db.cursor()
-                cur.execute("UPDATE scans SET country=?, city=? WHERE id=?",
-                            (geo.get("country", "Unknown"),
-                             geo.get("city", "Unknown"), scan_id))
-                db.commit()
-            finally:
-                db.close()
-        except Exception as e:
-            logger.warning(f"Async geo enrichment failed for scan {scan_id}: {e}")
-    t = threading.Thread(target=_run, daemon=True)
-    t.start()
-    return t
+    from core.jobs import enqueue_call
+
+    return enqueue_call(_geo_enrich_job, scan_id, ip)
 
 def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="square", eye_style="square", gradient=None, logo_path=None, frame_text=None, frame_color="#00FF88", size=1000, error_correction=qrcode.constants.ERROR_CORRECT_H):
     if pattern == "dots" or pattern == "dot":
