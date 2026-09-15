@@ -10,7 +10,6 @@ import logging
 import threading
 from io import BytesIO
 from functools import wraps
-from urllib.parse import urlparse
 
 import jwt
 import qrcode
@@ -21,7 +20,7 @@ from qrcode.image.styles.moduledrawers import (
 )
 from qrcode.image.styles.colormasks import SolidFillColorMask, RadialGradiantColorMask, SquareGradiantColorMask
 from qrcode.image.svg import SvgPathImage
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont
 from flask import Flask, request, jsonify, send_from_directory, g, redirect, send_file, abort
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -230,7 +229,7 @@ def init_db():
     db.close()
     if is_fresh:
         print(f"[NARE & CO.] Fresh DB created at {DB_PATH} â€” tables: users, qrcodes, scans, folders, templates")
-        print(f"[NARE & CO.] Local DB ready for personal use â€” login + QR managing + analytics (SQLite)")
+        print("[NARE & CO.] Local DB ready for personal use â€” login + QR managing + analytics (SQLite)")
         logger.info(f"Fresh DB created at {DB_PATH}")
     else:
         try:
@@ -310,7 +309,7 @@ def validate_email_format(email):
     if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
         return False
     try:
-        from email_validator import validate_email, EmailNotValidError
+        from email_validator import validate_email
         validate_email(email, check_deliverability=False)
         return True
     except ImportError:
@@ -1390,7 +1389,9 @@ def update_qrcode(qr_id):
     if fields:
         fields.append("updated_at=?"); vals.append(datetime.datetime.utcnow().isoformat())
         vals.append(qr_id); vals.append(g.user_id)
-        sql = f"UPDATE qrcodes SET {', '.join(fields)} WHERE id=? AND user_id=?"
+        # Column names come only from the hardcoded allowlist above (never
+        # raw user input); all values use ? placeholders.
+        sql = f"UPDATE qrcodes SET {', '.join(fields)} WHERE id=? AND user_id=?"  # nosec B608
         try:
             cur.execute(sql, vals)
             db.commit()
@@ -1607,7 +1608,7 @@ def redirect_dynamic(code):
             if request.method == "POST":
                 # Wrong password â€” show form with error
                 db.close()
-                return f"""
+                return """
                 <html style="font-family:Inter,sans-serif;background:#0A0A0A;color:white;display:flex;align-items:center;justify-content:center;min-height:100vh">
                 <div style="background:#111;border:1px solid #222;padding:40px;border-radius:24px;max-width:400px;width:100%;text-align:center">
                 <h2 style="color:#00FF88">ðŸ”’ Password Protected</h2>
@@ -1621,7 +1622,7 @@ def redirect_dynamic(code):
                 </div></html>
                 """,401
             db.close()
-            return f"""
+            return """
             <html style="font-family:Inter,sans-serif;background:#0A0A0A;color:white;display:flex;align-items:center;justify-content:center;min-height:100vh">
             <div style="background:#111;border:1px solid #222;padding:40px;border-radius:24px;max-width:400px;width:100%;text-align:center">
             <h2 style="color:#00FF88">ðŸ”’ Password Protected</h2>
@@ -1651,7 +1652,8 @@ def redirect_dynamic(code):
         logger.exception(f"Scan track failed: {e}")
         try:
             db.rollback()
-        except Exception:
+        except Exception:  # nosec B110
+            # Best-effort rollback only; the original error is logged above.
             pass
     # Resolve smart URL if applicable
     target = row["content"]
