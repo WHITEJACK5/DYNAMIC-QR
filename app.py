@@ -1143,9 +1143,39 @@ def preview():
 @app.route("/api/qrcodes", methods=["GET"])
 @token_required
 def list_qrcodes():
+    """List own QRs. Pagination: ?limit=50&offset=0 -> {items,total,limit,offset}.
+
+    Backwards-compat: no query params -> legacy bare JSON array (dashboard.html
+    relies on it). Paginated envelope is the documented path going forward
+    (limit/offset chosen over cursor: simple, sufficient for personal-scale
+    SQLite; stable order by created_at DESC, id DESC).
+    """
+    raw_limit = request.args.get("limit")
+    raw_offset = request.args.get("offset")
+    paginated = raw_limit is not None or raw_offset is not None
+    if paginated:
+        try:
+            limit = int(raw_limit) if raw_limit is not None else 50
+            offset = int(raw_offset) if raw_offset is not None else 0
+        except (TypeError, ValueError):
+            return jsonify({"error": "limit/offset must be integers"}), 400
+        if not 1 <= limit <= 200:
+            return jsonify({"error": "limit must be 1..200"}), 400
+        if offset < 0:
+            return jsonify({"error": "offset must be >= 0"}), 400
+    else:
+        limit, offset = None, None
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT * FROM qrcodes WHERE user_id=? ORDER BY created_at DESC", (g.user_id,))
+    if paginated:
+        cur.execute("SELECT COUNT(*) FROM qrcodes WHERE user_id=?", (g.user_id,))
+        total = cur.fetchone()[0]
+        cur.execute(
+            "SELECT * FROM qrcodes WHERE user_id=? ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?",
+            (g.user_id, limit, offset),
+        )
+    else:
+        cur.execute("SELECT * FROM qrcodes WHERE user_id=? ORDER BY created_at DESC, id DESC", (g.user_id,))
     rows = cur.fetchall()
     db.close()
     out=[]
@@ -1156,6 +1186,8 @@ def list_qrcodes():
         if d.get("logo_path"):
             d["has_logo"] = True
         out.append(d)
+    if paginated:
+        return jsonify({"items": out, "total": total, "limit": limit, "offset": offset})
     return jsonify(out)
 
 @app.route("/api/qrcodes/<int:qr_id>", methods=["GET"])
