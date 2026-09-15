@@ -144,6 +144,7 @@ def _version_headers(resp):
 from core import ratelimit as _ratelimit
 from core import folders_repo, qr_repo, scans_repo, templates_repo
 from core import cache as _qr_cache
+from core import pagination
 
 _rate_store = _ratelimit.mem_store  # shared dict — same object tests already clear
 
@@ -1398,6 +1399,15 @@ def folders():
         db.close()
         return jsonify(out)
     else:
+        paginated, limit, offset, err = pagination.parse_pagination(request.args)
+        if err:
+            db.close()
+            return jsonify({"error": err}), 400
+        if paginated:
+            total = folders_repo.count_for_user(db, g.user_id)
+            rows = folders_repo.list_for_user(db, g.user_id, limit, offset)
+            db.close()
+            return jsonify({"items": rows, "total": total, "limit": limit, "offset": offset})
         rows = folders_repo.list_for_user(db, g.user_id)
         db.close()
         return jsonify(rows)
@@ -1419,6 +1429,15 @@ def templates():
         db.close()
         return jsonify(out)
     else:
+        paginated, limit, offset, err = pagination.parse_pagination(request.args)
+        if err:
+            db.close()
+            return jsonify({"error": err}), 400
+        if paginated:
+            total = templates_repo.count_for_user(db, g.user_id)
+            rows = templates_repo.list_for_user(db, g.user_id, limit, offset)
+            db.close()
+            return jsonify({"items": rows, "total": total, "limit": limit, "offset": offset})
         rows = templates_repo.list_for_user(db, g.user_id)
         db.close()
         return jsonify(rows)
