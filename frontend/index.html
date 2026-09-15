@@ -42,22 +42,19 @@
       <!-- Left: intro -->
       <div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <span class="badge badge-neon">● Most Advanced QR Generator</span>
-          <span class="badge badge-white">850,000+ Brands Trust Us</span>
+          <span class="badge badge-neon">● Local QR Generator</span>
+          <span class="badge badge-white">Personal deployment • Local SQLite</span>
           <span class="badge badge-black">Grid White • Black • Neon Green</span>
         </div>
         <h1>The Most Advanced <span class="neon">QR Code Generator</span> with Logo Online</h1>
-        <p>Create unlimited free QR codes, or choose <b>Dynamic</b> to track scans, edit destinations, and manage <b>25 QR types</b> from a single dashboard. Fully customizable, secure, GDPR-ready — built for <b>NARE & CO.</b></p>
+        <p>Create unlimited free QR codes, or choose <b>Dynamic</b> to track scans, edit destinations, and manage <b>25 QR types</b> from a single dashboard. Local-first — your scans stay in <code>data/nare.db</code> on this machine.</p>
         <div class="hero-actions">
           <button class="btn btn-primary" onclick="document.getElementById('generator').scrollIntoView({behavior:'smooth'})">Create FREE QR →</button>
           <button class="btn btn-ghost" onclick="openModal('demo')">Watch Demo ▸</button>
         </div>
         <div class="trustbar">
-          <div class="trust-avatars">
-            <img src="https://i.pravatar.cc/100?img=11"><img src="https://i.pravatar.cc/100?img=12"><img src="https://i.pravatar.cc/100?img=32"><img src="https://i.pravatar.cc/100?img=33">
-          </div>
-          <span><b>4.8★ G2</b> • 5★ SourceForge • 4.6★ Trustpilot</span>
-          <span style="color:#0A0A0A;background:var(--neon);padding:4px 8px;border-radius:999px;border:1px solid var(--black);font-weight:800">Trusted by 18K+ developers via API</span>
+          <span class="badge badge-white">Runs locally • No SLA</span>
+          <span style="color:#0A0A0A;background:var(--neon);padding:4px 8px;border-radius:999px;border:1px solid var(--black);font-weight:800">Your scans stay in data/nare.db</span>
         </div>
 
         <!-- Feature mini -->
@@ -262,7 +259,7 @@
         <button class="btn btn-primary btn-sm" style="flex:1.5" id="downloadBtn">⬇ Download QR</button>
       </div>
       <div style="padding:10px 14px;background:#0A0A0A;color:#AAA;font-size:11px;display:flex;gap:8px;justify-content:space-between;align-items:center">
-        <span>© 2026 NARE & CO. • Secure • GDPR Ready</span>
+        <span>© 2026 NARE & CO. • Personal use • Local DB</span>
         <span style="color:var(--neon)">● Live</span>
       </div>
     </div>
@@ -316,18 +313,18 @@
   </div>
 </section>
 
-<!-- Trusted -->
+<!-- Trusted — honest personal deployment note, no invented metrics -->
 <section class="section-dark">
   <div class="container" style="position:relative;z-index:1;padding:28px 24px">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
       <div>
-        <div class="kicker neon">Built for businesses of all sizes</div>
-        <h2 style="font-size:28px;margin-top:10px">Safe • GDPR & CCPA Ready • Fast • Flexible • Reliable • Scalable</h2>
-        <p style="color:#AAA;max-width:640px">99.9% uptime on AWS, auto-scaling clusters, 60B+ clicks tracked yearly, 18K+ devs via API. 2FA, anonymized data, 24/7 monitoring.</p>
+        <div class="kicker neon">Personal deployment — no SLA</div>
+        <h2 style="font-size:28px;margin-top:10px">Local-first • SQLite • No external tracking</h2>
+        <p style="color:#AAA;max-width:640px">Runs on this machine via Flask + SQLite (<code>data/nare.db</code>). No uptime guarantee. Passwords hashed (Werkzeug), JWT auth, optional TOTP 2FA. See <a href="/manual.html" style="color:var(--neon);text-decoration:underline">Manual</a> for what is actually implemented.</p>
       </div>
       <div class="stats" style="grid-template-columns:repeat(2,1fr);min-width:280px">
-        <div class="stat" style="background:#111;color:white;border-color:#222;box-shadow:none"><strong style="color:var(--neon)">60B+</strong><span>Clicks tracked /yr</span></div>
-        <div class="stat" style="background:#111;color:white;border-color:#222;box-shadow:none"><strong style="color:var(--neon)">99.9%</strong><span>Uptime</span></div>
+        <div class="stat" style="background:#111;color:white;border-color:#222;box-shadow:none"><strong style="color:var(--neon)">Local</strong><span>SQLite DB</span></div>
+        <div class="stat" style="background:#111;color:white;border-color:#222;box-shadow:none"><strong style="color:var(--neon)">25+</strong><span>QR types</span></div>
       </div>
     </div>
 
@@ -394,7 +391,7 @@
       <div>
         <strong style="color:white;font-size:12px;letter-spacing:.08em">LEGAL</strong>
         <div style="display:grid;gap:8px;margin-top:10px;font-size:13px">
-          <a href="#">Privacy Policy</a><a href="#">Terms</a><a href="#">Cookies</a><a href="#">GDPR</a>
+          <a href="/manual.html">Local-first notice</a><a href="#">Terms</a><a href="#">Cookies</a>
         </div>
       </div>
     </div>
@@ -447,7 +444,7 @@
       <div id="authLoading" style="display:none;text-align:center;font-size:12px;color:#666">⟳ Processing securely...</div>
       <div class="divider"></div>
       <div style="font-size:12px;color:#666;text-align:center;line-height:1.6">
-        <span style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center">🔒 Secure • Encrypted • GDPR Ready • 2FA available</span><br>
+        <span style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center">🔒 Passwords hashed • JWT auth • Optional 2FA (TOTP)</span><br>
         <a href="#" id="switchAuth" style="color:var(--black);font-weight:800;text-decoration:underline">Need an account? Register</a>
       </div>
       <div id="authMsg" style="font-size:12px;color:#c00;text-align:center;display:none"></div>
