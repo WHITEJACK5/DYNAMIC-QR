@@ -143,6 +143,7 @@ def _version_headers(resp):
 # `_rate_store` stays importable (tests clear it); `_is_rate_limited` keeps its signature.
 from core import ratelimit as _ratelimit
 from core import folders_repo, qr_repo, scans_repo, templates_repo
+from core import redirect_service
 from core import cache as _qr_cache
 from core import pagination
 
@@ -337,76 +338,8 @@ def get_base_url(req=None):
 # validate_password_strength, build_gs1_content now live in core/utils.py
 # (imported at top). Deleted here to leave one source of truth.
 
-def resolve_smart_url(qr_row, req, country="unknown"):
-    # Smart URL: data_json contains {"primaryUrl": "...", "rules": [{"condition":"android","url":"..."}]}
-    # NOTE: country must be passed in — this function never does network I/O
-    # itself, so the redirect path stays fast. Geo enrichment happens async
-    # after the redirect is sent (see _enrich_scan_geo_async).
-    try:
-        data = json.loads(qr_row["data_json"]) if qr_row["data_json"] else {}
-    except Exception:
-        data = {}
-    primary = data.get("primaryUrl") or data.get("url") or qr_row["content"]
-    rules = data.get("rules")
-    if isinstance(rules, str):
-        # try parse lines like "device:android -> https://..."
-        parsed = []
-        for line in rules.splitlines():
-            if "->" in line or "→" in line:
-                sep = "->" if "->" in line else "→"
-                cond, url = line.split(sep, 1)
-                parsed.append({"condition": cond.strip().lower(), "url": url.strip()})
-        rules = parsed
-    if not isinstance(rules, list):
-        return primary
-    # detect — UA + Accept-Language only, no network
-    ua = (req.headers.get("User-Agent") or "").lower()
-    device, browser, os_name = detect_device(ua)
-    country = (country or "unknown").lower()
-    # evaluate rules in order — flexible matching for personal use
-    for rule in rules:
-        cond = (rule.get("condition") or "").lower().strip()
-        url = rule.get("url")
-        if not cond or not url:
-            continue
-        # exact device match
-        if cond in ("android", "ios", "mobile", "desktop"):
-            # android/ios can be either device or OS
-            if cond == "android" and "android" in os_name.lower():
-                return url
-            if cond == "ios" and "ios" in os_name.lower():
-                return url
-            if cond == device.lower():
-                return url
-        if cond.startswith("device:"):
-            want = cond.split(":",1)[1].strip().lower()
-            if want == device.lower() or (want=="android" and "android" in os_name.lower()) or (want=="ios" and "ios" in os_name.lower()):
-                return url
-            if want in ua.lower():
-                return url
-        if cond.startswith("os:"):
-            want = cond.split(":",1)[1].strip().lower()
-            if want in os_name.lower() or want in ua.lower():
-                return url
-        if cond.startswith("browser:"):
-            want = cond.split(":",1)[1].strip().lower()
-            if want in browser.lower() or want in ua.lower():
-                return url
-        if cond.startswith("country:"):
-            want = cond.split(":",1)[1].strip().lower()
-            if want == country.lower():
-                return url
-        if cond.startswith("lang:"):
-            lang = cond.split(":",1)[1].strip().lower()
-            accept = (req.headers.get("Accept-Language") or "").lower()
-            if lang in accept:
-                return url
-        # direct contains check (e.g., "android" in UA)
-        if cond in ua.lower():
-            return url
-    return primary
-
 # Phase 2a: build_qr_content + detect_device live in core/utils.py (imported at top).
+# Phase 2q: resolve_smart_url moved to core/redirect_service.resolve_target.
 
 def get_geo_from_ip(ip):
     # Real geo via ip-api.com (free, no key) â€” fallback to Unknown
@@ -1477,26 +1410,13 @@ def qr_analytics(qr_id):
 @app.route("/r/<code>", methods=["GET", "POST"])
 def redirect_dynamic(code):
     db=get_db()
-    cur=db.cursor()
-    cur.execute("SELECT * FROM qrcodes WHERE short_code=?", (code,))
-    row=cur.fetchone()
-    if not row:
-        db.close()
-        return "QR not found or expired",404
-    if row["expiry_date"]:
-        try:
-            exp=datetime.datetime.fromisoformat(row["expiry_date"])
-            if datetime.datetime.utcnow()>exp:
-                db.close()
-                return "This QR has expired",410
-        except Exception as e:
-            logger.warning(f"Expiry parse failed: {e}")
-    if row["scan_limit"] and row["scan_count"]>=row["scan_limit"]:
-        db.close()
-        return "Scan limit reached",410
-    # Password check â€” POST only to avoid URL leak
-    if row["has_password"]:
-        pwd = None
+    row = qr_repo.get_by_short(db, code)
+    # Password attempt — POST only to avoid URL leak (+ API header alt).
+    # Expiry/limit/password/smart-url decisions live in core/redirect_service.
+    ua0=request.headers.get("User-Agent","")
+    accept0=request.headers.get("Accept-Language","")
+    pwd = None
+    if row and row["has_password"]:
         if request.method == "POST":
             pwd = request.form.get("pwd") or request.form.get("password")
         # Also check Authorization header as alternative (for API)
@@ -1504,11 +1424,18 @@ def redirect_dynamic(code):
             auth_pwd = request.headers.get("X-QR-Password")
             if auth_pwd:
                 pwd = auth_pwd
-        if not pwd or not check_password_hash(row["password_hash"], pwd):
-            if request.method == "POST":
-                # Wrong password â€” show form with error
-                db.close()
-                return """
+    decision = redirect_service.decide(row, pwd, ua0, accept0)
+    if decision["action"] == "missing":
+        db.close()
+        return "QR not found or expired",404
+    if decision["action"] == "gone":
+        db.close()
+        return decision["message"],410
+    if decision["action"] == "password":
+        if request.method == "POST":
+            # Wrong password — show form with error
+            db.close()
+            return """
                 <html style="font-family:Inter,sans-serif;background:#0A0A0A;color:white;display:flex;align-items:center;justify-content:center;min-height:100vh">
                 <div style="background:#111;border:1px solid #222;padding:40px;border-radius:24px;max-width:400px;width:100%;text-align:center">
                 <h2 style="color:#00FF88">ðŸ”’ Password Protected</h2>
@@ -1521,8 +1448,8 @@ def redirect_dynamic(code):
                 <p style="font-size:12px;color:#888;margin-top:12px">Secured by NARE & CO. â€¢ Grid White / Black / Neon Green</p>
                 </div></html>
                 """,401
-            db.close()
-            return """
+        db.close()
+        return """
             <html style="font-family:Inter,sans-serif;background:#0A0A0A;color:white;display:flex;align-items:center;justify-content:center;min-height:100vh">
             <div style="background:#111;border:1px solid #222;padding:40px;border-radius:24px;max-width:400px;width:100%;text-align:center">
             <h2 style="color:#00FF88">ðŸ”’ Password Protected</h2>
@@ -1535,23 +1462,16 @@ def redirect_dynamic(code):
             </div></html>
             """,401
     # Track scan: fast local write now, geo enriched async after redirect.
+    # Never block the redirect on external geo-IP HTTP calls.
+    target, smart = decision["target"], decision["smart"]
     ip = request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(",")[0].strip()
     ua=request.headers.get("User-Agent","")
     device,browser,os_name=detect_device(ua)
     now=datetime.datetime.utcnow().isoformat()
     # Pending geo: enriched in background AFTER the redirect (see below).
-    # Never block the redirect on external geo-IP HTTP calls.
     scan_id = scans_repo.record_scan(db, row["id"], now, ip, ua, device, browser, os_name)
-    # Resolve smart URL if applicable
-    target = row["content"]
-    if row["type"] in ("smarturl","smart url","multiurl") and row["is_dynamic"]:
-        try:
-            smarter = resolve_smart_url(row, request, country="unknown")
-            if smarter and smarter != target:
-                target = smarter
-                logger.info(f"Smart URL resolved for {code} -> {target} (device={device})")
-        except Exception as e:
-            logger.warning(f"Smart resolve failed: {e}")
+    if smart:
+        logger.info(f"Smart URL resolved for {code} -> {target} (device={device})")
     db.close()
     if scan_id is not None:
         try:
