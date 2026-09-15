@@ -127,19 +127,15 @@ def _version_headers(resp):
         resp.headers.setdefault("Link", f'</api/v1{path[4:]}>; rel="successor-version"')
     return resp
 
-# Rate limiting â€” simple in-memory (for production use Flask-Limiter + Redis)
-_rate_store = {}  # {key: [timestamps]}
+# Rate limiting — Redis-backed with in-memory fallback (Phase 2f, core/ratelimit.py).
+# `_rate_store` stays importable (tests clear it); `_is_rate_limited` keeps its signature.
+from core import ratelimit as _ratelimit
+
+_rate_store = _ratelimit.mem_store  # shared dict — same object tests already clear
+
+
 def _is_rate_limited(key, limit, window_sec):
-    now = datetime.datetime.utcnow().timestamp()
-    lst = _rate_store.get(key, [])
-    # prune
-    lst = [t for t in lst if now - t < window_sec]
-    if len(lst) >= limit:
-        _rate_store[key] = lst
-        return True
-    lst.append(now)
-    _rate_store[key] = lst
-    return False
+    return _ratelimit.is_rate_limited(key, limit, window_sec)
 
 def rate_limit(limit=5, window=60, key_func=None):
     def decorator(f):
