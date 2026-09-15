@@ -142,7 +142,7 @@ def _version_headers(resp):
 # Rate limiting — Redis-backed with in-memory fallback (Phase 2f, core/ratelimit.py).
 # `_rate_store` stays importable (tests clear it); `_is_rate_limited` keeps its signature.
 from core import ratelimit as _ratelimit
-from core import qr_repo
+from core import folders_repo, qr_repo, templates_repo
 from core import cache as _qr_cache
 
 _rate_store = _ratelimit.mem_store  # shared dict — same object tests already clear
@@ -1334,7 +1334,6 @@ def bulk_generate():
 @token_required
 def folders():
     db=get_db()
-    cur=db.cursor()
     if request.method=="POST":
         try:
             req = FolderCreateRequest.model_validate(request.get_json(silent=True) or {})
@@ -1342,15 +1341,11 @@ def folders():
             db.close()
             return jsonify({"error": first_error(e)}), 400
         name = req.name
-        now=datetime.datetime.utcnow().isoformat()
-        cur.execute("INSERT INTO folders (user_id,name,created_at) VALUES (?,?,?)", (g.user_id,name,now))
-        db.commit()
-        fid=cur.lastrowid
+        out = folders_repo.create_for_user(db, g.user_id, name)
         db.close()
-        return jsonify({"id":fid,"name":name})
+        return jsonify(out)
     else:
-        cur.execute("SELECT * FROM folders WHERE user_id=?", (g.user_id,))
-        rows=[dict(r) for r in cur.fetchall()]
+        rows = folders_repo.list_for_user(db, g.user_id)
         db.close()
         return jsonify(rows)
 
@@ -1359,7 +1354,6 @@ def folders():
 @token_required
 def templates():
     db=get_db()
-    cur=db.cursor()
     if request.method=="POST":
         try:
             req = TemplateCreateRequest.model_validate(request.get_json(silent=True) or {})
@@ -1368,15 +1362,11 @@ def templates():
             return jsonify({"error": first_error(e)}), 400
         name = req.name
         config = req.config if req.config is not None else {}
-        now=datetime.datetime.utcnow().isoformat()
-        cur.execute("INSERT INTO templates (user_id,name,config_json,created_at) VALUES (?,?,?,?)", (g.user_id,name,json.dumps(config),now))
-        db.commit()
-        tid=cur.lastrowid
+        out = templates_repo.create_for_user(db, g.user_id, name, config)
         db.close()
-        return jsonify({"id":tid,"name":name})
+        return jsonify(out)
     else:
-        cur.execute("SELECT * FROM templates WHERE user_id=?", (g.user_id,))
-        rows=[dict(r) for r in cur.fetchall()]
+        rows = templates_repo.list_for_user(db, g.user_id)
         db.close()
         return jsonify(rows)
 
