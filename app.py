@@ -142,6 +142,7 @@ def _version_headers(resp):
 # Rate limiting — Redis-backed with in-memory fallback (Phase 2f, core/ratelimit.py).
 # `_rate_store` stays importable (tests clear it); `_is_rate_limited` keeps its signature.
 from core import ratelimit as _ratelimit
+from core import qr_repo
 from core import cache as _qr_cache
 
 _rate_store = _ratelimit.mem_store  # shared dict — same object tests already clear
@@ -1206,26 +1207,13 @@ def list_qrcodes():
     else:
         limit, offset = None, None
     db = get_db()
-    cur = db.cursor()
     if paginated:
-        cur.execute("SELECT COUNT(*) FROM qrcodes WHERE user_id=?", (g.user_id,))
-        total = cur.fetchone()[0]
-        cur.execute(
-            "SELECT * FROM qrcodes WHERE user_id=? ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?",
-            (g.user_id, limit, offset),
-        )
+        total = qr_repo.count_owned(db, g.user_id)
+        rows = qr_repo.list_owned(db, g.user_id, limit, offset)
     else:
-        cur.execute("SELECT * FROM qrcodes WHERE user_id=? ORDER BY created_at DESC, id DESC", (g.user_id,))
-    rows = cur.fetchall()
+        rows = qr_repo.list_owned(db, g.user_id)
     db.close()
-    out=[]
-    for r in rows:
-        d=dict(r)
-        d.pop("password_hash",None)
-        # Don't expose absolute logo_path; give relative if needed
-        if d.get("logo_path"):
-            d["has_logo"] = True
-        out.append(d)
+    out = [qr_repo.to_public(r) for r in rows]
     if paginated:
         return jsonify({"items": out, "total": total, "limit": limit, "offset": offset})
     return jsonify(out)
@@ -1235,25 +1223,18 @@ def list_qrcodes():
 @token_required
 def get_qrcode(qr_id):
     db=get_db()
-    cur=db.cursor()
-    cur.execute("SELECT * FROM qrcodes WHERE id=? AND user_id=?", (qr_id, g.user_id))
-    row=cur.fetchone()
+    row = qr_repo.get_owned(db, qr_id, g.user_id)
     db.close()
     if not row:
         return jsonify({"error":"Not found"}),404
-    d=dict(row)
-    d.pop("password_hash",None)
-    return jsonify(d)
+    return jsonify(qr_repo.to_public(row))
 
 @app.route("/api/qrcodes/<int:qr_id>", methods=["PUT"])
 @app.route("/api/v1/qrcodes/<int:qr_id>", methods=["PUT"])
 @token_required
 def update_qrcode(qr_id):
     db=get_db()
-    cur=db.cursor()
-    cur.execute("SELECT * FROM qrcodes WHERE id=? AND user_id=?", (qr_id, g.user_id))
-    row=cur.fetchone()
-    if not row:
+    if not qr_repo.get_owned(db, qr_id, g.user_id):
         db.close()
         return jsonify({"error":"Not found"}),404
     body=request.get_json() or {}
@@ -1262,46 +1243,12 @@ def update_qrcode(qr_id):
     except ValidationError as e:
         db.close()
         return jsonify({"error": first_error(e)}), 400
-    fields=[]
-    vals=[]
-    for f in ["name","type","content","data_json","fg_color","bg_color","gradient","pattern","eye_style","frame_text","frame_color","folder_id"]:
-        if f in body:
-            fields.append(f"{f}=?")
-            vals.append(body[f] if f!="data_json" or isinstance(body[f], str) else json.dumps(body[f]))
-    if "password" in body:
-        if body["password"]:
-            fields.append("has_password=1")
-            fields.append("password_hash=?")
-            vals.append(generate_password_hash(body["password"]))
-        else:
-            fields.append("has_password=0")
-            fields.append("password_hash=NULL")
-    if "expiry_date" in body:
-        fields.append("expiry_date=?"); vals.append(body["expiry_date"])
-    if "scan_limit" in body:
-        sl = body["scan_limit"]
-        sl = int(sl) if sl is not None else None
-        fields.append("scan_limit=?"); vals.append(sl)
-    if "data" in body:
-        new_content = build_qr_content(body.get("type", row["type"]), body["data"])
-        fields.append("content=?"); vals.append(new_content)
-        fields.append("data_json=?"); vals.append(json.dumps(body["data"]))
-    if fields:
-        fields.append("updated_at=?"); vals.append(datetime.datetime.utcnow().isoformat())
-        vals.append(qr_id); vals.append(g.user_id)
-        # Column names come only from the hardcoded allowlist above (never
-        # raw user input); all values use ? placeholders.
-        sql = f"UPDATE qrcodes SET {', '.join(fields)} WHERE id=? AND user_id=?"  # nosec B608
-        try:
-            cur.execute(sql, vals)
-            db.commit()
-        except Exception as e:
-            logger.exception(f"Update failed for {qr_id}: {e}")
-            db.close()
-            return jsonify({"error":"Update failed"}), 500
-    cur.execute("SELECT * FROM qrcodes WHERE id=?", (qr_id,))
-    updated=dict(cur.fetchone())
-    updated.pop("password_hash",None)
+    try:
+        updated = qr_repo.apply_update(db, qr_id, g.user_id, body)
+    except Exception as e:
+        logger.exception(f"Update failed for {qr_id}: {e}")
+        db.close()
+        return jsonify({"error":"Update failed"}), 500
     db.close()
     return jsonify(updated)
 
@@ -1310,22 +1257,16 @@ def update_qrcode(qr_id):
 @token_required
 def delete_qrcode(qr_id):
     db=get_db()
-    cur=db.cursor()
-    cur.execute("SELECT scan_count FROM qrcodes WHERE id=? AND user_id=?", (qr_id, g.user_id))
-    row=cur.fetchone()
-    if not row:
-        db.close()
-        return jsonify({"error":"Not found"}),404
     try:
-        cur.execute("DELETE FROM qrcodes WHERE id=? AND user_id=?", (qr_id, g.user_id))
-        cur.execute("DELETE FROM scans WHERE qr_id=?", (qr_id,))
-        db.commit()
-        logger.info(f"QR {qr_id} deleted by user {g.user_id}")
+        found = qr_repo.delete_owned(db, qr_id, g.user_id)
     except Exception as e:
         logger.exception(f"Delete failed: {e}")
         db.close()
         return jsonify({"error":"Delete failed"}), 500
     db.close()
+    if not found:
+        return jsonify({"error":"Not found"}),404
+    logger.info(f"QR {qr_id} deleted by user {g.user_id}")
     return jsonify({"success":True})
 
 @app.route("/api/qrcodes/bulk", methods=["POST"])
