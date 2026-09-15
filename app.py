@@ -129,6 +129,7 @@ def _version_headers(resp):
 # Rate limiting — Redis-backed with in-memory fallback (Phase 2f, core/ratelimit.py).
 # `_rate_store` stays importable (tests clear it); `_is_rate_limited` keeps its signature.
 from core import ratelimit as _ratelimit
+from core import cache as _qr_cache
 
 _rate_store = _ratelimit.mem_store  # shared dict — same object tests already clear
 
@@ -1128,6 +1129,16 @@ def preview():
     frame = body.get("frame_text","")
     fcol = body.get("frame_color","#00FF88")
     logo_b64 = body.get("logo_base64")
+    # Phase 2h: identical preview inputs skip regeneration (X-Cache HIT).
+    _pkey = _qr_cache.key_for("preview", {
+        "content": content, "fg": fg, "bg": bg, "pat": pat, "eye": eye,
+        "grad": grad, "frame": frame, "fcol": fcol, "logo": logo_b64,
+    })
+    _hit = _qr_cache.cache_get(_pkey)
+    if _hit:
+        _resp = jsonify({"image_base64": _hit})
+        _resp.headers["X-Cache"] = "HIT"
+        return _resp
     logo_path = None
     if logo_b64:
         try:
@@ -1156,7 +1167,11 @@ def preview():
     try:
         img = create_qr_image(content, fg, bg, pat, eye, grad, logo_path, frame, fcol, size=800)
         b64 = image_to_base64(img)
-        return jsonify({"image_base64": f"data:image/png;base64,{b64}"})
+        _data_url = f"data:image/png;base64,{b64}"
+        _qr_cache.cache_set(_pkey, _data_url, 3600)
+        _resp = jsonify({"image_base64": _data_url})
+        _resp.headers["X-Cache"] = "MISS"
+        return _resp
     except Exception as e:
         logger.exception(f"Preview failed: {e}")
         return jsonify({"error":"Preview failed"}), 500
@@ -1433,6 +1448,13 @@ def templates():
 @app.route("/api/v1/analytics/overview", methods=["GET"])
 @token_required
 def analytics_overview():
+    # Phase 2h: 60s per-user cache (documented staleness; scans keep writing).
+    _akey = f"analytics:overview:{g.user_id}"
+    _ahit = _qr_cache.cache_get(_akey)
+    if _ahit:
+        _resp = jsonify(json.loads(_ahit))
+        _resp.headers["X-Cache"] = "HIT"
+        return _resp
     db=get_db()
     cur=db.cursor()
     cur.execute("SELECT COUNT(*) as total, SUM(scan_count) as scans FROM qrcodes WHERE user_id=?", (g.user_id,))
@@ -1448,7 +1470,11 @@ def analytics_overview():
     cur.execute("SELECT id,name,type,scan_count FROM qrcodes WHERE user_id=? ORDER BY scan_count DESC LIMIT 10", (g.user_id,))
     top=[dict(r) for r in cur.fetchall()]
     db.close()
-    return jsonify({"total_qrs":total,"total_scans":scans,"timeline":timeline,"devices":devices,"countries":countries,"top":top})
+    _payload={"total_qrs":total,"total_scans":scans,"timeline":timeline,"devices":devices,"countries":countries,"top":top}
+    _qr_cache.cache_set(_akey, json.dumps(_payload), 60)
+    _resp = jsonify(_payload)
+    _resp.headers["X-Cache"] = "MISS"
+    return _resp
 
 @app.route("/api/qrcodes/<int:qr_id>/analytics", methods=["GET"])
 @app.route("/api/v1/qrcodes/<int:qr_id>/analytics", methods=["GET"])
