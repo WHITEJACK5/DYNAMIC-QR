@@ -33,6 +33,10 @@ from reportlab.lib.utils import ImageReader
 # Load env
 load_dotenv()
 
+# Logging — configured first so bootstrap code below can use `logger` safely
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("nare")
+
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(APP_DIR, "data", "nare.db")
 UPLOAD_DIR = os.path.join(APP_DIR, "uploads")
@@ -93,10 +97,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_DIR
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 # Enable CORS with explicit origins
 CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
-
-# Logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("nare")
 
 # Rate limiting â€” simple in-memory (for production use Flask-Limiter + Redis)
 _rate_store = {}  # {key: [timestamps]}
