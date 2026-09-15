@@ -1013,22 +1013,10 @@ def generate():
     short_code = None
     final_content = content
     if is_dynamic:
-        # Generate with proper entropy and uniqueness check
+        # Unique short code (unchecked fresh fallback on repeated collision)
         db_tmp = get_db()
-        for _ in range(10):
-            cand = generate_short_code(8)
-            try:
-                cur = db_tmp.cursor()
-                cur.execute("SELECT id FROM qrcodes WHERE short_code=?", (cand,))
-                if not cur.fetchone():
-                    short_code = cand
-                    break
-            except Exception as e:
-                logger.warning(f"short_code check failed: {e}")
-                break
+        short_code = qr_repo.mint_unique_short(db_tmp, 10)
         db_tmp.close()
-        if not short_code:
-            short_code = generate_short_code(8)
         final_content = f"{get_base_url(request)}/r/{short_code}"
 
     password = None
@@ -1072,17 +1060,16 @@ def generate():
         qr_id = None
         if user_id:
             db = get_db()
-            cur = db.cursor()
-            now = datetime.datetime.utcnow().isoformat()
             # Use transaction with try for UNIQUE violation
             try:
-                cur.execute("""INSERT INTO qrcodes
-                (user_id,folder_id,name,type,content,data_json,is_dynamic,short_code,fg_color,bg_color,gradient,pattern,eye_style,frame_text,frame_color,logo_path,has_password,password_hash,expiry_date,scan_limit,scan_count,created_at,updated_at)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (user_id, None, name, qr_type, content, json.dumps(data), 1 if is_dynamic else 0, short_code, fg_color, bg_color, gradient, pattern, eye_style, frame_text, frame_color, logo_path, 1 if pwd_hash else 0, pwd_hash, expiry_date, scan_limit, 0, now, now)
-                )
-                db.commit()
-                qr_id = cur.lastrowid
+                qr_id = qr_repo.create_full(
+                    db, user_id=user_id, name=name, type=qr_type, content=content,
+                    data_json=json.dumps(data), is_dynamic=1 if is_dynamic else 0,
+                    short_code=short_code, fg_color=fg_color, bg_color=bg_color,
+                    gradient=gradient, pattern=pattern, eye_style=eye_style,
+                    frame_text=frame_text, frame_color=frame_color, logo_path=logo_path,
+                    has_password=1 if pwd_hash else 0, password_hash=pwd_hash,
+                    expiry_date=expiry_date, scan_limit=scan_limit)
             except sqlite3.IntegrityError as e:
                 db.rollback()
                 logger.warning(f"Short code collision, retry: {e}")
@@ -1093,13 +1080,14 @@ def generate():
                     # Regenerate image with new URL
                     img = create_qr_image(final_content, fg_color, bg_color, pattern, eye_style, gradient, logo_path, frame_text, frame_color, size=900)
                     b64 = image_to_base64(img, "PNG")
-                    cur.execute("""INSERT INTO qrcodes
-                    (user_id,folder_id,name,type,content,data_json,is_dynamic,short_code,fg_color,bg_color,gradient,pattern,eye_style,frame_text,frame_color,logo_path,has_password,password_hash,expiry_date,scan_limit,scan_count,created_at,updated_at)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                    (user_id, None, name, qr_type, content, json.dumps(data), 1 if is_dynamic else 0, short_code, fg_color, bg_color, gradient, pattern, eye_style, frame_text, frame_color, logo_path, 1 if pwd_hash else 0, pwd_hash, expiry_date, scan_limit, 0, now, now)
-                    )
-                    db.commit()
-                    qr_id = cur.lastrowid
+                    qr_id = qr_repo.create_full(
+                        db, user_id=user_id, name=name, type=qr_type, content=content,
+                        data_json=json.dumps(data), is_dynamic=1,
+                        short_code=short_code, fg_color=fg_color, bg_color=bg_color,
+                        gradient=gradient, pattern=pattern, eye_style=eye_style,
+                        frame_text=frame_text, frame_color=frame_color, logo_path=logo_path,
+                        has_password=1 if pwd_hash else 0, password_hash=pwd_hash,
+                        expiry_date=expiry_date, scan_limit=scan_limit)
                 else:
                     raise
             finally:
@@ -1284,7 +1272,6 @@ def bulk_generate():
         start=1 if "url" in header or "name" in header else 0
         created=[]
         db=get_db()
-        cur=db.cursor()
         for line in lines[start:]:
             parts=[p.strip() for p in line.split(",")]
             url=parts[0] if parts else ""
@@ -1292,23 +1279,14 @@ def bulk_generate():
             if not url:
                 continue
             content=build_qr_content(typ, {"url":url})
-            # Generate unique short_code with retry
-            short = None
-            for _ in range(5):
-                cand = generate_short_code(8)
-                cur.execute("SELECT id FROM qrcodes WHERE short_code=?", (cand,))
-                if not cur.fetchone():
-                    short = cand
-                    break
-            if not short:
-                short = generate_short_code(8)
+            # Unique short_code (unchecked fresh fallback on repeated collision)
+            short = qr_repo.mint_unique_short(db, 5)
             final=f"{get_base_url(request)}/r/{short}"
-            now=datetime.datetime.utcnow().isoformat()
             try:
-                cur.execute("INSERT INTO qrcodes (user_id,name,type,content,data_json,is_dynamic,short_code,fg_color,bg_color,pattern,eye_style,scan_count,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                            (g.user_id,name,typ,content, json.dumps({"url":url}), 1, short, fg,bg,"square","square",0,now,now))
-                # Commit per row to avoid losing batch on collision
-                db.commit()
+                qr_repo.create_full(
+                    db, user_id=g.user_id, name=name, type=typ, content=content,
+                    data_json=json.dumps({"url":url}), is_dynamic=1, short_code=short,
+                    fg_color=fg, bg_color=bg, pattern="square", eye_style="square")
                 created.append({"name":name,"url":url,"short_code":short,"qr_url":final})
             except sqlite3.IntegrityError as e:
                 db.rollback()
@@ -1566,35 +1544,15 @@ def download_qr(qr_id):
 @token_required
 def duplicate(qr_id):
     db=get_db()
-    cur=db.cursor()
-    cur.execute("SELECT * FROM qrcodes WHERE id=? AND user_id=?", (qr_id,g.user_id))
-    row=cur.fetchone()
-    if not row:
-        db.close(); return jsonify({"error":"Not found"}),404
-    # Generate unique code for duplicate if dynamic
-    new_code=None
-    if row["is_dynamic"]:
-        for _ in range(5):
-            cand = generate_short_code(8)
-            cur.execute("SELECT id FROM qrcodes WHERE short_code=?", (cand,))
-            if not cur.fetchone():
-                new_code = cand
-                break
-        if not new_code:
-            new_code = generate_short_code(8)
-    now=datetime.datetime.utcnow().isoformat()
     try:
-        cur.execute("""INSERT INTO qrcodes
-        (user_id,folder_id,name,type,content,data_json,is_dynamic,short_code,fg_color,bg_color,gradient,pattern,eye_style,frame_text,frame_color,logo_path,has_password,password_hash,expiry_date,scan_limit,scan_count,created_at,updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        (g.user_id, row["folder_id"], row["name"]+" (Copy)", row["type"], row["content"], row["data_json"], row["is_dynamic"], new_code, row["fg_color"], row["bg_color"], row["gradient"], row["pattern"], row["eye_style"], row["frame_text"], row["frame_color"], row["logo_path"], row["has_password"], row["password_hash"], row["expiry_date"], row["scan_limit"], 0, now, now))
-        db.commit()
-        nid=cur.lastrowid
+        nid = qr_repo.duplicate_owned(db, qr_id, g.user_id)
     except Exception as e:
         logger.exception(f"Duplicate failed: {e}")
         db.close()
         return jsonify({"error":"Duplicate failed"}), 500
     db.close()
+    if nid is None:
+        return jsonify({"error":"Not found"}),404
     return jsonify({"id":nid})
 
 # Health
