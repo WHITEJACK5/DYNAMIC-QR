@@ -96,10 +96,10 @@
     <div id="view-folders" style="display:none"><div class="card"><h3>Folders</h3><div id="folderList" style="margin-top:10px"></div><div style="display:flex;gap:8px;margin-top:10px"><input id="newFolder" placeholder="New folder name" style="flex:1;padding:10px;border:1.5px solid var(--black);border-radius:10px"><button class="btn btn-dark btn-sm" id="addFolder">Add</button></div></div></div>
     <div id="view-templates" style="display:none"><div class="card"><h3>Saved Templates</h3><div id="tplList"></div></div></div>
     <div id="view-settings" style="display:none">
-      <div class="card"><h3>Settings & Security</h3><p style="color:#666;font-size:13px">NARE & CO. — Grid White / Black / Neon Green • GDPR • Local SQLite DB <code>data/nare.db</code> • HOST restricted to 127.0.0.1 • Rate-limited • POST-only passwords</p>
+      <div class="card"><h3>Settings & Security</h3><p style="color:#666;font-size:13px">NARE & CO. — Grid White / Black / Neon Green • Local SQLite DB <code>data/nare.db</code> • HOST restricted to 127.0.0.1 • Rate-limited • POST-only passwords. No GDPR/CCPA compliance claimed.</p>
         <div style="margin-top:14px;background:var(--grid-white);border:1.5px solid var(--black);border-radius:12px;padding:14px">
           <strong style="font-size:13px">🔐 Two-Factor Authentication (TOTP)</strong>
-          <div style="font-size:12px;color:#666;margin:6px 0">Protect your account with authenticator app (Google Authenticator, Authy). Secret stored encrypted in <code>users.twofa_secret</code>.</div>
+          <div style="font-size:12px;color:#666;margin:6px 0">Protect your account with authenticator app (Google Authenticator, Authy). Secret stored in <code>users.twofa_secret</code> (plaintext in local DB — personal use only).</div>
           <div id="twofaStatus" style="font-size:12px;font-weight:700;margin:8px 0">Checking…</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn btn-primary btn-sm" id="btn2faSetup">Setup 2FA →</button>
@@ -111,7 +111,7 @@
             <div style="display:flex;gap:8px"><input id="twofaCodeSetup" placeholder="123456" maxlength="6" style="flex:1;padding:10px;border:1.5px solid var(--black);border-radius:10px;text-align:center;letter-spacing:.2em;font-weight:800"><button class="btn btn-primary btn-sm" id="btn2faVerify">Verify & Enable</button></div>
           </div>
         </div>
-        <div style="margin-top:12px;display:grid;gap:10px"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked disabled> Anonymize scan IP (GDPR)</label><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked disabled> Rate limiting (5/min login)</label><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked disabled> CORS restricted to ALLOWED_ORIGINS</label></div>
+        <div style="margin-top:12px;display:grid;gap:10px"><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" disabled> IP anonymization — not implemented (IPs stored as-is)</label><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked disabled> Rate limiting (5/min login)</label><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" checked disabled> CORS restricted to ALLOWED_ORIGINS</label></div>
         <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="localStorage.clear(); toast('Local storage cleared')">Clear Local Cache</button><button class="btn btn-dark btn-sm" onclick="load()">Reload Data</button><button class="btn btn-ghost btn-sm" onclick="if(confirm('Reset local DB? This deletes data/nare.db')){fetch('/api/health').then(()=>toast('Delete data/nare.db and restart server'))}">Reset DB Help</button></div>
       </div>
     </div>
