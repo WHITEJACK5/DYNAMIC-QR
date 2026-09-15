@@ -28,7 +28,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install ruff
+        run: pip install ruff
+      - name: Ruff (pyflakes errors only — full style pass is a later phase)
+        run: ruff check app.py tests/ --select F
       - name: Check no hardcoded secret
         run: |
           if grep -R "nare-co-secret-2026" --include="*.py" .; then echo "Hardcoded secret found!"; exit 1; fi
           echo "No hardcoded secret"
+
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install bandit
+        run: pip install bandit
+      - name: Bandit (fail on HIGH severity; medium/low reported for follow-up)
+        run: bandit -r app.py -ll
+
+  build:
+    # Placeholder until Phase 6a adds the Dockerfile; today this verifies the
+    # dev entrypoint compiles. Replaced by `docker build` in the Phase 6 PR.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile check
+        run: python -m compileall -q app.py

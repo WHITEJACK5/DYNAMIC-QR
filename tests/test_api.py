@@ -1,4 +1,4 @@
-import os, json, tempfile, pytest
+import os, tempfile, pytest
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -7,7 +7,7 @@ os.environ["SECRET_KEY"] = "test-secret-key-for-ci-must-be-long-enough-32chars"
 os.environ["BASE_URL"] = "http://localhost:5000"
 # Prevent .env loading from polluting
 import app as nare
-from app import app, init_db, DB_PATH
+from app import app
 
 @pytest.fixture(autouse=True)
 def clear_rate_store():
