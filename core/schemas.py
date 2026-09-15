@@ -170,3 +170,94 @@ class TemplateCreateRequest(BaseModel):
         if len(json.dumps(v if v is not None else {})) > 10000:
             raise ValueError("Config too large")
         return v
+
+
+def _norm_qr_type(v) -> str:
+    if v is None or v == "":
+        return "url"
+    if not isinstance(v, str):
+        raise ValueError("Invalid type")
+    return v
+
+
+def _norm_qr_data(v) -> Any:
+    if v is None or v == "":
+        return {}
+    if isinstance(v, str):
+        return {"content": v}
+    return v
+
+
+def _check_color(v, field_name: str) -> str:
+    if not isinstance(v, str) or not HEX_COLOR.match(v):
+        raise ValueError(f"Invalid color {field_name}")
+    return v
+
+
+class QRStyle(BaseModel):
+    """Shared style rules for generate/preview (colors strict like PUT)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    fg_color: str = "#0A0A0A"
+    bg_color: str = "#FFFFFF"
+    frame_color: str = "#00FF88"
+    pattern: str = "square"
+    eye_style: str = "square"
+    gradient: str = "solid"
+    frame_text: str = ""
+
+    @field_validator("fg_color", mode="before")
+    @classmethod
+    def _fg(cls, v):
+        return _check_color(v, "fg_color")
+
+    @field_validator("bg_color", mode="before")
+    @classmethod
+    def _bg(cls, v):
+        return _check_color(v, "bg_color")
+
+    @field_validator("frame_color", mode="before")
+    @classmethod
+    def _fc(cls, v):
+        return _check_color(v, "frame_color")
+
+    @field_validator("pattern", "eye_style", "gradient", "frame_text", mode="before")
+    @classmethod
+    def _style_str(cls, v):
+        return v if isinstance(v, str) else ""
+
+
+class GenerateRequest(QRStyle):
+    type: str = "url"
+    data: Any = {}
+    is_dynamic: bool = False
+    name: Any = "My QR"
+    logo_base64: Optional[str] = None
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def _type(cls, v):
+        return _norm_qr_type(v)
+
+    @field_validator("data", mode="before")
+    @classmethod
+    def _data(cls, v):
+        return _norm_qr_data(v)
+
+
+class PreviewRequest(QRStyle):
+    content: Optional[str] = None
+    type: str = "url"
+    data: Any = {}
+    logo_base64: Optional[str] = None
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def _type(cls, v):
+        return _norm_qr_type(v)
+
+    @field_validator("data", mode="before")
+    @classmethod
+    def _data(cls, v):
+        return _norm_qr_data(v)

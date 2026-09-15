@@ -43,7 +43,9 @@ from pydantic import ValidationError
 
 from core.schemas import (
     FolderCreateRequest,
+    GenerateRequest,
     LoginRequest,
+    PreviewRequest,
     QRUpdateRequest,
     RegisterRequest,
     TemplateCreateRequest,
@@ -943,22 +945,17 @@ def generate():
         name = request.form.get("name","My QR")
         logo_file = request.files.get("logo")
     else:
-        body = request.get_json() or {}
-        qr_type = body.get("type","url")
-        data = body.get("data",{})
-        if isinstance(data, str):
-            data = {"content": data}
-        is_dynamic = body.get("is_dynamic", False)
-        fg_color = body.get("fg_color","#0A0A0A")
-        bg_color = body.get("bg_color","#FFFFFF")
-        pattern = body.get("pattern","square")
-        eye_style = body.get("eye_style","square")
-        frame_text = body.get("frame_text","")
-        frame_color = body.get("frame_color","#00FF88")
-        gradient = body.get("gradient","solid")
-        name = body.get("name","My QR")
+        try:
+            req = GenerateRequest.model_validate(request.get_json(silent=True) or {})
+        except ValidationError as e:
+            return jsonify({"error": first_error(e)}), 400
+        qr_type, data, is_dynamic = req.type, req.data, req.is_dynamic
+        fg_color, bg_color = req.fg_color, req.bg_color
+        pattern, eye_style = req.pattern, req.eye_style
+        frame_text, frame_color = req.frame_text, req.frame_color
+        gradient, name = req.gradient, req.name
+        logo_b64 = req.logo_base64
         logo_file = None
-        logo_b64 = body.get("logo_base64")
         if logo_b64:
             try:
                 header, b64data = logo_b64.split(",",1) if "," in logo_b64 else ("", logo_b64)
@@ -1123,18 +1120,16 @@ def generate():
 @app.route("/api/preview", methods=["POST"])
 @app.route("/api/v1/preview", methods=["POST"])
 def preview():
-    body = request.get_json() or {}
-    content = body.get("content") or build_qr_content(body.get("type","url"), body.get("data",{}))
+    try:
+        req = PreviewRequest.model_validate(request.get_json(silent=True) or {})
+    except ValidationError as e:
+        return jsonify({"error": first_error(e)}), 400
+    content = req.content or build_qr_content(req.type, req.data)
     if not content:
         return jsonify({"error":"Content required"}), 400
-    fg = body.get("fg_color","#0A0A0A")
-    bg = body.get("bg_color","#FFFFFF")
-    pat = body.get("pattern","square")
-    eye = body.get("eye_style","square")
-    grad = body.get("gradient","solid")
-    frame = body.get("frame_text","")
-    fcol = body.get("frame_color","#00FF88")
-    logo_b64 = body.get("logo_base64")
+    fg, bg, pat, eye = req.fg_color, req.bg_color, req.pattern, req.eye_style
+    grad, frame, fcol = req.gradient, req.frame_text, req.frame_color
+    logo_b64 = req.logo_base64
     # Phase 2h: identical preview inputs skip regeneration (X-Cache HIT).
     _pkey = _qr_cache.key_for("preview", {
         "content": content, "fg": fg, "bg": bg, "pat": pat, "eye": eye,
