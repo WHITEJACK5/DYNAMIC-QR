@@ -113,6 +113,20 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 # Enable CORS with explicit origins
 CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
 
+# Phase 2d: API versioning. Canonical routes live under /api/v1/* (added as
+# aliases below); legacy /api/* proxies to the same handlers during the
+# deprecation window and carries Deprecation/Successor headers.
+@app.after_request
+def _version_headers(resp):
+    try:
+        path = request.path or ""
+    except Exception:
+        return resp
+    if path.startswith("/api/") and not path.startswith("/api/v1/"):
+        resp.headers.setdefault("Deprecation", "true")
+        resp.headers.setdefault("Link", f'</api/v1{path[4:]}>; rel="successor-version"')
+    return resp
+
 # Rate limiting â€” simple in-memory (for production use Flask-Limiter + Redis)
 _rate_store = {}  # {key: [timestamps]}
 def _is_rate_limited(key, limit, window_sec):
@@ -643,6 +657,7 @@ def frontend_static(path):
 
 # ---------------- API: Auth ----------------
 @app.route("/api/register", methods=["POST"])
+@app.route("/api/v1/register", methods=["POST"])
 @rate_limit(limit=5, window=60, key_func=lambda: request.remote_addr or "unknown")
 def register():
     try:
@@ -676,6 +691,7 @@ def register():
         return jsonify({"error":"Registration failed"}), 500
 
 @app.route("/api/login", methods=["POST"])
+@app.route("/api/v1/login", methods=["POST"])
 @rate_limit(limit=5, window=60, key_func=lambda: request.remote_addr or "unknown")
 def login():
     try:
@@ -701,6 +717,7 @@ def login():
     return jsonify({"token":token,"user":{"id":row["id"],"email":email,"name":row["name"]}})
 
 @app.route("/api/forgot-password", methods=["POST"])
+@app.route("/api/v1/forgot-password", methods=["POST"])
 @rate_limit(limit=3, window=600)
 def forgot_password():
     data = request.get_json() or {}
@@ -728,6 +745,7 @@ def forgot_password():
     return jsonify({"message":"Reset token generated (see server logs).","reset_token": reset_token, "expires": expires}), 200
 
 @app.route("/api/reset-password", methods=["POST"])
+@app.route("/api/v1/reset-password", methods=["POST"])
 def reset_password():
     data = request.get_json() or {}
     email = data.get("email","").strip().lower()
@@ -763,6 +781,7 @@ def reset_password():
 
 # 2FA endpoints
 @app.route("/api/2fa/setup", methods=["POST"])
+@app.route("/api/v1/2fa/setup", methods=["POST"])
 @token_required
 def setup_2fa():
     try:
@@ -791,6 +810,7 @@ def setup_2fa():
         return jsonify({"error":"2FA setup failed"}), 500
 
 @app.route("/api/2fa/verify-setup", methods=["POST"])
+@app.route("/api/v1/2fa/verify-setup", methods=["POST"])
 @token_required
 def verify_2fa_setup():
     data = request.get_json() or {}
@@ -820,6 +840,7 @@ def verify_2fa_setup():
         return jsonify({"error":"Verify failed"}), 500
 
 @app.route("/api/2fa/disable", methods=["POST"])
+@app.route("/api/v1/2fa/disable", methods=["POST"])
 @token_required
 def disable_2fa():
     data = request.get_json() or {}
@@ -849,6 +870,7 @@ def disable_2fa():
     return jsonify({"message":"2FA disabled"})
 
 @app.route("/api/2fa/login-verify", methods=["POST"])
+@app.route("/api/v1/2fa/login-verify", methods=["POST"])
 def login_2fa_verify():
     data = request.get_json() or {}
     temp_token = data.get("temp_token","")
@@ -881,6 +903,7 @@ def login_2fa_verify():
         return jsonify({"error":"Verify failed"}), 401
 
 @app.route("/api/me", methods=["GET"])
+@app.route("/api/v1/me", methods=["GET"])
 @token_required
 def me():
     db = get_db()
@@ -894,6 +917,7 @@ def me():
 
 # --------------- API: Generate ---------------
 @app.route("/api/generate", methods=["POST"])
+@app.route("/api/v1/generate", methods=["POST"])
 @rate_limit(limit=20, window=60)
 def generate():
     if request.content_type and "multipart/form-data" in request.content_type:
@@ -1092,6 +1116,7 @@ def generate():
         return jsonify({"error": "Generation failed"}), 500
 
 @app.route("/api/preview", methods=["POST"])
+@app.route("/api/v1/preview", methods=["POST"])
 def preview():
     body = request.get_json() or {}
     content = body.get("content") or build_qr_content(body.get("type","url"), body.get("data",{}))
@@ -1139,6 +1164,7 @@ def preview():
         return jsonify({"error":"Preview failed"}), 500
 
 @app.route("/api/qrcodes", methods=["GET"])
+@app.route("/api/v1/qrcodes", methods=["GET"])
 @token_required
 def list_qrcodes():
     """List own QRs. Pagination: ?limit=50&offset=0 -> {items,total,limit,offset}.
@@ -1189,6 +1215,7 @@ def list_qrcodes():
     return jsonify(out)
 
 @app.route("/api/qrcodes/<int:qr_id>", methods=["GET"])
+@app.route("/api/v1/qrcodes/<int:qr_id>", methods=["GET"])
 @token_required
 def get_qrcode(qr_id):
     db=get_db()
@@ -1203,6 +1230,7 @@ def get_qrcode(qr_id):
     return jsonify(d)
 
 @app.route("/api/qrcodes/<int:qr_id>", methods=["PUT"])
+@app.route("/api/v1/qrcodes/<int:qr_id>", methods=["PUT"])
 @token_required
 def update_qrcode(qr_id):
     db=get_db()
@@ -1272,6 +1300,7 @@ def update_qrcode(qr_id):
     return jsonify(updated)
 
 @app.route("/api/qrcodes/<int:qr_id>", methods=["DELETE"])
+@app.route("/api/v1/qrcodes/<int:qr_id>", methods=["DELETE"])
 @token_required
 def delete_qrcode(qr_id):
     db=get_db()
@@ -1294,6 +1323,7 @@ def delete_qrcode(qr_id):
     return jsonify({"success":True})
 
 @app.route("/api/qrcodes/bulk", methods=["POST"])
+@app.route("/api/v1/qrcodes/bulk", methods=["POST"])
 @token_required
 def bulk_generate():
     if "file" not in request.files:
@@ -1353,6 +1383,7 @@ def bulk_generate():
         return jsonify({"error":"Bulk failed"}),500
 
 @app.route("/api/folders", methods=["GET","POST"])
+@app.route("/api/v1/folders", methods=["GET","POST"])
 @token_required
 def folders():
     db=get_db()
@@ -1376,6 +1407,7 @@ def folders():
         return jsonify(rows)
 
 @app.route("/api/templates", methods=["GET","POST"])
+@app.route("/api/v1/templates", methods=["GET","POST"])
 @token_required
 def templates():
     db=get_db()
@@ -1400,6 +1432,7 @@ def templates():
         return jsonify(rows)
 
 @app.route("/api/analytics/overview", methods=["GET"])
+@app.route("/api/v1/analytics/overview", methods=["GET"])
 @token_required
 def analytics_overview():
     db=get_db()
@@ -1420,6 +1453,7 @@ def analytics_overview():
     return jsonify({"total_qrs":total,"total_scans":scans,"timeline":timeline,"devices":devices,"countries":countries,"top":top})
 
 @app.route("/api/qrcodes/<int:qr_id>/analytics", methods=["GET"])
+@app.route("/api/v1/qrcodes/<int:qr_id>/analytics", methods=["GET"])
 @token_required
 def qr_analytics(qr_id):
     db=get_db()
@@ -1551,6 +1585,7 @@ def redirect_dynamic(code):
         """
 
 @app.route("/api/download/<int:qr_id>")
+@app.route("/api/v1/download/<int:qr_id>")
 @token_required
 def download_qr(qr_id):
     fmt=request.args.get("format","png").lower()
@@ -1614,6 +1649,7 @@ def download_qr(qr_id):
             return jsonify({"error":"PNG failed"}), 500
 
 @app.route("/api/qrcodes/<int:qr_id>/duplicate", methods=["POST"])
+@app.route("/api/v1/qrcodes/<int:qr_id>/duplicate", methods=["POST"])
 @token_required
 def duplicate(qr_id):
     db=get_db()
@@ -1650,6 +1686,7 @@ def duplicate(qr_id):
 
 # Health
 @app.route("/api/health")
+@app.route("/api/v1/health")
 def health():
     return jsonify({"status":"ok","service":"NARE & CO.","version":"1.1.0","theme":"grid-white / black / neon-green"})
 
