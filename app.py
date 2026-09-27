@@ -1,6 +1,7 @@
 import os
 import json
 import base64
+import io
 import secrets
 import datetime
 import logging
@@ -144,6 +145,7 @@ def _version_headers(resp):
 from core import ratelimit as _ratelimit
 from core import folders_repo, qr_repo, scans_repo, templates_repo, users_repo
 from core import redirect_service
+from core import storage as _storage
 from core import tokens as _tokens
 from core import cache as _qr_cache
 from core import pagination
@@ -343,7 +345,7 @@ def _enrich_scan_geo_async(scan_id, ip):
 
     return enqueue_call(_geo_enrich_job, scan_id, ip)
 
-def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="square", eye_style="square", gradient=None, logo_path=None, frame_text=None, frame_color="#00FF88", size=1000, error_correction=qrcode.constants.ERROR_CORRECT_H):
+def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="square", eye_style="square", gradient=None, logo_path=None, frame_text=None, frame_color="#00FF88", size=1000, error_correction=qrcode.constants.ERROR_CORRECT_H, logo_bytes=None):
     if pattern == "dots" or pattern == "dot":
         drawer = CircleModuleDrawer()
         eye_drawer = CircleModuleDrawer()
@@ -404,9 +406,24 @@ def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="sq
 
     img = img.resize((size, size), Image.LANCZOS)
 
-    if logo_path and os.path.exists(logo_path):
+    # Logo: raw bytes (preview, never persisted), an s3:// storage ref, or a
+    # local path (legacy rows).
+    logo = None
+    if logo_bytes:
         try:
-            logo = Image.open(logo_path).convert("RGBA")
+            logo = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
+        except Exception as e:
+            logger.warning(f"logo bytes decode failed: {e}")
+    elif logo_path and str(logo_path).startswith(_storage.S3_PREFIX):
+        logo = _storage.load_logo_image(logo_path)
+    elif logo_path:
+        try:
+            with open(logo_path, "rb") as fh:
+                logo = Image.open(io.BytesIO(fh.read())).convert("RGBA")
+        except Exception as e:
+            logger.warning(f"logo open failed: {e}")
+    if logo is not None:
+        try:
             logo_size = int(size * 0.22)
             logo = logo.resize((logo_size, logo_size), Image.LANCZOS)
             bg_size = logo_size + 20
@@ -809,26 +826,21 @@ def generate():
             try:
                 header, b64data = logo_b64.split(",",1) if "," in logo_b64 else ("", logo_b64)
                 img_data = base64.b64decode(b64data)
-                # Validate MIME? Check size already limited by MAX_CONTENT_LENGTH
-                tmp_path = os.path.join(UPLOAD_DIR, f"tmp_{secrets.token_hex(4)}.png")
-                with open(tmp_path,"wb") as f:
-                    f.write(img_data)
-                # Validate via PIL
+                # Validate via PIL in memory (no temp file needed)
                 try:
-                    im = Image.open(tmp_path)
+                    im = Image.open(io.BytesIO(img_data))
                     im.verify()
                     if im.format not in ("PNG","JPEG","JPG","WEBP","SVG"):
                         logger.warning(f"Logo format not allowed: {im.format}")
                 except Exception as e:
                     logger.warning(f"Logo validation failed: {e}")
-                    os.remove(tmp_path)
                     raise
-                logo_path_tmp = tmp_path
+                logo_ref_tmp = _storage.save_logo(img_data)
             except Exception as e:
                 logger.warning(f"Logo b64 processing failed: {e}")
-                logo_path_tmp = None
+                logo_ref_tmp = None
         else:
-            logo_path_tmp = None
+            logo_ref_tmp = None
 
     logo_path = None
     if 'logo_file' in locals() and logo_file:
@@ -837,23 +849,17 @@ def generate():
         ext = os.path.splitext(secure_filename(logo_file.filename or "logo.png"))[1].lower()
         if ext not in allowed_ext:
             return jsonify({"error": f"Logo type not allowed: {ext}"}), 400
-        fname = secure_filename(logo_file.filename or "logo.png")
-        tmp_name = f"{secrets.token_hex(6)}_{fname}"
-        logo_path = os.path.join(UPLOAD_DIR, tmp_name)
-        logo_file.save(logo_path)
-        # Validate via PIL
+        logo_bytes = logo_file.read()
+        # Validate via PIL before persisting anywhere
         try:
-            im = Image.open(logo_path)
+            im = Image.open(io.BytesIO(logo_bytes))
             im.verify()
         except Exception as e:
-            try:
-                os.remove(logo_path)
-            except Exception:
-                pass
             logger.warning(f"Logo file validation failed: {e}")
             return jsonify({"error":"Invalid image file"}), 400
-    elif 'logo_path_tmp' in locals() and logo_path_tmp and os.path.exists(logo_path_tmp):
-        logo_path = logo_path_tmp
+        logo_path = _storage.save_logo(logo_bytes, ext)
+    elif 'logo_ref_tmp' in locals() and logo_ref_tmp:
+        logo_path = logo_ref_tmp
 
     content = build_qr_content(qr_type, data)
 
@@ -978,32 +984,27 @@ def preview():
         _resp.headers["X-Cache"] = "HIT"
         return _resp
     logo_path = None
+    logo_bytes = None
     if logo_b64:
         try:
             h, d = logo_b64.split(",",1) if "," in logo_b64 else ("", logo_b64)
             img_data = base64.b64decode(d)
             if len(img_data) > 5*1024*1024:
                 return jsonify({"error":"Logo too large"}), 400
-            tmp = os.path.join(UPLOAD_DIR, f"prev_{secrets.token_hex(4)}.png")
-            with open(tmp,"wb") as f:
-                f.write(img_data)
             # Validate
             try:
-                im = Image.open(tmp)
+                im = Image.open(io.BytesIO(img_data))
                 im.verify()
             except Exception as e:
                 logger.warning(f"Preview logo invalid: {e}")
-                try:
-                    os.remove(tmp)
-                except Exception:
-                    pass
                 return jsonify({"error":"Invalid logo image"}), 400
-            logo_path = tmp
+            # Preview logos are never persisted — bytes go straight to the renderer
+            logo_bytes = img_data
         except Exception as e:
             logger.warning(f"Preview logo decode failed: {e}")
             return jsonify({"error":"Invalid logo"}), 400
     try:
-        img = create_qr_image(content, fg, bg, pat, eye, grad, logo_path, frame, fcol, size=800)
+        img = create_qr_image(content, fg, bg, pat, eye, grad, logo_path, frame, fcol, size=800, logo_bytes=logo_bytes)
         b64 = image_to_base64(img)
         _data_url = f"data:image/png;base64,{b64}"
         _qr_cache.cache_set(_pkey, _data_url, 3600)
