@@ -1,7 +1,6 @@
 import os
 import json
 import base64
-import sqlite3
 import secrets
 import datetime
 import logging
@@ -172,18 +171,12 @@ def rate_limit(limit=5, window=60, key_func=None):
     return decorator
 
 # ---------------- DB ----------------
-def get_db():
-    db = sqlite3.connect(DB_PATH)
-    db.row_factory = sqlite3.Row
-    return db
-
-
 def get_session():
-    """SQLAlchemy session bound to the active engine (SQLite or PostgreSQL).
+    """SQLAlchemy session bound to the active engine.
 
-    Used by the repositories that have been ported to the ORM. The raw
-    sqlite3 get_db() above still serves the not-yet-ported repos
-    (qr_repo, scans_repo) and is removed in the final Phase 3c slice.
+    All repositories run on the ORM, so the whole app now works on either
+    SQLite (local default) or PostgreSQL (DATABASE_URL) — the raw
+    sqlite3 connection path was removed in Phase 3c4.
     """
     from core import db as _cdb
 
@@ -221,13 +214,12 @@ def init_db():
         logger.exception(f"DB migration failed: {e}")
         raise
     try:
-        _db = get_db()
-        _cur = _db.cursor()
-        _cur.execute("SELECT COUNT(*) FROM users")
-        _u = _cur.fetchone()[0]
-        _cur.execute("SELECT COUNT(*) FROM qrcodes")
-        _q = _cur.fetchone()[0]
-        _db.close()
+        _s = get_session()
+        from core.models import QRCode, User
+
+        _u = _s.query(User).count()
+        _q = _s.query(QRCode).count()
+        _s.close()
         if not is_fresh or _u:
             print(f"[NARE & CO.] DB loaded — {DB_PATH} — users:{_u} qrs:{_q}")
     except Exception as e:
@@ -329,13 +321,13 @@ def _geo_enrich_job(scan_id, ip):
     """Module-level so RQ workers can import it (never enqueue a closure)."""
     try:
         geo = get_geo_from_ip(ip)
-        db = get_db()
+        s = get_session()
         try:
             scans_repo.update_geo(
-                db, scan_id, geo.get("country", "Unknown"), geo.get("city", "Unknown")
+                s, scan_id, geo.get("country", "Unknown"), geo.get("city", "Unknown")
             )
         finally:
-            db.close()
+            s.close()
     except Exception as e:
         logger.warning(f"Async geo enrichment failed for scan {scan_id}: {e}")
 
@@ -1308,9 +1300,9 @@ def analytics_overview():
         _resp = jsonify(json.loads(_ahit))
         _resp.headers["X-Cache"] = "HIT"
         return _resp
-    db=get_db()
-    _payload = scans_repo.overview_for_user(db, g.user_id)
-    db.close()
+    s = get_session()
+    _payload = scans_repo.overview_for_user(s, g.user_id)
+    s.close()
     _qr_cache.cache_set(_akey, json.dumps(_payload), 60)
     _resp = jsonify(_payload)
     _resp.headers["X-Cache"] = "MISS"
@@ -1320,22 +1312,18 @@ def analytics_overview():
 @app.route("/api/v1/qrcodes/<int:qr_id>/analytics", methods=["GET"])
 @token_required
 def qr_analytics(qr_id):
-    db=get_db()
     s = get_session()
     qr = qr_repo.get_owned(s, qr_id, g.user_id)
     if not qr:
         s.close()
-        db.close()
         return jsonify({"error":"Not found"}),404
-    detail = scans_repo.detail_for_qr(db, qr_id)
+    detail = scans_repo.detail_for_qr(s, qr_id)
     s.close()
-    db.close()
     return jsonify({"qr": qr_repo.to_public(qr), **detail})
 
 @app.route("/r/<code>", methods=["GET", "POST"])
 def redirect_dynamic(code):
     s = get_session()
-    db=get_db()
     _qr = qr_repo.get_by_short(s, code)
     # Server-side only: the decision must be able to verify password_hash.
     row = qr_repo.to_internal(_qr) if _qr is not None else None
@@ -1397,7 +1385,7 @@ def redirect_dynamic(code):
     device,browser,os_name=detect_device(ua)
     now=datetime.datetime.utcnow().isoformat()
     # Pending geo: enriched in background AFTER the redirect (see below).
-    scan_id = scans_repo.record_scan(db, row["id"], now, ip, ua, device, browser, os_name)
+    scan_id = scans_repo.record_scan(s, row["id"], now, ip, ua, device, browser, os_name)
     if smart:
         logger.info(f"Smart URL resolved for {code} -> {target} (device={device})")
     s.close()

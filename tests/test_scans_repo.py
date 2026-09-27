@@ -1,91 +1,87 @@
-"""Phase 2n: scans repo (writes never raise, aggregates user-scoped)."""
-import datetime
+"""Phase 3c3: scans repo on the ORM — same assertions on SQLite and PostgreSQL."""
 import os
 import sys
-import tempfile
+
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-32chars")
 
-import app as nare
+from core import migrations as mig
 from core import scans_repo
+from core.models import Base, User
+
+PG_URL = os.getenv("TEST_DATABASE_URL", "").strip()
 
 
-def _db():
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
-    tmp.close()
-    old = nare.DB_PATH
-    nare.DB_PATH = tmp.name
-    nare.init_db()
-    return nare.get_db(), tmp.name, old
+@pytest.fixture
+def s(tmp_path):
+    """Session on a freshly migrated DB (SQLite by default, PG when asked)."""
+    if PG_URL:
+        eng0 = create_engine(PG_URL)
+        Base.metadata.drop_all(eng0)
+        with eng0.connect() as conn:  # drop_all leaves the version row behind
+            conn.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
+            conn.commit()
+        eng0.dispose()
+        mig.upgrade_to_head(PG_URL)
+        eng = create_engine(PG_URL)
+    else:
+        url = f"sqlite:///{(tmp_path / 'scans.db').as_posix()}"
+        mig.upgrade_to_head(url)
+        eng = create_engine(url, connect_args={"check_same_thread": False})
+    sess = sessionmaker(bind=eng, expire_on_commit=False)()
+    yield sess
+    sess.close()
+    eng.dispose()
 
 
-def _teardown(db, path, old):
-    db.close()
-    try:
-        os.unlink(path)
-    except OSError:
-        pass
-    nare.DB_PATH = old
+def _user(s, email="a@x.com"):
+    u = User(email=email, password_hash="h", name="A")
+    s.add(u)
+    s.commit()
+    return u.id
 
 
-def _user(db, email="a@x.com"):
-    cur = db.cursor()
-    cur.execute(
-        "INSERT INTO users (email,password_hash,name,created_at) VALUES (?,?,?,?)",
-        (email, "h", "A", datetime.datetime.utcnow().isoformat()),
-    )
-    db.commit()
-    return cur.lastrowid
+def _qr(s, uid, name="q", code="SCAN123"):
+    from core import qr_repo
+
+    return qr_repo.create_full(
+        s, user_id=uid, name=name, type="url", content="https://example.com",
+        data_json="{}", is_dynamic=1, short_code=code)
 
 
-def _qr(db, uid, name="q"):
-    import secrets as _s
+def test_record_and_geo(s):
+    uid = _user(s)
+    qid = _qr(s, uid)
+    sid = scans_repo.record_scan(s, qid, "2026-01-01T00:00:00", "9.9.9.9", "ua", "Mobile", "Chrome", "Android")
+    assert sid
+    from core.models import Scan
 
-    cur = db.cursor()
-    cur.execute(
-        "INSERT INTO qrcodes (user_id,name,type,content,short_code,created_at,updated_at)"
-        " VALUES (?,?,?,?,?,?,?)",
-        (uid, name, "url", "https://example.com", _s.token_hex(4),
-         datetime.datetime.utcnow().isoformat(), datetime.datetime.utcnow().isoformat()),
-    )
-    db.commit()
-    return cur.lastrowid
+    row = s.get(Scan, sid)
+    assert (row.country, row.city) == ("Pending", "Pending")
+    from core import qr_repo
 
-
-def test_record_and_geo():
-    db, path, old = _db()
-    try:
-        uid = _user(db)
-        qid = _qr(db, uid)
-        sid = scans_repo.record_scan(db, qid, "2026-01-01T00:00:00", "9.9.9.9", "ua", "Mobile", "Chrome", "Android")
-        assert sid
-        cur = db.cursor()
-        cur.execute("SELECT country, city FROM scans WHERE id=?", (sid,))
-        assert tuple(cur.fetchone()) == ("Pending", "Pending")
-        cur.execute("SELECT scan_count FROM qrcodes WHERE id=?", (qid,))
-        assert cur.fetchone()[0] == 1
-        scans_repo.update_geo(db, sid, "Testland", "Testville")
-        cur.execute("SELECT country FROM scans WHERE id=?", (sid,))
-        assert cur.fetchone()[0] == "Testland"
-    finally:
-        _teardown(db, path, old)
+    assert qr_repo.get_owned(s, qid, uid).scan_count == 1
+    scans_repo.update_geo(s, sid, "Testland", "Testville")
+    assert s.get(Scan, sid).country == "Testland"
+    # missing scan id is a no-op, not a crash
+    scans_repo.update_geo(s, 999999, "X", "Y")
 
 
-def test_overview_scoped_and_shaped():
-    db, path, old = _db()
-    try:
-        a, b = _user(db, "a@x.com"), _user(db, "b@x.com")
-        qa, qb = _qr(db, a, "a"), _qr(db, b, "b")
-        scans_repo.record_scan(db, qa, "2026-02-01T10:00:00", "1.1.1.1", "u", "Mobile", "Chrome", "X")
-        scans_repo.record_scan(db, qb, "2026-02-01T11:00:00", "2.2.2.2", "u", "Desktop", "Safari", "Y")
-        ov = scans_repo.overview_for_user(db, a)
-        assert ov["total_qrs"] == 1 and ov["total_scans"] == 1
-        assert ov["timeline"] == [{"d": "2026-02-01", "c": 1}]
-        assert ov["devices"] == [{"device": "Mobile", "c": 1}]
-        assert [t["name"] for t in ov["top"]] == ["a"]
-        d = scans_repo.detail_for_qr(db, qa)
-        assert len(d["scans"]) == 1 and d["timeline"][0]["c"] == 1
-    finally:
-        _teardown(db, path, old)
+def test_overview_scoped_and_shaped(s):
+    a, b = _user(s, "a@x.com"), _user(s, "b@x.com")
+    qa, qb = _qr(s, a, "a", "SCANA1"), _qr(s, b, "b", "SCANB1")
+    scans_repo.record_scan(s, qa, "2026-02-01 10:00:00", "1.1.1.1", "u", "Mobile", "Chrome", "X")
+    scans_repo.record_scan(s, qb, "2026-02-01 11:00:00", "2.2.2.2", "u", "Desktop", "Safari", "Y")
+    ov = scans_repo.overview_for_user(s, a)
+    assert ov["total_qrs"] == 1 and ov["total_scans"] == 1
+    assert ov["timeline"] == [{"d": "2026-02-01", "c": 1}]
+    assert ov["devices"] == [{"device": "Mobile", "c": 1}]
+    assert [t["name"] for t in ov["top"]] == ["a"]
+    d = scans_repo.detail_for_qr(s, qa)
+    assert len(d["scans"]) == 1 and d["timeline"][0]["c"] == 1
+    assert d["countries"] == [{"country": "Pending", "c": 1}]
