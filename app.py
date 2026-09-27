@@ -176,6 +176,18 @@ def get_db():
     db.row_factory = sqlite3.Row
     return db
 
+
+def get_session():
+    """SQLAlchemy session bound to the active engine (SQLite or PostgreSQL).
+
+    Used by the repositories that have been ported to the ORM. The raw
+    sqlite3 get_db() above still serves the not-yet-ported repos
+    (qr_repo, scans_repo) and is removed in the final Phase 3c slice.
+    """
+    from core import db as _cdb
+
+    return _cdb.get_session()
+
 def init_db():
     """Schema comes from Alembic migrations (Phase 3b2) — no inline DDL.
 
@@ -189,6 +201,7 @@ def init_db():
 
     # Keep ORM/migrations pointed at the same file get_db() uses.
     _cdb.set_default_sqlite(DB_PATH)
+    _cdb.dispose()  # rebuild the engine if DB_PATH changed (tests, CLI)
     is_fresh = not os.path.exists(DB_PATH) or os.path.getsize(DB_PATH) == 0
     try:
         if _migrations.current_revision() is None:
@@ -545,22 +558,22 @@ def register():
     except ValidationError as e:
         return jsonify({"error": first_error(e)}), 400
     email, password, name = req.email, req.password, req.name
-    db = get_db()
+    s = get_session()
     try:
-        if users_repo.find_id_by_email(db, email):
-            db.close()
+        if users_repo.find_id_by_email(s, email):
+            s.close()
             return jsonify({"error":"Email already registered"}), 409
         pwd_hash = generate_password_hash(password)
-        uid = users_repo.create_user(db, email, pwd_hash, name)
-        folders_repo.create_for_user(db, uid, "My QR Codes")
+        uid = users_repo.create_user(s, email, pwd_hash, name)
+        folders_repo.create_for_user(s, uid, "My QR Codes")
         token = _tokens.mint_user_token(uid, email, JWT_SECRET, JWT_ALGO)
-        db.close()
+        s.close()
         logger.info(f"New user registered: {email}")
         return jsonify({"token":token,"user":{"id":uid,"email":email,"name":name}})
     except Exception as e:
         logger.exception(f"Register error for {email}: {e}")
         try:
-            db.close()
+            s.close()
         except Exception:
             pass
         return jsonify({"error":"Registration failed"}), 500
@@ -574,9 +587,9 @@ def login():
     except ValidationError as e:
         return jsonify({"error": first_error(e)}), 400
     email, password = req.email, req.password
-    db = get_db()
-    row = users_repo.find_by_email(db, email)
-    db.close()
+    s = get_session()
+    row = users_repo.find_by_email(s, email)
+    s.close()
     if not row or not check_password_hash(row["password_hash"], password):
         logger.warning(f"Failed login attempt for {email} from {request.remote_addr}")
         return jsonify({"error":"Invalid credentials"}), 401
@@ -598,16 +611,16 @@ def forgot_password():
     except ValidationError as e:
         return jsonify({"error": first_error(e)}), 400
     email = req.email
-    db = get_db()
-    if not users_repo.find_id_by_email(db, email):
-        db.close()
+    s = get_session()
+    if not users_repo.find_id_by_email(s, email):
+        s.close()
         # Don't reveal if email exists
         return jsonify({"message":"If that email exists, a reset link has been generated. Check server logs (personal use)."}), 200
     # Generate reset token valid 15 min
     reset_token = secrets.token_urlsafe(32)
     expires = (datetime.datetime.utcnow() + datetime.timedelta(minutes=15)).isoformat()
-    users_repo.set_reset_token(db, email, generate_password_hash(reset_token), expires)
-    db.close()
+    users_repo.set_reset_token(s, email, generate_password_hash(reset_token), expires)
+    s.close()
     # For personal use, log token (in real app, email it)
     logger.info(f"Password reset token for {email}: {reset_token} (expires {expires})")
     print(f"[NARE & CO.] Password reset for {email}: token={reset_token} expires {expires}")
@@ -622,23 +635,23 @@ def reset_password():
     except ValidationError as e:
         return jsonify({"error": first_error(e)}), 400
     email, token, new_pwd = req.email, req.token, req.new_password
-    db = get_db()
-    row = users_repo.find_reset(db, email)
+    s = get_session()
+    row = users_repo.find_reset(s, email)
     if not row or not row["reset_token"]:
-        db.close()
+        s.close()
         return jsonify({"error":"Invalid or expired reset token"}), 400
     try:
         exp = datetime.datetime.fromisoformat(row["reset_expires"])
         if datetime.datetime.utcnow() > exp:
-            db.close()
+            s.close()
             return jsonify({"error":"Reset token expired"}), 400
     except Exception:
         pass
     if not check_password_hash(row["reset_token"], token):
-        db.close()
+        s.close()
         return jsonify({"error":"Invalid token"}), 400
-    users_repo.complete_reset(db, email, generate_password_hash(new_pwd))
-    db.close()
+    users_repo.complete_reset(s, email, generate_password_hash(new_pwd))
+    s.close()
     logger.info(f"Password reset successful for {email}")
     return jsonify({"message":"Password updated"}), 200
 
@@ -649,11 +662,11 @@ def reset_password():
 def setup_2fa():
     try:
         import pyotp
-        db = get_db()
-        row = users_repo.get_2fa(db, g.user_id)
+        s = get_session()
+        row = users_repo.get_2fa(s, g.user_id)
         secret = row["twofa_secret"] if row and row["twofa_secret"] else pyotp.random_base32()
         if not row or not row["twofa_secret"]:
-            users_repo.set_2fa_secret(db, g.user_id, secret)
+            users_repo.set_2fa_secret(s, g.user_id, secret)
         # Generate QR provisioning URI
         user_email = g.user_email
         totp = pyotp.TOTP(secret)
@@ -661,7 +674,7 @@ def setup_2fa():
         # Also generate QR image for the URI
         qr_img = create_qr_image(uri, size=400)
         b64 = image_to_base64(qr_img)
-        db.close()
+        s.close()
         return jsonify({"secret": secret, "uri": uri, "qr_base64": f"data:image/png;base64,{b64}"})
     except ImportError:
         return jsonify({"error":"2FA not available (pyotp not installed)"}), 500
@@ -680,18 +693,18 @@ def verify_2fa_setup():
     code = req.code
     try:
         import pyotp
-        db = get_db()
-        row = users_repo.get_2fa(db, g.user_id)
+        s = get_session()
+        row = users_repo.get_2fa(s, g.user_id)
         if not row or not row["twofa_secret"]:
-            db.close()
+            s.close()
             return jsonify({"error":"No secret, call /setup first"}), 400
         totp = pyotp.TOTP(row["twofa_secret"])
         if totp.verify(code, valid_window=1):
-            users_repo.set_2fa_enabled(db, g.user_id, True)
-            db.close()
+            users_repo.set_2fa_enabled(s, g.user_id, True)
+            s.close()
             logger.info(f"2FA enabled for user {g.user_id}")
             return jsonify({"message":"2FA enabled"})
-        db.close()
+        s.close()
         return jsonify({"error":"Invalid code"}), 400
     except Exception as e:
         logger.exception(f"2FA verify failed: {e}")
@@ -703,24 +716,24 @@ def verify_2fa_setup():
 def disable_2fa():
     code = Disable2FARequest.model_validate(request.get_json(silent=True) or {}).code
     # If 2FA enabled, require code to disable
-    db = get_db()
-    row = users_repo.get_2fa(db, g.user_id)
+    s = get_session()
+    row = users_repo.get_2fa(s, g.user_id)
     if row and row["twofa_enabled"]:
         if not code:
-            db.close()
+            s.close()
             return jsonify({"error":"code required to disable"}), 400
         try:
             import pyotp
             totp = pyotp.TOTP(row["twofa_secret"])
             if not totp.verify(code, valid_window=1):
-                db.close()
+                s.close()
                 return jsonify({"error":"Invalid code"}), 400
         except Exception as e:
             logger.warning(f"2FA disable verify failed: {e}")
-            db.close()
+            s.close()
             return jsonify({"error":"Invalid code"}), 400
-    users_repo.clear_2fa(db, g.user_id)
-    db.close()
+    users_repo.clear_2fa(s, g.user_id)
+    s.close()
     return jsonify({"message":"2FA disabled"})
 
 @app.route("/api/2fa/login-verify", methods=["POST"])
@@ -737,9 +750,9 @@ def login_2fa_verify():
             return jsonify({"error":"Invalid temp token"}), 400
         uid = payload["user_id"]
         email = payload["email"]
-        db = get_db()
-        row = users_repo.get_2fa(db, uid)
-        db.close()
+        s = get_session()
+        row = users_repo.get_2fa(s, uid)
+        s.close()
         if not row or not row["twofa_secret"]:
             return jsonify({"error":"2FA not set up"}), 400
         import pyotp
@@ -758,9 +771,9 @@ def login_2fa_verify():
 @app.route("/api/v1/me", methods=["GET"])
 @token_required
 def me():
-    db = get_db()
-    user = users_repo.find_public_by_id(db, g.user_id)
-    db.close()
+    s = get_session()
+    user = users_repo.find_public_by_id(s, g.user_id)
+    s.close()
     if not user:
         return jsonify({"error":"User not found"}), 404
     return jsonify(user)
@@ -1228,59 +1241,59 @@ def bulk_status(job_id):
 @app.route("/api/v1/folders", methods=["GET","POST"])
 @token_required
 def folders():
-    db=get_db()
+    s=get_session()
     if request.method=="POST":
         try:
             req = FolderCreateRequest.model_validate(request.get_json(silent=True) or {})
         except ValidationError as e:
-            db.close()
+            s.close()
             return jsonify({"error": first_error(e)}), 400
         name = req.name
-        out = folders_repo.create_for_user(db, g.user_id, name)
-        db.close()
+        out = folders_repo.create_for_user(s, g.user_id, name)
+        s.close()
         return jsonify(out)
     else:
         paginated, limit, offset, err = pagination.parse_pagination(request.args)
         if err:
-            db.close()
+            s.close()
             return jsonify({"error": err}), 400
         if paginated:
-            total = folders_repo.count_for_user(db, g.user_id)
-            rows = folders_repo.list_for_user(db, g.user_id, limit, offset)
-            db.close()
+            total = folders_repo.count_for_user(s, g.user_id)
+            rows = folders_repo.list_for_user(s, g.user_id, limit, offset)
+            s.close()
             return jsonify({"items": rows, "total": total, "limit": limit, "offset": offset})
-        rows = folders_repo.list_for_user(db, g.user_id)
-        db.close()
+        rows = folders_repo.list_for_user(s, g.user_id)
+        s.close()
         return jsonify(rows)
 
 @app.route("/api/templates", methods=["GET","POST"])
 @app.route("/api/v1/templates", methods=["GET","POST"])
 @token_required
 def templates():
-    db=get_db()
+    s=get_session()
     if request.method=="POST":
         try:
             req = TemplateCreateRequest.model_validate(request.get_json(silent=True) or {})
         except ValidationError as e:
-            db.close()
+            s.close()
             return jsonify({"error": first_error(e)}), 400
         name = req.name
         config = req.config if req.config is not None else {}
-        out = templates_repo.create_for_user(db, g.user_id, name, config)
-        db.close()
+        out = templates_repo.create_for_user(s, g.user_id, name, config)
+        s.close()
         return jsonify(out)
     else:
         paginated, limit, offset, err = pagination.parse_pagination(request.args)
         if err:
-            db.close()
+            s.close()
             return jsonify({"error": err}), 400
         if paginated:
-            total = templates_repo.count_for_user(db, g.user_id)
-            rows = templates_repo.list_for_user(db, g.user_id, limit, offset)
-            db.close()
+            total = templates_repo.count_for_user(s, g.user_id)
+            rows = templates_repo.list_for_user(s, g.user_id, limit, offset)
+            s.close()
             return jsonify({"items": rows, "total": total, "limit": limit, "offset": offset})
-        rows = templates_repo.list_for_user(db, g.user_id)
-        db.close()
+        rows = templates_repo.list_for_user(s, g.user_id)
+        s.close()
         return jsonify(rows)
 
 @app.route("/api/analytics/overview", methods=["GET"])

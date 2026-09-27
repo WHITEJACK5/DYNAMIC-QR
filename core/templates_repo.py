@@ -1,32 +1,31 @@
-"""Templates repository: user-scoped micro-CRUD (Phase 2m/2p)."""
+"""Templates repository on the ORM (Phase 3c1) — dialect-agnostic."""
 import datetime
 import json
 
+from sqlalchemy import func
 
-def count_for_user(db, user_id):
-    cur = db.cursor()
-    cur.execute("SELECT COUNT(*) FROM templates WHERE user_id=?", (user_id,))
-    return cur.fetchone()[0]
+from core.models import Template
 
 
-def list_for_user(db, user_id, limit=None, offset=None):
-    cur = db.cursor()
-    if limit is None:
-        cur.execute("SELECT * FROM templates WHERE user_id=? ORDER BY id DESC", (user_id,))
-    else:
-        cur.execute(
-            "SELECT * FROM templates WHERE user_id=? ORDER BY id DESC LIMIT ? OFFSET ?",
-            (user_id, limit, offset),
-        )
-    return [dict(r) for r in cur.fetchall()]
+def count_for_user(s, user_id):
+    return s.query(func.count(Template.id)).filter(Template.user_id == user_id).scalar()
 
 
-def create_for_user(db, user_id, name, config):
-    cur = db.cursor()
-    now = datetime.datetime.utcnow().isoformat()
-    cur.execute(
-        "INSERT INTO templates (user_id,name,config_json,created_at) VALUES (?,?,?,?)",
-        (user_id, name, json.dumps(config if config is not None else {}), now),
-    )
-    db.commit()
-    return {"id": cur.lastrowid, "name": name}
+def list_for_user(s, user_id, limit=None, offset=None):
+    q = s.query(Template).filter(Template.user_id == user_id).order_by(Template.id.desc())
+    if limit is not None:
+        q = q.limit(limit).offset(offset or 0)
+    return [
+        {"id": t.id, "user_id": t.user_id, "name": t.name,
+         "config_json": t.config_json, "created_at": t.created_at}
+        for t in q.all()
+    ]
+
+
+def create_for_user(s, user_id, name, config):
+    t = Template(user_id=user_id, name=name,
+                 config_json=json.dumps(config if config is not None else {}),
+                 created_at=datetime.datetime.utcnow().isoformat())
+    s.add(t)
+    s.commit()
+    return {"id": t.id, "name": t.name}
