@@ -10,9 +10,9 @@ os.environ.setdefault("BASE_URL", "http://localhost:5000")
 
 import pytest
 
-import app as nare
-from app import app
-from core.pagination import parse_pagination
+import server as nare
+from server import app
+from app.pagination import parse_pagination
 
 
 @pytest.fixture(autouse=True)

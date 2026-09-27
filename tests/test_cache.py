@@ -12,9 +12,9 @@ os.environ.pop("REDIS_URL", None)
 
 import pytest
 
-import app as nare
-from app import app
-from core import cache
+import server as nare
+from server import app
+from app import cache
 
 
 @pytest.fixture(autouse=True)

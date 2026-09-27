@@ -42,16 +42,16 @@ cd NARE-CO.
 cp .env.example .env   # Unix/macOS: creates SECRET_KEY; Windows: start.ps1 also auto-creates
 # Windows PowerShell:
 pip install -r requirements.txt
-python app.py
+python server.py
 # Unix/macOS:
 chmod +x start.sh && ./start.sh
 ```
 
-**What happens automatically on first `python app.py`:**
+**What happens automatically on first `python server.py`:**
 
-- `app.py:31` creates `data/` + `uploads/` + `.gitkeep` if missing
-- `app.py:55` if `.env` missing or `SECRET_KEY` empty → generates `secrets.token_hex(32)` and writes `.env` with `BASE_URL`, `HOST=127.0.0.1`, `PORT=5000`, `FLASK_DEBUG=false`, `ALLOWED_ORIGINS`
-- `app.py:126` `init_db()` creates `data/nare.db` with tables `users`, `qrcodes`, `scans`, `folders`, `templates` + indexes `idx_qr_short`, `idx_scans_qr`
+- `server.py` creates `data/` + `uploads/` + `.gitkeep` if missing
+- `server.py` if `.env` missing or `SECRET_KEY` empty → generates `secrets.token_hex(32)` and writes `.env` with `BASE_URL`, `HOST=127.0.0.1`, `PORT=5000`, `FLASK_DEBUG=false`, `ALLOWED_ORIGINS`
+- `server.py` `init_db()` creates `data/nare.db` with tables `users`, `qrcodes`, `scans`, `folders`, `templates` + indexes `idx_qr_short`, `idx_scans_qr`
 - Console prints:
   ```
   [NARE & CO.] Fresh DB created at .../data/nare.db — tables: users, qrcodes, scans, folders, templates
@@ -61,7 +61,7 @@ chmod +x start.sh && ./start.sh
 
 Open `http://127.0.0.1:5000` — generator is ready. Open `http://127.0.0.1:5000/dashboard` — will redirect to `/?needAuth=1` until you register.
 
-**To reset DB:** delete `data/nare.db` and restart `python app.py` — fresh DB recreated. To backup: copy `data/nare.db`.
+**To reset DB:** delete `data/nare.db` and restart `python server.py` — fresh DB recreated. To backup: copy `data/nare.db`.
 
 `.env` is in `.gitignore` — never committed. `.env.example` is the template. `data/nare.db` and `uploads/*.png` are ignored; only `.gitkeep` files are tracked to keep folders.
 
@@ -74,7 +74,7 @@ Open `http://127.0.0.1:5000` — generator is ready. Open `http://127.0.0.1:5000
 ```powershell
 cd "C:\path\to\NARE-CO."
 pip install -r requirements.txt
-python app.py
+python server.py
 # or
 .\start.ps1
 # or
@@ -88,10 +88,10 @@ python app.py
 
 ```bash
 ./start.sh   # auto venv, pip install, creates .env if missing, runs app
-./stop.sh    # pkill -f app.py
+./stop.sh    # pkill -f server.py
 # or
 pip install -r requirements.txt
-python app.py
+python server.py
 ```
 
 **Verify:**
@@ -134,15 +134,15 @@ ALLOWED_ORIGINS=http://localhost:5000,http://127.0.0.1:5000
    - vCard: `Name, Phone, Email`
    - Text: any plain text
 4. **Customize (LIVE PREVIEW right panel):**
-   - **Pattern:** Square / Dots / Rounded / Gapped (`app.py:279` `SquareModuleDrawer` etc.)
+   - **Pattern:** Square / Dots / Rounded / Gapped (`server.py` `SquareModuleDrawer` etc.)
    - **Eyes:** Square / Circle / Rounded
    - **Colors:** Foreground `#0A0A0A`, Background `#FFFFFF`, gradient `Solid/Linear/Radial`, presets `Black/White`, `Black/Neon`.
-   - **Logo:** Click or drag PNG/JPG/WebP/SVG ≤5MB, square recommended → centered at `22%` with white rounded bg (18px), `H` error correction ensures scan (`app.py:342`). Preview shows `Logo applied`. `Remove Logo` to clear.
+   - **Logo:** Click or drag PNG/JPG/WebP/SVG ≤5MB, square recommended → centered at `22%` with white rounded bg (18px), `H` error correction ensures scan (`server.py`). Preview shows `Logo applied`. `Remove Logo` to clear.
    - **Frame:** Text `SCAN ME • NARE & CO.` (max 32), Frame Color `#00FF88` — high contrast = better scan.
    - **Templates:** `Neon Pop`, `Mono Black`, `Grid White`, `Neon Night` → `Save as Template` (requires login, stored in `templates`).
    Preview updates via `POST /api/preview` `app.js:168` with loading spinner `qrLoading`; fallback to `qrserver.com` if backend unavailable.
-5. **Generate:** `⚡ Generate QR Code` → if dynamic without login, prompts register; else calls `POST /api/generate` `app.py:412`. On success, inline bar appears: `✔ Dynamic saved to Dashboard • /r/<code>` with `⬇ PNG` + `Dashboard →` — **no confirm dialog** (removed proving page). Check `Dashboard` to see it.
-6. **Download:** In preview card, `PNG` / `SVG` (real vector via `SvgPathImage` `app.py:270`) / `PDF` (reportlab `A4` `app.py:987`) + `⬇ Download QR` (saves `NARE-CO-QR-<ts>.png`).
+5. **Generate:** `⚡ Generate QR Code` → if dynamic without login, prompts register; else calls `POST /api/generate` `server.py`. On success, inline bar appears: `✔ Dynamic saved to Dashboard • /r/<code>` with `⬇ PNG` + `Dashboard →` — **no confirm dialog** (removed proving page). Check `Dashboard` to see it.
+6. **Download:** In preview card, `PNG` / `SVG` (real vector via `SvgPathImage` `server.py`) / `PDF` (reportlab `A4` `server.py`) + `⬇ Download QR` (saves `NARE-CO-QR-<ts>.png`).
 
 **Tips:** Always test scan with phone camera after customizing. Light foreground on white background scans best; neon on black needs good lighting.
 
@@ -152,11 +152,11 @@ ALLOWED_ORIGINS=http://localhost:5000,http://127.0.0.1:5000
 
 Modal `frontend/index.html:487` (`#authModal`):
 
-- **Register:** Email (validated via `email_validator` `app.py:177` with regex fallback), Password `≥8` + `3/4` categories (upper/lower/digit/special) `app.py:186`, Name optional. Shows inline `field-error`, `authError`/`authSuccess`, loading `⟳`.
+- **Register:** Email (validated via `email_validator` `server.py` with regex fallback), Password `≥8` + `3/4` categories (upper/lower/digit/special) `server.py`, Name optional. Shows inline `field-error`, `authError`/`authSuccess`, loading `⟳`.
 - **Login:** Same validation. If 2FA enabled, `POST /api/login` returns `need_2fa` + `temp_token` → `twofaModal` `frontend/index.html:460` appears; enter 6-digit code → `POST /api/2fa/login-verify` → JWT.
-- **Forgot Password:** In login mode, `Forgot?` link → prompts email → `POST /api/forgot-password` (`app.py:304`, rate-limited `3/10m`) generates `reset_token` (logged to server console, and returned in JSON for personal use) → prompt for new password → `POST /api/reset-password`.
+- **Forgot Password:** In login mode, `Forgot?` link → prompts email → `POST /api/forgot-password` (`server.py`, rate-limited `3/10m`) generates `reset_token` (logged to server console, and returned in JSON for personal use) → prompt for new password → `POST /api/reset-password`.
 - **Remember me:** sets `nare_remember` in localStorage.
-- **Tokens:** `PyJWT` `HS256`, `exp` 7d, stored `localStorage nare_token` + `nare_user`. `Log Out` clears and reloads. Rate limited `5/min` per IP (`app.py:89` `_rate_store`).
+- **Tokens:** `PyJWT` `HS256`, `exp` 7d, stored `localStorage nare_token` + `nare_user`. `Log Out` clears and reloads. Rate limited `5/min` per IP (`server.py` `_rate_store`).
 
 **Test via curl:**
 
@@ -172,22 +172,22 @@ curl http://127.0.0.1:5000/api/me -H "Authorization: Bearer <token>"
 
 `http://127.0.0.1:5000/dashboard` (`frontend/dashboard.html:1`, auth-guarded via `auth()` `dashboard.html:122` → redirects `/?needAuth=1` if no token).
 
-- **Top stats:** `GET /api/analytics/overview` `app.py:875` — `Total QRs`, `Total Scans`, `Dynamic`, `Static`.
+- **Top stats:** `GET /api/analytics/overview` `server.py` — `Total QRs`, `Total Scans`, `Dynamic`, `Static`.
 - **Search/Filter:** `Search` by name/type/content + `filterType` dropdown (URL, vCard, File, WiFi, etc.) `dashboard.html:275`.
 - **QR Cards:** Each shows thumbnail (via `POST /api/preview` with stored `fg/bg/pattern/eye/frame`), `DYNAMIC` badge, `content` (short URL for dynamic), `scans`, `Live`. Actions:
   - **View** → modal `qrModal` with full content, `chip` meta, timeline `JSON`, recent scans `device • browser • os`, `PNG`/`PDF` buttons.
-  - **✎ Edit** → `editModal` `dashboard.html:109` with **all fields**: Name, Type, Content, `data_json` (JSON), `fg/bg` color, Pattern, Eyes, Frame Text/Color, Password (blank to remove), Scan Limit, Expiry `datetime-local` → `PUT /api/qrcodes/<id>` `app.py:726`. Updates `updated_at`, regenerates on next scan.
-  - **⎘ Duplicate** → `POST /api/qrcodes/<id>/duplicate` `app.py:1043` with new `short_code`.
-  - **PNG/PDF** → `GET /api/download/<id>?format=png|svg|pdf` `app.py:986` (real SVG, not PNG rename).
-  - **Delete** → `DELETE /api/qrcodes/<id>` `app.py:774` + `scans` cascade.
+  - **✎ Edit** → `editModal` `dashboard.html:109` with **all fields**: Name, Type, Content, `data_json` (JSON), `fg/bg` color, Pattern, Eyes, Frame Text/Color, Password (blank to remove), Scan Limit, Expiry `datetime-local` → `PUT /api/qrcodes/<id>` `server.py`. Updates `updated_at`, regenerates on next scan.
+  - **⎘ Duplicate** → `POST /api/qrcodes/<id>/duplicate` `server.py` with new `short_code`.
+  - **PNG/PDF** → `GET /api/download/<id>?format=png|svg|pdf` `server.py` (real SVG, not PNG rename).
+  - **Delete** → `DELETE /api/qrcodes/<id>` `server.py` + `scans` cascade.
 
 - **Analytics view** (`data-view="analytics"`): `GET /api/analytics/overview` — `Timeline` (last 14 days), `Devices`, `Countries`, `Top QRs`.
 
-- **Bulk Upload** (`data-view="bulk"`): `POST /api/qrcodes/bulk` `app.py:792` — CSV `url,name` per line (header optional), `type` dropdown, up to 3000, per-row `INSERT` + `commit` (no batch loss on collision), returns `{count, created[]}` with `short_code` + `qr_url`.
+- **Bulk Upload** (`data-view="bulk"`): `POST /api/qrcodes/bulk` `server.py` — CSV `url,name` per line (header optional), `type` dropdown, up to 3000, per-row `INSERT` + `commit` (no batch loss on collision), returns `{count, created[]}` with `short_code` + `qr_url`.
 
-- **Folders** (`data-view="folders"`): `GET/POST /api/folders` `app.py:834` — create `New Folder` (≤60 chars), list.
+- **Folders** (`data-view="folders"`): `GET/POST /api/folders` `server.py` — create `New Folder` (≤60 chars), list.
 
-- **Templates** (`data-view="templates"`): `GET/POST /api/templates` `app.py:854` — save config via generator `Save as Template`, list.
+- **Templates** (`data-view="templates"`): `GET/POST /api/templates` `server.py` — save config via generator `Save as Template`, list.
 
 - **Settings** (`data-view="settings"`): `GET /api/me` shows `twofa_enabled`, **2FA Setup** (`POST /api/2fa/setup` → `qr_base64` + `secret` → scan → `POST /api/2fa/verify-setup` with code), **Disable** (`POST /api/2fa/disable` with code). Also shows `Anonymize IP`, `Rate limiting`, `CORS` (disabled checkboxes as info), `Clear Local Cache`, `Reload Data`.
 
@@ -246,11 +246,11 @@ Each `type` expects specific `data` keys (`FORM_DEFS` `static/js/app.js:48`):
 - `whatsapp`: `phone, message`
 - `location`: `latitude, longitude`
 - `event`: `title, location, start, end, description`
-- `gs1`: `gtin, lot, serial, expiry` → builds `https://id.gs1.org/01/<gtin>/10/<lot>` `app.py:199`
-- `smarturl`: `primaryUrl, rules` (lines `os:android -> https://...`) → `resolve_smart_url()` `app.py:214` picks by device/os/country/lang
+- `gs1`: `gtin, lot, serial, expiry` → builds `https://id.gs1.org/01/<gtin>/10/<lot>` `server.py`
+- `smarturl`: `primaryUrl, rules` (lines `os:android -> https://...`) → `resolve_smart_url()` `server.py` picks by device/os/country/lang
 - Others (`file, linkpage, menu, appstore, landingpage, mp3, video, facebook, youtube, instagram, pinterest, tiktok, twitter, googleform, googlereview`): `url`
 
-All content built via `build_qr_content()` `app.py:170`.
+All content built via `build_qr_content()` `server.py`.
 
 ---
 
@@ -260,13 +260,13 @@ All content built via `build_qr_content()` `app.py:170`.
 - `HOST=127.0.0.1` `FLASK_DEBUG=false` — not `0.0.0.0` debug (Werkzeug RCE fix).
 - Rate limit `5/min` login/register, `20/min` generate.
 - CORS whitelist `ALLOWED_ORIGINS`.
-- Password QR via `POST` `pwd` field, not `?pwd=` query (logs/history safe) `app.py:916`.
-- `validate_email_format()` `app.py:177` + `validate_password_strength()` `≥8`+`3/4` `app.py:186`.
-- 2FA TOTP `pyotp` `app.py:340`, JWT 7d `HS256`.
-- `catch_all` `app.py:1070` safe `abspath` + `startswith` check before `send_from_directory`.
+- Password QR via `POST` `pwd` field, not `?pwd=` query (logs/history safe) `server.py`.
+- `validate_email_format()` `server.py` + `validate_password_strength()` `≥8`+`3/4` `server.py`.
+- 2FA TOTP `pyotp` `server.py`, JWT 7d `HS256`.
+- `catch_all` `server.py` safe `abspath` + `startswith` check before `send_from_directory`.
 - No bare `except: pass` — all `logger.warning/exception`.
-- Upload MIME whitelist `.png/.jpg/.webp/.svg` + `PIL verify()` `app.py:430`, `16MB` cap.
-- Font fallback chain `arial.ttf, DejaVuSans` `app.py:320`, not hardcoded single.
+- Upload MIME whitelist `.png/.jpg/.webp/.svg` + `PIL verify()` `server.py`, `16MB` cap.
+- Font fallback chain `arial.ttf, DejaVuSans` `server.py`, not hardcoded single.
 
 Never expose this beyond `127.0.0.1` without setting a strong `SECRET_KEY` and `BASE_URL` to your real domain.
 
@@ -276,7 +276,7 @@ Never expose this beyond `127.0.0.1` without setting a strong `SECRET_KEY` and `
 
 ```
 NARE-CO.
-├── app.py              # Flask + auto DB init, QR engine, all APIs, safe routing
+├── server.py              # Flask + auto DB init, QR engine, all APIs, safe routing
 ├── requirements.txt    # Flask, qrcode, Pillow, PyJWT, reportlab, requests, email-validator, pyotp, dotenv
 ├── .env.example        # template for SECRET_KEY, BASE_URL, HOST, PORT, ALLOWED_ORIGINS
 ├── .env                # ignored, auto-created with random key on first run
@@ -308,20 +308,20 @@ NARE-CO.
 | Issue | Fix |
 |---|---|
 | `SECRET_KEY not set` warning | `cp .env.example .env` and edit `SECRET_KEY` to `python -c "import secrets;print(secrets.token_hex(32))"` |
-| `address already in use` | `PORT` busy — `lsof -i :5000` (Unix) or `netstat -ano | findstr 5000` (Win) then `stop.sh` / `STOP.ps1` or `pkill -f app.py` |
+| `address already in use` | `PORT` busy — `lsof -i :5000` (Unix) or `netstat -ano | findstr 5000` (Win) then `stop.sh` / `STOP.ps1` or `pkill -f server.py` |
 | `Invalid email format` on register | Check email regex `a@b.c` — `.local` etc. now allowed via fallback |
 | `Password must be at least 8...` | Use `StrongPass123!` (upper+lower+digit+special) |
 | `Too many requests` `429` | Wait 60s — rate limit `5/min` per IP |
 | `QR not found` on `/r/<code>` | Dynamic QR encodes `BASE_URL/r/<code>` — if you changed `BASE_URL` after printing, old QRs still point to old host; re-generate or set `BASE_URL` to real domain before generating |
 | `Logo not showing` | Use PNG/JPG/WebP/SVG ≤5MB, square, try `Remove Logo` then re-upload; check `uploads/` writable |
-| `SVG download is PNG` | Fixed in `v1.1.0` — `create_qr_svg()` `app.py:270` now real vector; clear cache and retry |
+| `SVG download is PNG` | Fixed in `v1.1.0` — `create_qr_svg()` `server.py` now real vector; clear cache and retry |
 | `Scan geo shows Local/Unknown` | Normal for `127.0.0.1`; real geo via `ip-api.com` needs public IP and internet; check logs for `Geo lookup failed` |
-| `DB locked` | Close other `sqlite` connections; restart `python app.py` |
+| `DB locked` | Close other `sqlite` connections; restart `python server.py` |
 | `404 on /dashboard` | Ensure logged in — `localStorage nare_token` must exist; check `http://127.0.0.1:5000/api/me` with token |
 | `Tests fail with 429` | `tests/test_api.py` has `clear_rate_store` fixture — run `pytest -q` without parallel |
-| Fresh clone `data/nare.db` missing | Normal — `python app.py` creates it; check `data/.gitkeep` exists |
+| Fresh clone `data/nare.db` missing | Normal — `python server.py` creates it; check `data/.gitkeep` exists |
 
-Logs: `app.py` logs to stdout — watch for `[NARE & CO.]` and `WARNING`. For silent `except`, now logged via `logger.warning`.
+Logs: `server.py` logs to stdout — watch for `[NARE & CO.]` and `WARNING`. For silent `except`, now logged via `logger.warning`.
 
 ---
 
@@ -329,19 +329,19 @@ Logs: `app.py` logs to stdout — watch for `[NARE & CO.]` and `WARNING`. For si
 
 - Backup: `cp data/nare.db data/nare.db.bak`
 - Move to another PC: copy `data/nare.db` + `uploads/` (logos) + `.env` (keep same `SECRET_KEY` or tokens invalidate)
-- Reset: `rm data/nare.db && python app.py`
+- Reset: `rm data/nare.db && python server.py`
 
 ---
 
 ## 15) Production Notes (Personal → If You Deploy)
 
 - Set `SECRET_KEY` long random, `BASE_URL=https://yourdomain.com`, `HOST=0.0.0.0` only behind reverse proxy (nginx) with HTTPS, `FLASK_DEBUG=false`, `ALLOWED_ORIGINS=https://yourdomain.com`.
-- Use `gunicorn app:app -w 4` not `python app.py`; add `Postgres` instead of SQLite for multi-worker, `Redis` for rate limit.
+- Use `gunicorn wsgi:application -w 4` not `python server.py`; add `Postgres` instead of SQLite for multi-worker, `Redis` for rate limit.
 
 ---
 
 **Manual tested on:** Windows 11, Python 3.11.9, Flask 3.0.3, data/nare.db fresh, 11 pytest passing, all manual steps executed.
 
-For help: check `app.py` logs, `tests/test_api.py` as working examples, or open `http://127.0.0.1:5000/manual.html`.
+For help: check `server.py` logs, `tests/test_api.py` as working examples, or open `http://127.0.0.1:5000/manual.html`.
 
 © 2026 NARE & CO. — Personal Use — Grid White / Black / Neon Green

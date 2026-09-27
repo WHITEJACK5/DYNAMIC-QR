@@ -4,7 +4,7 @@ import json
 
 from sqlalchemy import func
 
-from core.models import Template
+from app.models import Template
 
 
 def count_for_user(s, user_id):
