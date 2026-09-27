@@ -1,33 +1,47 @@
-"""QR-code repository: all qrcodes-table SQL, always user-scoped (Phase 2l/2n2).
+"""QR-code repository on the ORM (Phase 3c2) — dialect-agnostic.
 
-First slices: single-QR read/write, then create/duplicate. Handlers keep
-HTTP concerns (auth, schemas, images, status codes); every INSERT/SELECT/
-UPDATE/DELETE on qrcodes lives here. Takes a plain sqlite3 connection (Row
-factory, as returned by app.get_db) so it is testable without Flask.
-Hashing/content helpers are concrete imports for now; the services slice
-will inject them.
+Takes a SQLAlchemy Session. Every public function returns plain dicts (via
+to_public) so handlers keep the exact shapes they had against
+sqlite3.Row. Column writes go through an allowlist; nothing user-supplied
+reaches a query.
 """
 import datetime
 import json
 import logging
 
+from sqlalchemy import func
 from werkzeug.security import generate_password_hash
 
+from core.models import QRCode, Scan
 from core.utils import build_qr_content, generate_short_code
 
 logger = logging.getLogger("nare")
 
-#: Columns writable via PUT (unknown keys ignored, like the legacy loop).
+#: Columns writable via PUT. Unknown keys are ignored, like the legacy loop.
 UPDATABLE = (
     "name", "type", "content", "data_json", "fg_color", "bg_color",
     "gradient", "pattern", "eye_style", "frame_text", "frame_color",
-    "folder_id", "has_password", "password_hash", "expiry_date", "scan_limit",
+    "folder_id", "expiry_date", "scan_limit",
 )
 
+#: Columns create_full accepts. Anything else is rejected loudly.
+CREATABLE = (
+    "user_id", "folder_id", "name", "type", "content", "data_json",
+    "is_dynamic", "short_code", "fg_color", "bg_color", "gradient",
+    "pattern", "eye_style", "frame_text", "frame_color", "logo_path",
+    "has_password", "password_hash", "expiry_date", "scan_limit",
+    "scan_count",
+)
 
-def to_public(row):
+ORDER_NEWEST_FIRST = (QRCode.created_at.desc(), QRCode.id.desc())
+
+
+def to_public(qr):
     """Domain-safe dict: no password hash, logo path collapsed to a flag."""
-    d = dict(row)
+    d = {
+        c.name: getattr(qr, c.name)
+        for c in QRCode.__table__.columns
+    }
     d.pop("password_hash", None)
     # Don't expose absolute logo_path; give relative if needed
     if d.get("logo_path"):
@@ -35,111 +49,51 @@ def to_public(row):
     return d
 
 
-def count_owned(db, user_id):
-    cur = db.cursor()
-    cur.execute("SELECT COUNT(*) FROM qrcodes WHERE user_id=?", (user_id,))
-    return cur.fetchone()[0]
+def to_internal(qr):
+    """Full row including password_hash — server-side only.
+
+    Used by the redirect decision, which must verify a QR's password.
+    Never send this to a client; to_public() is for API responses.
+    """
+    return {c.name: getattr(qr, c.name) for c in QRCode.__table__.columns}
 
 
-def list_owned(db, user_id, limit=None, offset=None):
-    cur = db.cursor()
-    if limit is None:
-        cur.execute(
-            "SELECT * FROM qrcodes WHERE user_id=? ORDER BY created_at DESC, id DESC",
-            (user_id,),
-        )
-    else:
-        cur.execute(
-            "SELECT * FROM qrcodes WHERE user_id=? ORDER BY created_at DESC, id DESC"
-            " LIMIT ? OFFSET ?",
-            (user_id, limit, offset),
-        )
-    return cur.fetchall()
+def count_owned(s, user_id):
+    return s.query(func.count(QRCode.id)).filter(QRCode.user_id == user_id).scalar()
 
 
-def get_owned(db, qr_id, user_id):
-    cur = db.cursor()
-    cur.execute("SELECT * FROM qrcodes WHERE id=? AND user_id=?", (qr_id, user_id))
-    return cur.fetchone()
+def list_owned(s, user_id, limit=None, offset=None):
+    q = s.query(QRCode).filter(QRCode.user_id == user_id).order_by(*ORDER_NEWEST_FIRST)
+    if limit is not None:
+        q = q.limit(limit).offset(offset or 0)
+    return q.all()
 
 
-def get_by_short(db, code):
-    cur = db.cursor()
-    cur.execute("SELECT * FROM qrcodes WHERE short_code=?", (code,))
-    return cur.fetchone()
+def get_owned(s, qr_id, user_id):
+    return s.query(QRCode).filter(QRCode.id == qr_id, QRCode.user_id == user_id).one_or_none()
 
 
-def delete_owned(db, qr_id, user_id):
-    """Delete QR + its scans. Returns False when not found; raises on SQL error."""
-    cur = db.cursor()
-    cur.execute("SELECT scan_count FROM qrcodes WHERE id=? AND user_id=?", (qr_id, user_id))
-    if not cur.fetchone():
+def get_by_short(s, code):
+    return s.query(QRCode).filter(QRCode.short_code == code).one_or_none()
+
+
+def delete_owned(s, qr_id, user_id):
+    """Delete QR + its scans. False when not found; raises on DB error."""
+    qr = get_owned(s, qr_id, user_id)
+    if qr is None:
         return False
-    cur.execute("DELETE FROM qrcodes WHERE id=? AND user_id=?", (qr_id, user_id))
-    cur.execute("DELETE FROM scans WHERE qr_id=?", (qr_id,))
-    db.commit()
+    s.query(Scan).filter(Scan.qr_id == qr_id).delete(synchronize_session=False)
+    s.delete(qr)
+    s.commit()
     return True
 
 
-def apply_update(db, qr_id, user_id, body):
-    """Apply a schema-validated PUT body. Returns public dict, None if missing.
-
-    Unknown keys are ignored (QRUpdateRequest uses extra="ignore"), matching
-    the legacy allowlist loop. Propagates SQL errors to the caller, which
-    maps them to 500.
-    """
-    cur = db.cursor()
-    cur.execute("SELECT * FROM qrcodes WHERE id=? AND user_id=?", (qr_id, user_id))
-    row = cur.fetchone()
-    if not row:
-        return None
-    fields, vals = [], []
-    for f in UPDATABLE:
-        if f in ("has_password", "password_hash", "expiry_date", "scan_limit"):
-            continue  # handled below with their own semantics
-        if f in body:
-            fields.append(f"{f}=?")
-            vals.append(body[f] if f != "data_json" or isinstance(body[f], str) else json.dumps(body[f]))
-    if "password" in body:
-        if body["password"]:
-            fields.append("has_password=1")
-            fields.append("password_hash=?")
-            vals.append(generate_password_hash(body["password"]))
-        else:
-            fields.append("has_password=0")
-            fields.append("password_hash=NULL")
-    if "expiry_date" in body:
-        fields.append("expiry_date=?")
-        vals.append(body["expiry_date"])
-    if "scan_limit" in body:
-        sl = body["scan_limit"]
-        fields.append("scan_limit=?")
-        vals.append(int(sl) if sl is not None else None)
-    if "data" in body:
-        fields.append("content=?")
-        vals.append(build_qr_content(body.get("type", row["type"]), body["data"]))
-        fields.append("data_json=?")
-        vals.append(json.dumps(body["data"]))
-    if fields:
-        fields.append("updated_at=?")
-        vals.append(datetime.datetime.utcnow().isoformat())
-        vals.extend([qr_id, user_id])
-        # Column names come only from the hardcoded allowlist above (never
-        # raw user input); all values use ? placeholders.
-        cur.execute(f"UPDATE qrcodes SET {', '.join(fields)} WHERE id=? AND user_id=?", vals)  # nosec B608
-        db.commit()
-    cur.execute("SELECT * FROM qrcodes WHERE id=?", (qr_id,))
-    return to_public(cur.fetchone())
-
-
-def mint_unique_short(db, tries=10):
+def mint_unique_short(s, tries=10):
     """Unused-short_code, falling back to a fresh unchecked code."""
-    cur = db.cursor()
     for _ in range(tries):
         cand = generate_short_code(8)
         try:
-            cur.execute("SELECT id FROM qrcodes WHERE short_code=?", (cand,))
-            if not cur.fetchone():
+            if s.query(QRCode.id).filter(QRCode.short_code == cand).scalar() is None:
                 return cand
         except Exception as e:
             logger.warning(f"short_code check failed: {e}")
@@ -147,61 +101,72 @@ def mint_unique_short(db, tries=10):
     return generate_short_code(8)
 
 
-#: Full-column INSERT order shared by generate/bulk/duplicate.
-CREATE_COLS = (
-    "user_id", "folder_id", "name", "type", "content", "data_json",
-    "is_dynamic", "short_code", "fg_color", "bg_color", "gradient",
-    "pattern", "eye_style", "frame_text", "frame_color", "logo_path",
-    "has_password", "password_hash", "expiry_date", "scan_limit",
-    "scan_count", "created_at", "updated_at",
-)
-
-
-def create_full(db, **fields):
+def create_full(s, **fields):
     """Insert one QR row. Commits; returns id. Raises IntegrityError on collision."""
+    unknown = [k for k in fields if k not in CREATABLE]
+    if unknown:
+        raise ValueError(f"Unknown columns: {unknown}")
     now = datetime.datetime.utcnow().isoformat()
-    row = {
+    values = {
         "folder_id": None, "gradient": None, "frame_text": None,
         "frame_color": None, "logo_path": None,
         "pattern": "square", "eye_style": "square",
         "has_password": 0, "password_hash": None, "expiry_date": None,
         "scan_limit": None, "scan_count": 0, "created_at": now, "updated_at": now,
     }
-    row.update(fields)
-    unknown = [k for k in row if k not in CREATE_COLS]
-    if unknown:
-        raise ValueError(f"Unknown columns: {unknown}")
-    cur = db.cursor()
-    placeholders = ",".join("?" for _ in CREATE_COLS)
-    cur.execute(
-        f"INSERT INTO qrcodes ({','.join(CREATE_COLS)}) VALUES ({placeholders})",  # nosec B608 — cols constant
-        tuple(row[c] for c in CREATE_COLS),
-    )
-    db.commit()
-    return cur.lastrowid
+    values.update(fields)
+    qr = QRCode(**values)
+    s.add(qr)
+    s.commit()
+    return qr.id
 
 
-def duplicate_owned(db, qr_id, user_id):
-    """Copy own QR (scan_count reset). Returns new id, None if not found."""
-    cur = db.cursor()
-    cur.execute("SELECT * FROM qrcodes WHERE id=? AND user_id=?", (qr_id, user_id))
-    row = cur.fetchone()
-    if not row:
+def apply_update(s, qr_id, user_id, body):
+    """Apply a schema-validated PUT body. Returns public dict, None if missing."""
+    qr = get_owned(s, qr_id, user_id)
+    if qr is None:
         return None
-    new_code = mint_unique_short(db, 5) if row["is_dynamic"] else None
+    for f in UPDATABLE:
+        if f in body:
+            setattr(qr, f, body[f] if f != "data_json" or isinstance(body[f], str)
+                    else json.dumps(body[f]))
+    if "password" in body:
+        if body["password"]:
+            qr.has_password = 1
+            qr.password_hash = generate_password_hash(body["password"])
+        else:
+            qr.has_password = 0
+            qr.password_hash = None
+    if "scan_limit" in body:
+        sl = body["scan_limit"]
+        qr.scan_limit = int(sl) if sl is not None else None
+    if "data" in body:
+        qr.content = build_qr_content(body.get("type", qr.type), body["data"])
+        qr.data_json = json.dumps(body["data"])
+    qr.updated_at = datetime.datetime.utcnow().isoformat()
+    s.commit()
+    s.refresh(qr)
+    return to_public(qr)
+
+
+def duplicate_owned(s, qr_id, user_id):
+    """Copy own QR (scan_count reset, new short_code when dynamic)."""
+    qr = get_owned(s, qr_id, user_id)
+    if qr is None:
+        return None
     now = datetime.datetime.utcnow().isoformat()
-    return _duplicate_insert(db, user_id, dict(row), new_code, now)
-
-
-def _duplicate_insert(db, user_id, src, new_code, now):
-    cur = db.cursor()
-    cur.execute(
-        f"INSERT INTO qrcodes ({','.join(CREATE_COLS)}) VALUES ({','.join('?' for _ in CREATE_COLS)})",  # nosec B608 — cols constant
-        (user_id, src["folder_id"], src["name"] + " (Copy)", src["type"], src["content"],
-         src["data_json"], src["is_dynamic"], new_code, src["fg_color"], src["bg_color"],
-         src["gradient"], src["pattern"], src["eye_style"], src["frame_text"],
-         src["frame_color"], src["logo_path"], src["has_password"], src["password_hash"],
-         src["expiry_date"], src["scan_limit"], 0, now, now),
+    new_code = mint_unique_short(s, 5) if qr.is_dynamic else None
+    copy = QRCode(
+        user_id=user_id, folder_id=qr.folder_id, name=qr.name + " (Copy)",
+        type=qr.type, content=qr.content, data_json=qr.data_json,
+        is_dynamic=qr.is_dynamic, short_code=new_code, fg_color=qr.fg_color,
+        bg_color=qr.bg_color, gradient=qr.gradient, pattern=qr.pattern,
+        eye_style=qr.eye_style, frame_text=qr.frame_text,
+        frame_color=qr.frame_color, logo_path=qr.logo_path,
+        has_password=qr.has_password, password_hash=qr.password_hash,
+        expiry_date=qr.expiry_date, scan_limit=qr.scan_limit, scan_count=0,
+        created_at=now, updated_at=now,
     )
-    db.commit()
-    return cur.lastrowid
+    s.add(copy)
+    s.commit()
+    return copy.id
