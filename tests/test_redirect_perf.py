@@ -22,6 +22,7 @@ os.environ.setdefault(
 os.environ.setdefault("BASE_URL", "http://localhost:5000")
 
 import server as nare
+from app.services import geo
 from server import app
 
 
@@ -85,7 +86,7 @@ def test_redirect_returns_before_slow_geo_completes(client, monkeypatch):
         time.sleep(4)
         return {"country": "Testland", "city": "Testville"}
 
-    monkeypatch.setattr(nare, "get_geo_from_ip", slow_geo)
+    monkeypatch.setattr(geo, "get_geo_from_ip", slow_geo)
     _, code = _register_and_dynamic_qr(client, "perf1@example.com")
 
     start = time.monotonic()
@@ -113,7 +114,7 @@ def test_smart_resolve_needs_no_network(client, monkeypatch):
     def no_network(*a, **k):
         raise AssertionError("redirect path must not do network I/O")
 
-    monkeypatch.setattr(nare.requests, "get", no_network)
+    monkeypatch.setattr(geo.requests, "get", no_network)
     _, code = _register_and_dynamic_qr(
         client, "perf2@example.com", qr_type="smarturl",
         data={"primaryUrl": "https://example.com/default",
@@ -140,7 +141,7 @@ def test_country_rule_falls_back_without_geo(client, monkeypatch):
     def no_network(*a, **k):
         raise AssertionError("redirect path must not do network I/O")
 
-    monkeypatch.setattr(nare.requests, "get", no_network)
+    monkeypatch.setattr(geo.requests, "get", no_network)
     _, code = _register_and_dynamic_qr(
         client, "perf3@example.com", qr_type="smarturl",
         data={"primaryUrl": "https://example.com/default",

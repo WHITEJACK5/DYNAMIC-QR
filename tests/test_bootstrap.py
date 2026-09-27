@@ -12,22 +12,41 @@ import sys
 #: The Flask entrypoint module (renamed from app.py to app/ package in Phase 2f).
 ENTRYPOINT = "server"
 
+#: The env/SECRET_KEY bootstrap lives here (extracted in Phase 2 route split).
+BOOTSTRAP_MODULE = os.path.join("app", "config.py")
+
 
 def test_logger_defined_before_first_use():
+    """Phase 1c guard: no logger.* call may precede the logger definition.
+
+    Checked in every module that configures logging at import time. After the
+    Phase 2 route split that is app/config.py (env + SECRET_KEY bootstrap);
+    server.py imports the logger rather than defining it, so it is checked only
+    if it defines one. At least one module must define it.
+    """
     here = os.path.dirname(os.path.dirname(__file__))
-    src = open(os.path.join(here, f"{ENTRYPOINT}.py"), encoding="utf-8").read()
-    lines = src.splitlines()
-    def_no = next(
-        i for i, l in enumerate(lines) if "logger = logging.getLogger" in l
-    )
-    uses = [
-        i for i, l in enumerate(lines)
-        if re.search(r"(^|[^a-zA-Z_.])logger\.(warning|exception|debug|info|error)", l)
-    ]
-    assert uses, f"expected at least one logger.* usage in {ENTRYPOINT}.py"
-    assert def_no < min(uses), (
-        f"logger used at line {min(uses)+1} before definition at line {def_no+1}"
-    )
+    candidates = [BOOTSTRAP_MODULE, f"{ENTRYPOINT}.py", os.path.join("app", "extensions.py")]
+    defined_any = False
+    for rel in candidates:
+        path = os.path.join(here, rel)
+        if not os.path.exists(path):
+            continue
+        src = open(path, encoding="utf-8").read()
+        lines = src.splitlines()
+        defs = [i for i, l in enumerate(lines) if "logger = logging.getLogger" in l]
+        if not defs:
+            continue
+        defined_any = True
+        def_no = defs[0]
+        uses = [
+            i for i, l in enumerate(lines)
+            if re.search(r"(^|[^a-zA-Z_.])logger\.(warning|exception|debug|info|error)", l)
+        ]
+        assert uses, f"expected at least one logger.* usage in {rel}"
+        assert def_no < min(uses), (
+            f"{rel}: logger used at line {min(uses)+1} before definition at line {def_no+1}"
+        )
+    assert defined_any, "no module defines logger = logging.getLogger(...)"
 
 
 def test_cold_start_no_secret_key(tmp_path):
@@ -47,7 +66,8 @@ def test_cold_start_no_secret_key(tmp_path):
         # Keep PATH/system vars; ensure python can find deps
         proc = subprocess.run(
             [sys.executable, "-c",
-             f"import {ENTRYPOINT} as m; print('import ok'); print(len(m.SECRET_KEY))"],
+             f"import {ENTRYPOINT}; from app import config; print('import ok');"
+             " print(len(config.SECRET_KEY))"],
             cwd=here,
             env=env,
             capture_output=True,
