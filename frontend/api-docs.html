@@ -64,7 +64,7 @@ GET/POST /api/templates</pre></div>
 <li>• <b>JWT</b> auth, <b>hashed passwords</b> (Werkzeug), <b>2FA</b> ready</li>
 <li>• <b>Password-protected QR</b> — POST <code>pwd</code> to <code>/r/:code</code>, else 401 page (never via query string)</li>
 <li>• <b>Expiry</b> by date, <b>scan limit</b></li>
-<li>• IPs stored in local SQLite <code>scans</code> table — no anonymization yet, no GDPR/CCPA claim</li>
+<li>• IPs stored in the <code>scans</code> table of your configured database (SQLite by default, PostgreSQL if <code>DATABASE_URL</code> is set) — no anonymization yet, no GDPR/CCPA claim</li>
 <li>• All QR images generated with <b>Pillow + qrcode[styled]</b> — high error correction (H)</li>
 </ul>
 </div>
