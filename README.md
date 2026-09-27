@@ -78,13 +78,36 @@ curl -X PUT -H "Authorization: Bearer <token>" -H "Content-Type: application/jso
 
 ```
 nare-and-co/
-  app.py              # Flask + auto DB init (data/nare.db), QR engine, all APIs
-  requirements.txt
+  app.py              # Flask app: thin HTTP handlers, versioned /api/v1 routes
+  wsgi.py             # production entrypoint (gunicorn wsgi:application)
+  alembic.ini         # migrations config (URL comes from the environment)
+  core/               # everything except HTTP plumbing
+    models.py         # SQLAlchemy models (the schema of record)
+    db.py             # engine + session factory, dialect-specific pooling
+    migrations.py     # programmatic upgrade/downgrade helpers
+    qr_repo.py        # QR-code repository (all qrcodes-table access)
+    users_repo.py     # users table
+    scans_repo.py     # scans table
+    folders_repo.py   # folders table
+    templates_repo.py # templates table
+    redirect_service.py  # pure redirect decisions (expiry/limit/password/smart URL)
+    schemas.py        # Pydantic request schemas for every JSON route
+    tokens.py         # JWT mint/verify
+    storage.py        # logo storage (S3-compatible, local fallback)
+    ratelimit.py      # rate limiting (Redis, in-memory fallback)
+    jobs.py           # background jobs (RQ, thread fallback)
+    cache.py          # read-through cache (Redis, in-memory fallback)
+    pagination.py     # shared limit/offset parsing
+    utils.py          # pure helpers (QR content builders, validation)
+  migrations/
+    versions/         # versioned, reversible schema migrations
+  scripts/
+    pgbackup.py       # pg_dump / pg_restore / verify
   data/
     .gitkeep          # kept in git, DB auto-created on first run
-    nare.db           # ignored by .gitignore — generated fresh per machine
+    nare.db           # ignored by .gitignore — SQLite path only
   uploads/
-    .gitkeep
+    .gitkeep          # used only when no S3 bucket is configured
   frontend/
     index.html        # Homepage — generator + live preview (no pricing/FAQ)
     dashboard.html    # Dashboard — full edit/manage/analytics (personal)
@@ -92,7 +115,86 @@ nare-and-co/
   static/
     css/style.css     # Grid white / black / neon green
     js/app.js         # 25 types, preview, logo, auth
+  tests/              # 100 tests; PostgreSQL legs run when TEST_DATABASE_URL is set
 ```
+
+## Database: SQLite (default) or PostgreSQL
+
+The whole application runs on either database — the same repository code, no
+SQLite-only paths. The dialect is chosen by one environment variable.
+
+**SQLite (default, zero setup).** With `DATABASE_URL` unset the app creates and
+migrates `data/nare.db` on first run. Copy the file to back it up.
+
+**PostgreSQL.** Set `DATABASE_URL` and nothing else changes:
+
+```bash
+export DATABASE_URL=postgresql://user:password@localhost:5432/nare
+python app.py          # runs `alembic upgrade head` on an empty database
+```
+
+```python
+# .env
+DATABASE_URL=postgresql://user:password@localhost:5432/nare
+DB_POOL_SIZE=5          # per worker process
+DB_MAX_OVERFLOW=10
+DB_POOL_RECYCLE=1800
+```
+
+Each gunicorn worker and each RQ worker opens its own bounded pool
+(`pool_pre_ping` on), so a recycled connection never surfaces as a request error.
+
+### Schema changes are migrations, not inline DDL
+
+There is no `CREATE TABLE` in application code. `migrations/versions/` holds
+versioned, reversible migrations and the app upgrades on startup:
+
+```bash
+alembic upgrade head        # apply
+alembic downgrade -1        # roll back one
+alembic revision --autogenerate -m "add x"   # after editing core/models.py
+```
+
+A pre-Alembic `data/nare.db` is adopted by stamping it at head — your data is
+never dropped.
+
+### Backups
+
+Managed PostgreSQL (RDS, Supabase, Railway) should use the provider's own
+automated backups and PITR; enable them there. For self-hosted or containerised
+databases, use the script in this repo:
+
+```bash
+export DATABASE_URL=postgresql://user:password@localhost:5432/nare
+python -m scripts.pgbackup dump --out backups/nare-$(date +%F).dump   # schedule daily
+python -m scripts.pgbackup verify                                     # reachable + table count
+```
+
+Restore (drops and rebuilds the schema, then replays the dump):
+
+```bash
+python -m scripts.pgbackup restore --in backups/nare-2026-09-27.dump
+```
+
+Requires the PostgreSQL client tools (`pg_dump`, `pg_restore`, `psql`) on the
+machine you run it from. **Copy dumps off the database host** — a dump next to
+the database is not a backup.
+
+## Logo storage
+
+Uploaded logos go to S3-compatible object storage when configured, otherwise to
+`uploads/` on local disk:
+
+```bash
+# .env — works with AWS S3, Cloudflare R2, Backblaze B2
+S3_BUCKET=nare-logos
+S3_ENDPOINT_URL=https://<account>.r2.cloudflarestorage.com
+AWS_REGION=auto
+```
+
+The database stores an `s3://bucket/key` reference, so rows written before the
+switch (absolute local paths) keep rendering. If an S3 call fails the request is
+served from a local copy rather than failing. Preview logos are never persisted.
 
 ## Design System
 
@@ -102,12 +204,14 @@ nare-and-co/
 
 ## Notes for Other Computers
 
-- No `.env` needed — SQLite file creates itself.
-- To reset DB: delete `data/nare.db` → `python app.py` recreates.
-- To backup: copy `data/nare.db`.
-- Images/logos in `uploads/` are ignored by git (personal, local).
+- No `.env` needed for the SQLite path — the file creates itself and is migrated
+  on first run.
+- To reset the SQLite DB: delete `data/nare.db` → `python app.py` recreates it.
+- To back up SQLite: copy `data/nare.db`. To back up PostgreSQL: see Backups above.
+- Images/logos in `uploads/` are ignored by git (used only when no S3 bucket is configured).
 
 ---
+
 Built for **NARE & CO.** — Personal edition, local-first, single-command fresh install.
 
 # NARE-CO.
