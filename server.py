@@ -43,6 +43,7 @@ from app.utils import (
 from pydantic import ValidationError
 
 from app.schemas import (
+    BulkFormRequest,
     Disable2FARequest,
     FolderCreateRequest,
     ForgotRequest,
@@ -873,27 +874,22 @@ def generate():
         s_tmp.close()
         final_content = f"{get_base_url(request)}/r/{short_code}"
 
-    password = None
-    scan_limit = None
-    expiry_date = None
+    # Access-control options: validated by GenerateRequest on the JSON path,
+    # read from form fields on the multipart path (same legacy semantics).
     if request.is_json:
-        body2 = request.get_json() or {}
-        password = body2.get("password")
-        scan_limit = body2.get("scan_limit")
-        expiry_date = body2.get("expiry_date")
+        password = getattr(req, "password", None)
+        scan_limit = getattr(req, "scan_limit", None)
+        expiry_date = getattr(req, "expiry_date", None)
     else:
         password = request.form.get("password")
-        scan_limit = request.form.get("scan_limit")
-        expiry_date = request.form.get("expiry_date")
-
-    # Validate scan_limit
-    if scan_limit is not None:
+        raw_limit = request.form.get("scan_limit")
         try:
-            scan_limit = int(scan_limit)
-            if scan_limit <= 0:
-                scan_limit = None
-        except Exception:
+            scan_limit = int(raw_limit) if raw_limit else None
+        except (TypeError, ValueError):
             scan_limit = None
+        if scan_limit is not None and scan_limit <= 0:
+            scan_limit = None
+        expiry_date = request.form.get("expiry_date")
 
     pwd_hash = generate_password_hash(password) if password else None
 
@@ -1111,9 +1107,11 @@ def bulk_generate():
     if "file" not in request.files:
         return jsonify({"error":"CSV file required"}),400
     file=request.files["file"]
-    typ=request.form.get("type","url")
-    fg=request.form.get("fg_color","#0A0A0A")
-    bg=request.form.get("bg_color","#FFFFFF")
+    try:
+        form = BulkFormRequest.model_validate(request.form.to_dict())
+    except ValidationError as e:
+        return jsonify({"error": first_error(e)}), 400
+    typ, fg, bg = form.type, form.fg_color, form.bg_color
     try:
         data=file.read().decode('utf-8')
     except Exception as e:
