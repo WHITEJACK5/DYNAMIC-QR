@@ -1,90 +1,92 @@
-"""Users repository: all users-table SQL (Phase 2q2, last table standing).
+"""Users repository on the ORM (Phase 3c1) — dialect-agnostic.
 
-Callers pass a plain sqlite3 connection; no Flask, no hashing (hashes are
-computed by handlers/services and stored opaquely). Registration's default
-folder stays orchestrated by the handler via folders_repo.
+Takes a SQLAlchemy Session instead of a sqlite3 connection, so the same
+code runs on PostgreSQL. Hashes stay opaque inputs; nothing here knows
+about Flask.
 """
 import datetime
 
-
-def find_id_by_email(db, email):
-    cur = db.cursor()
-    cur.execute("SELECT id FROM users WHERE email=?", (email,))
-    row = cur.fetchone()
-    return row["id"] if row else None
+from core.models import User
 
 
-def find_by_email(db, email):
-    cur = db.cursor()
-    cur.execute("SELECT * FROM users WHERE email=?", (email,))
-    return cur.fetchone()
+def find_id_by_email(s, email):
+    return s.query(User.id).filter(User.email == email).scalar()
 
 
-def find_public_by_id(db, user_id):
-    cur = db.cursor()
-    cur.execute(
-        "SELECT id,email,name,created_at,is_premium,twofa_enabled FROM users WHERE id=?",
-        (user_id,),
+def find_by_email(s, email):
+    """Returns a dict (not an ORM object) so handlers keep the same shape
+    they had against sqlite3.Row."""
+    u = s.query(User).filter(User.email == email).one_or_none()
+    if u is None:
+        return None
+    return {
+        "id": u.id, "email": u.email, "password_hash": u.password_hash,
+        "name": u.name, "created_at": u.created_at,
+        "twofa_enabled": u.twofa_enabled, "twofa_secret": u.twofa_secret,
+        "is_premium": u.is_premium,
+    }
+
+
+def find_public_by_id(s, user_id):
+    u = s.get(User, user_id)
+    if u is None:
+        return None
+    return {
+        "id": u.id, "email": u.email, "name": u.name, "created_at": u.created_at,
+        "is_premium": u.is_premium, "twofa_enabled": u.twofa_enabled,
+    }
+
+
+def create_user(s, email, password_hash, name):
+    u = User(email=email, password_hash=password_hash, name=name,
+             created_at=datetime.datetime.utcnow().isoformat())
+    s.add(u)
+    s.commit()
+    return u.id
+
+
+def set_reset_token(s, email, token_hash, expires_iso):
+    s.query(User).filter(User.email == email).update(
+        {"reset_token": token_hash, "reset_expires": expires_iso}
     )
-    row = cur.fetchone()
-    return dict(row) if row else None
+    s.commit()
 
 
-def create_user(db, email, password_hash, name):
-    cur = db.cursor()
-    now = datetime.datetime.utcnow().isoformat()
-    cur.execute(
-        "INSERT INTO users (email,password_hash,name,created_at) VALUES (?,?,?,?)",
-        (email, password_hash, name, now),
+def find_reset(s, email):
+    u = s.query(User).filter(User.email == email).one_or_none()
+    if u is None:
+        return None
+    return {"reset_token": u.reset_token, "reset_expires": u.reset_expires}
+
+
+def complete_reset(s, email, new_password_hash):
+    s.query(User).filter(User.email == email).update(
+        {"password_hash": new_password_hash, "reset_token": None, "reset_expires": None}
     )
-    db.commit()
-    return cur.lastrowid
+    s.commit()
 
 
-def set_reset_token(db, email, token_hash, expires_iso):
-    cur = db.cursor()
-    cur.execute(
-        "UPDATE users SET reset_token=?, reset_expires=? WHERE email=?",
-        (token_hash, expires_iso, email),
+def get_2fa(s, user_id):
+    u = s.get(User, user_id)
+    if u is None:
+        return None
+    return {"twofa_secret": u.twofa_secret, "twofa_enabled": u.twofa_enabled}
+
+
+def set_2fa_secret(s, user_id, secret):
+    s.query(User).filter(User.id == user_id).update({"twofa_secret": secret})
+    s.commit()
+
+
+def set_2fa_enabled(s, user_id, enabled):
+    s.query(User).filter(User.id == user_id).update(
+        {"twofa_enabled": 1 if enabled else 0}
     )
-    db.commit()
+    s.commit()
 
 
-def find_reset(db, email):
-    cur = db.cursor()
-    cur.execute("SELECT reset_token, reset_expires FROM users WHERE email=?", (email,))
-    return cur.fetchone()
-
-
-def complete_reset(db, email, new_password_hash):
-    cur = db.cursor()
-    cur.execute(
-        "UPDATE users SET password_hash=?, reset_token=NULL, reset_expires=NULL WHERE email=?",
-        (new_password_hash, email),
+def clear_2fa(s, user_id):
+    s.query(User).filter(User.id == user_id).update(
+        {"twofa_enabled": 0, "twofa_secret": None}
     )
-    db.commit()
-
-
-def get_2fa(db, user_id):
-    cur = db.cursor()
-    cur.execute("SELECT twofa_secret, twofa_enabled FROM users WHERE id=?", (user_id,))
-    row = cur.fetchone()
-    return dict(row) if row else None
-
-
-def set_2fa_secret(db, user_id, secret):
-    cur = db.cursor()
-    cur.execute("UPDATE users SET twofa_secret=? WHERE id=?", (secret, user_id))
-    db.commit()
-
-
-def set_2fa_enabled(db, user_id, enabled):
-    cur = db.cursor()
-    cur.execute("UPDATE users SET twofa_enabled=? WHERE id=?", (1 if enabled else 0, user_id))
-    db.commit()
-
-
-def clear_2fa(db, user_id):
-    cur = db.cursor()
-    cur.execute("UPDATE users SET twofa_enabled=0, twofa_secret=NULL WHERE id=?", (user_id,))
-    db.commit()
+    s.commit()
