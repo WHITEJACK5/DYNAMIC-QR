@@ -9,10 +9,13 @@ import re
 import subprocess
 import sys
 
+#: The Flask entrypoint module (renamed from app.py to app/ package in Phase 2f).
+ENTRYPOINT = "server"
+
 
 def test_logger_defined_before_first_use():
     here = os.path.dirname(os.path.dirname(__file__))
-    src = open(os.path.join(here, "app.py"), encoding="utf-8").read()
+    src = open(os.path.join(here, f"{ENTRYPOINT}.py"), encoding="utf-8").read()
     lines = src.splitlines()
     def_no = next(
         i for i, l in enumerate(lines) if "logger = logging.getLogger" in l
@@ -21,7 +24,7 @@ def test_logger_defined_before_first_use():
         i for i, l in enumerate(lines)
         if re.search(r"(^|[^a-zA-Z_.])logger\.(warning|exception|debug|info|error)", l)
     ]
-    assert uses, "expected at least one logger.* usage in app.py"
+    assert uses, f"expected at least one logger.* usage in {ENTRYPOINT}.py"
     assert def_no < min(uses), (
         f"logger used at line {min(uses)+1} before definition at line {def_no+1}"
     )
@@ -44,7 +47,7 @@ def test_cold_start_no_secret_key(tmp_path):
         # Keep PATH/system vars; ensure python can find deps
         proc = subprocess.run(
             [sys.executable, "-c",
-             "import app; print('import ok'); print(len(app.SECRET_KEY))"],
+             f"import {ENTRYPOINT} as m; print('import ok'); print(len(m.SECRET_KEY))"],
             cwd=here,
             env=env,
             capture_output=True,

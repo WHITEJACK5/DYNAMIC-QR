@@ -61,7 +61,7 @@ def test_rq_path_via_fake_queue(monkeypatch):
 
 
 def test_enrich_uses_queue():
-    import app as nare
+    import server as nare
 
     assert callable(nare._geo_enrich_job)  # module-level, RQ-importable
     assert nare._enrich_scan_geo_async.__code__.co_names.count("enqueue_call") >= 1

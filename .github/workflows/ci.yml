@@ -34,7 +34,7 @@ jobs:
       - name: Install ruff
         run: pip install ruff
       - name: Ruff (pyflakes errors only — full style pass is a later phase)
-        run: ruff check app.py tests/ --select F
+        run: ruff check server.py tests/ --select F
       - name: Check no hardcoded secret
         run: |
           if grep -R "nare-co-secret-2026" --include="*.py" .; then echo "Hardcoded secret found!"; exit 1; fi
@@ -50,7 +50,7 @@ jobs:
       - name: Install bandit
         run: pip install bandit
       - name: Bandit (fail on HIGH severity; medium/low reported for follow-up)
-        run: bandit -r app.py -ll
+        run: bandit -r server.py -ll
 
   build:
     # Placeholder until Phase 6a adds the Dockerfile; today this verifies the
@@ -62,4 +62,4 @@ jobs:
         with:
           python-version: '3.11'
       - name: Compile check
-        run: python -m compileall -q app.py
+        run: python -m compileall -q server.py

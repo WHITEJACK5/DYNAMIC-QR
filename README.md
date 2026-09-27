@@ -14,34 +14,34 @@ git clone https://github.com/WHITEJACK5/NARE-CO..git
 cd NARE-CO.
 cp .env.example .env   # or use start.sh which auto-creates .env with random SECRET_KEY
 pip install -r requirements.txt
-python app.py
+python server.py
 # → [NARE & CO.] Fresh DB created at data/nare.db — tables: users, qrcodes, scans, folders, templates
 # → [NARE & CO.] Local DB ready for personal use
 # open http://localhost:5000
 ```
 
-No manual DB steps. `app.py:31` creates `data/` + `uploads/` + `.gitkeep`, `app.py:51` `init_db()` creates SQLite `data/nare.db` with:
+No manual DB steps. `server.py` creates `data/` + `uploads/` + `.gitkeep`, `server.py` `init_db()` creates SQLite `data/nare.db` with:
 
 - `users` — email, password_hash (Werkzeug), name, created_at
 - `qrcodes` — user_id, name, type, content, data_json, is_dynamic, short_code, fg/bg/gradient/pattern/eye/frame/logo, password, expiry, scan_count
 - `scans` — qr_id, timestamp, ip, device/browser/os/country
 - `folders`, `templates` + indexes on `short_code` and `qr_id`
 
-If DB already exists, it loads: `DB loaded — users:X qrs:Y`. Deleting `data/nare.db` → next `python app.py` recreates fresh (tested).
+If DB already exists, it loads: `DB loaded — users:X qrs:Y`. Deleting `data/nare.db` → next `python server.py` recreates fresh (tested).
 
 ## Features — Personal Edition
 
 - **25+ QR Types:** URL, vCard, File, Link Page/bio, Menu, App Stores, Landing Page, Smart URL/Multi-URL, GS1, MP3, Video, WiFi, Email, WhatsApp, Event, Facebook, YouTube, Instagram, Pinterest, TikTok, Twitter, Location, Text, SMS, Google Form, Google Review
 - **Static vs Dynamic:** Static free unlimited (no login), Dynamic (`/r/<short>` trackable, editable, password/expiry — requires login)
-- **Logo Centre:** Drag & drop PNG/JPG/WebP/SVG (≤5MB, square recommended) → 22% centered, white rounded bg (18px), H-error correction — `app.py:342`, `static/js/app.js:392`
+- **Logo Centre:** Drag & drop PNG/JPG/WebP/SVG (≤5MB, square recommended) → 22% centered, white rounded bg (18px), H-error correction — `server.py`, `static/js/app.js:392`
 - **Customization:** Pattern (square/dots/rounded/gapped), Eyes, Colors + gradient, Frame CTA, Templates — live preview `POST /api/preview` with spinner, no overflow
 - **Homepage:** Generator + Live Preview only — Pricing/FAQ removed, grid-white/black/neon, fully responsive, no breakouts
 - **Auth — Professional:** `frontend/index.html:487` modal with email validation, password toggle, inline `field-error`, loading spinner, JWT 7-day (`localStorage nare_token`), error toasts for 409/401
 - **Dashboard** `frontend/dashboard.html:1` — **Local DB managing:**
   - List/search/filter all your QRs, live thumbnails via `POST /api/preview`
-  - **Full Edit** (`editModal`): name, type, content, data_json, fg/bg, pattern/eye, frame, password, scan_limit, expiry → `PUT /api/qrcodes/<id>` `app.py:726`
-  - Duplicate `app.py:1043`, Delete, Download PNG/PDF `app.py:986`, Bulk CSV `app.py:792` (up to 3000), Folders `app.py:834`, Templates `app.py:854`
-  - Analytics: `GET /api/qrcodes/<id>/analytics` + `GET /api/analytics/overview` `app.py:875` — scans, timeline, devices, top QRs
+  - **Full Edit** (`editModal`): name, type, content, data_json, fg/bg, pattern/eye, frame, password, scan_limit, expiry → `PUT /api/qrcodes/<id>` `server.py`
+  - Duplicate `server.py`, Delete, Download PNG/PDF `server.py`, Bulk CSV `server.py` (up to 3000), Folders `server.py`, Templates `server.py`
+  - Analytics: `GET /api/qrcodes/<id>/analytics` + `GET /api/analytics/overview` `server.py` — scans, timeline, devices, top QRs
 - **Security:** Werkzeug hash, JWT, password-protected `/r/<code>` (401 page), scan-limit/expiry (410), CORS, 16MB upload cap
 
 ## Quick Start (Personal)
@@ -51,7 +51,7 @@ If DB already exists, it loads: `DB loaded — users:X qrs:Y`. Deleting `data/na
 chmod +x start.sh && ./start.sh
 # Windows PowerShell
 pip install -r requirements.txt
-python app.py
+python server.py
 # or .\start.ps1 / .\run.bat / ./stop.sh
 ```
 
@@ -78,7 +78,7 @@ curl -X PUT -H "Authorization: Bearer <token>" -H "Content-Type: application/jso
 
 ```
 nare-and-co/
-  app.py              # Flask app: thin HTTP handlers, versioned /api/v1 routes
+  server.py              # Flask app: thin HTTP handlers, versioned /api/v1 routes
   wsgi.py             # production entrypoint (gunicorn wsgi:application)
   alembic.ini         # migrations config (URL comes from the environment)
   core/               # everything except HTTP plumbing
@@ -130,7 +130,7 @@ migrates `data/nare.db` on first run. Copy the file to back it up.
 
 ```bash
 export DATABASE_URL=postgresql://user:password@localhost:5432/nare
-python app.py          # runs `alembic upgrade head` on an empty database
+python server.py          # runs `alembic upgrade head` on an empty database
 ```
 
 ```python
@@ -206,7 +206,7 @@ served from a local copy rather than failing. Preview logos are never persisted.
 
 - No `.env` needed for the SQLite path — the file creates itself and is migrated
   on first run.
-- To reset the SQLite DB: delete `data/nare.db` → `python app.py` recreates it.
+- To reset the SQLite DB: delete `data/nare.db` → `python server.py` recreates it.
 - To back up SQLite: copy `data/nare.db`. To back up PostgreSQL: see Backups above.
 - Images/logos in `uploads/` are ignored by git (used only when no S3 bucket is configured).
 
