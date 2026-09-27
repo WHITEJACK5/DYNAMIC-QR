@@ -7,7 +7,7 @@ declarations, so the inline DDL can then be deleted. SQLite stays the
 default dialect for local/CI; DATABASE_URL=postgresql:// switches the
 engine and its pool (core/db.py).
 """
-from sqlalchemy import ForeignKey, Integer, String, Text
+from sqlalchemy import ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -75,6 +75,11 @@ class QRCode(Base):
     created_at: Mapped[str | None] = mapped_column(String, nullable=True)
     updated_at: Mapped[str | None] = mapped_column(String, nullable=True)
 
+    __table_args__ = (
+        Index("idx_qr_short", "short_code"),
+        Index("idx_qr_user", "user_id"),
+    )
+
     user: Mapped["User | None"] = relationship(back_populates="qrcodes")
     scans: Mapped[list["Scan"]] = relationship(back_populates="qrcode")
 
@@ -94,6 +99,8 @@ class Scan(Base):
     os: Mapped[str | None] = mapped_column(String, nullable=True)
     country: Mapped[str | None] = mapped_column(String, nullable=True)
     city: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    __table_args__ = (Index("idx_scans_qr", "qr_id"),)
 
     qrcode: Mapped["QRCode | None"] = relationship(back_populates="scans")
 
