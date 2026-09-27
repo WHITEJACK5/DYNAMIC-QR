@@ -53,21 +53,35 @@ def test_models_create_all_sqlite(tmp_path):
 
 
 def test_columns_match_legacy_init_db():
-    """Column sets must equal what app.py:init_db creates (no drift)."""
+    """Columns AND nullability must equal app.py:init_db (no drift).
+
+    Nullability matters: the repositories INSERT via raw SQL and rely on
+    "DEFAULT 0" columns staying nullable (an ORM-side NOT NULL would 500).
+    """
     legacy_path, old = _legacy_db()
     try:
         con = sqlite3.connect(legacy_path)
         legacy = {
-            t: {r[1] for r in con.execute(f"PRAGMA table_info({t})")}
+            t: {r[1]: {"notnull": bool(r[3]), "default": r[4]} for r in con.execute(f"PRAGMA table_info({t})")}
             for t in EXPECTED_TABLES
         }
         con.close()
     finally:
         _teardown(legacy_path, old)
-    orm = {t.name: {c.name for c in t.columns} for t in Base.metadata.tables.values()}
+    orm = {
+        t.name: {c.name: {"notnull": not c.nullable, "default": c.server_default} for c in t.columns}
+        for t in Base.metadata.tables.values()
+    }
     assert set(legacy) == set(orm)
     for table, cols in legacy.items():
-        assert orm[table] == cols, f"{table}: legacy={sorted(cols)} orm={sorted(orm[table])}"
+        assert set(cols) == set(orm[table]), f"{table}: columns differ"
+        for col, meta in cols.items():
+            assert meta["notnull"] == orm[table][col]["notnull"], (
+                f"{table}.{col}: legacy notnull={meta['notnull']} orm={orm[table][col]['notnull']}"
+            )
+        defaults = {c for c, m in cols.items() if m["default"] is not None}
+        orm_defaults = {c for c, m in orm[table].items() if m["default"] is not None}
+        assert defaults == orm_defaults, f"{table}: defaults legacy={defaults} orm={orm_defaults}"
 
 
 def test_sqlite_pool_and_wal(tmp_path):
@@ -113,9 +127,13 @@ def test_postgres_roundtrip_and_pooling():
 
 
 def test_default_url_is_local_sqlite():
+    cdb.set_default_sqlite(None)
     os.environ.pop("DATABASE_URL", None)
     assert cdb.database_url() == cdb.DEFAULT_SQLITE
     assert cdb.is_postgres() is False
+    cdb.set_default_sqlite("C:/tmp/override.db")
+    assert cdb.database_url() == "sqlite:///C:/tmp/override.db"
     os.environ["DATABASE_URL"] = "postgresql://u:p@h:5432/d"
     assert cdb.is_postgres() is True
     os.environ.pop("DATABASE_URL")
+    cdb.set_default_sqlite(None)

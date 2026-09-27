@@ -26,10 +26,20 @@ DEFAULT_SQLITE = "sqlite:///" + os.path.join(APP_DIR, "data", "nare.db").replace
 
 _engine = None
 _SessionFactory = None
+_sqlite_override = None
+
+
+def set_default_sqlite(path: str | None) -> None:
+    """Point the SQLite default at `path` (app.py syncs this to DB_PATH).
+
+    Only affects the no-DATABASE_URL case; a real DATABASE_URL always wins.
+    """
+    global _sqlite_override
+    _sqlite_override = ("sqlite:///" + str(path).replace("\\", "/")) if path else None
 
 
 def database_url() -> str:
-    return os.getenv("DATABASE_URL", "").strip() or DEFAULT_SQLITE
+    return os.getenv("DATABASE_URL", "").strip() or _sqlite_override or DEFAULT_SQLITE
 
 
 def is_postgres(url: str | None = None) -> bool:
