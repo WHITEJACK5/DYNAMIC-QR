@@ -7,7 +7,7 @@ declarations, so the inline DDL can then be deleted. SQLite stays the
 default dialect for local/CI; DATABASE_URL=postgresql:// switches the
 engine and its pool (core/db.py).
 """
-from sqlalchemy import ForeignKey, Index, Integer, String, Text
+from sqlalchemy import ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -23,8 +23,10 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
     name: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[str | None] = mapped_column(String, nullable=True)
-    is_premium: Mapped[int] = mapped_column(Integer, default=0)
-    twofa_enabled: Mapped[int] = mapped_column(Integer, default=0)
+    # Legacy DDL used "DEFAULT 0" and left these nullable; raw SQL INSERTs from
+    # the repositories rely on the server default, so keep both properties.
+    is_premium: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0, server_default=text("0"))
+    twofa_enabled: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0, server_default=text("0"))
     twofa_secret: Mapped[str | None] = mapped_column(String, nullable=True)
     reset_token: Mapped[str | None] = mapped_column(String, nullable=True)
     reset_expires: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -67,11 +69,11 @@ class QRCode(Base):
     frame_text: Mapped[str | None] = mapped_column(String, nullable=True)
     frame_color: Mapped[str | None] = mapped_column(String, nullable=True)
     logo_path: Mapped[str | None] = mapped_column(String, nullable=True)
-    has_password: Mapped[int] = mapped_column(Integer, default=0)
+    has_password: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0, server_default=text("0"))
     password_hash: Mapped[str | None] = mapped_column(String, nullable=True)
     expiry_date: Mapped[str | None] = mapped_column(String, nullable=True)
     scan_limit: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    scan_count: Mapped[int] = mapped_column(Integer, default=0)
+    scan_count: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0, server_default=text("0"))
     created_at: Mapped[str | None] = mapped_column(String, nullable=True)
     updated_at: Mapped[str | None] = mapped_column(String, nullable=True)
 

@@ -35,6 +35,11 @@ def upgrade_to_head(url: str | None = None) -> None:
     command.upgrade(config(url), "head")
 
 
+def stamp_head(url: str | None = None) -> None:
+    """Mark an existing (already-correct) schema as migrated without touching it."""
+    command.stamp(config(url), "head")
+
+
 def downgrade_to_base(url: str | None = None) -> None:
     command.downgrade(config(url), "base")
 
