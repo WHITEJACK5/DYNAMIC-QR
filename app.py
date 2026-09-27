@@ -9,6 +9,7 @@ from io import BytesIO
 from functools import wraps
 
 import jwt
+import sqlalchemy.exc
 import qrcode
 import requests
 from qrcode.image.styledpil import StyledPilImage
@@ -869,9 +870,9 @@ def generate():
     final_content = content
     if is_dynamic:
         # Unique short code (unchecked fresh fallback on repeated collision)
-        db_tmp = get_db()
-        short_code = qr_repo.mint_unique_short(db_tmp, 10)
-        db_tmp.close()
+        s_tmp = get_session()
+        short_code = qr_repo.mint_unique_short(s_tmp, 10)
+        s_tmp.close()
         final_content = f"{get_base_url(request)}/r/{short_code}"
 
     password = None
@@ -914,19 +915,19 @@ def generate():
         b64 = image_to_base64(img, "PNG")
         qr_id = None
         if user_id:
-            db = get_db()
+            s = get_session()
             # Use transaction with try for UNIQUE violation
             try:
                 qr_id = qr_repo.create_full(
-                    db, user_id=user_id, name=name, type=qr_type, content=content,
+                    s, user_id=user_id, name=name, type=qr_type, content=content,
                     data_json=json.dumps(data), is_dynamic=1 if is_dynamic else 0,
                     short_code=short_code, fg_color=fg_color, bg_color=bg_color,
                     gradient=gradient, pattern=pattern, eye_style=eye_style,
                     frame_text=frame_text, frame_color=frame_color, logo_path=logo_path,
                     has_password=1 if pwd_hash else 0, password_hash=pwd_hash,
                     expiry_date=expiry_date, scan_limit=scan_limit)
-            except sqlite3.IntegrityError as e:
-                db.rollback()
+            except sqlalchemy.exc.IntegrityError as e:
+                s.rollback()
                 logger.warning(f"Short code collision, retry: {e}")
                 # Retry once with new code if dynamic
                 if is_dynamic:
@@ -936,7 +937,7 @@ def generate():
                     img = create_qr_image(final_content, fg_color, bg_color, pattern, eye_style, gradient, logo_path, frame_text, frame_color, size=900)
                     b64 = image_to_base64(img, "PNG")
                     qr_id = qr_repo.create_full(
-                        db, user_id=user_id, name=name, type=qr_type, content=content,
+                        s, user_id=user_id, name=name, type=qr_type, content=content,
                         data_json=json.dumps(data), is_dynamic=1,
                         short_code=short_code, fg_color=fg_color, bg_color=bg_color,
                         gradient=gradient, pattern=pattern, eye_style=eye_style,
@@ -946,7 +947,7 @@ def generate():
                 else:
                     raise
             finally:
-                db.close()
+                s.close()
         return jsonify({
             "success": True,
             "content": final_content,
@@ -1047,13 +1048,13 @@ def list_qrcodes():
             return jsonify({"error": "offset must be >= 0"}), 400
     else:
         limit, offset = None, None
-    db = get_db()
+    s = get_session()
     if paginated:
-        total = qr_repo.count_owned(db, g.user_id)
-        rows = qr_repo.list_owned(db, g.user_id, limit, offset)
+        total = qr_repo.count_owned(s, g.user_id)
+        rows = qr_repo.list_owned(s, g.user_id, limit, offset)
     else:
-        rows = qr_repo.list_owned(db, g.user_id)
-    db.close()
+        rows = qr_repo.list_owned(s, g.user_id)
+    s.close()
     out = [qr_repo.to_public(r) for r in rows]
     if paginated:
         return jsonify({"items": out, "total": total, "limit": limit, "offset": offset})
@@ -1063,9 +1064,9 @@ def list_qrcodes():
 @app.route("/api/v1/qrcodes/<int:qr_id>", methods=["GET"])
 @token_required
 def get_qrcode(qr_id):
-    db=get_db()
-    row = qr_repo.get_owned(db, qr_id, g.user_id)
-    db.close()
+    s = get_session()
+    row = qr_repo.get_owned(s, qr_id, g.user_id)
+    s.close()
     if not row:
         return jsonify({"error":"Not found"}),404
     return jsonify(qr_repo.to_public(row))
@@ -1074,37 +1075,37 @@ def get_qrcode(qr_id):
 @app.route("/api/v1/qrcodes/<int:qr_id>", methods=["PUT"])
 @token_required
 def update_qrcode(qr_id):
-    db=get_db()
-    if not qr_repo.get_owned(db, qr_id, g.user_id):
-        db.close()
+    s = get_session()
+    if not qr_repo.get_owned(s, qr_id, g.user_id):
+        s.close()
         return jsonify({"error":"Not found"}),404
     body=request.get_json() or {}
     try:
         QRUpdateRequest.model_validate(body)
     except ValidationError as e:
-        db.close()
+        s.close()
         return jsonify({"error": first_error(e)}), 400
     try:
-        updated = qr_repo.apply_update(db, qr_id, g.user_id, body)
+        updated = qr_repo.apply_update(s, qr_id, g.user_id, body)
     except Exception as e:
         logger.exception(f"Update failed for {qr_id}: {e}")
-        db.close()
+        s.close()
         return jsonify({"error":"Update failed"}), 500
-    db.close()
+    s.close()
     return jsonify(updated)
 
 @app.route("/api/qrcodes/<int:qr_id>", methods=["DELETE"])
 @app.route("/api/v1/qrcodes/<int:qr_id>", methods=["DELETE"])
 @token_required
 def delete_qrcode(qr_id):
-    db=get_db()
+    s = get_session()
     try:
-        found = qr_repo.delete_owned(db, qr_id, g.user_id)
+        found = qr_repo.delete_owned(s, qr_id, g.user_id)
     except Exception as e:
         logger.exception(f"Delete failed: {e}")
-        db.close()
+        s.close()
         return jsonify({"error":"Delete failed"}), 500
-    db.close()
+    s.close()
     if not found:
         return jsonify({"error":"Not found"}),404
     logger.info(f"QR {qr_id} deleted by user {g.user_id}")
@@ -1154,11 +1155,11 @@ def bulk_generate():
         except Exception as e:
             logger.warning(f"Bulk enqueue failed, inline fallback: {e}")
     try:
-        db=get_db()
+        s=get_session()
         try:
-            created = _bulk_insert_rows(db, g.user_id, rows, typ, fg, bg, get_base_url(request))
+            created = _bulk_insert_rows(s, g.user_id, rows, typ, fg, bg, get_base_url(request))
         finally:
-            db.close()
+            s.close()
         logger.info(f"Bulk generated {len(created)} for user {g.user_id}")
         return jsonify({"created":created, "count":len(created)})
     except Exception as e:
@@ -1166,24 +1167,24 @@ def bulk_generate():
         return jsonify({"error":"Bulk failed"}),500
 
 
-def _bulk_insert_rows(db, user_id, rows, typ, fg, bg, base_url):
+def _bulk_insert_rows(s, user_id, rows, typ, fg, bg, base_url):
     """Shared by the inline path and the RQ worker. Returns created list."""
     created=[]
     for url, name in rows[:3000]:
         content=build_qr_content(typ, {"url":url})
-        short = qr_repo.mint_unique_short(db, 5)
+        short = qr_repo.mint_unique_short(s, 5)
         try:
             qr_repo.create_full(
-                db, user_id=user_id, name=name, type=typ, content=content,
+                s, user_id=user_id, name=name, type=typ, content=content,
                 data_json=json.dumps({"url":url}), is_dynamic=1, short_code=short,
                 fg_color=fg, bg_color=bg, pattern="square", eye_style="square")
             created.append({"name":name,"url":url,"short_code":short,"qr_url":f"{base_url}/r/{short}"})
-        except sqlite3.IntegrityError as e:
-            db.rollback()
+        except sqlalchemy.exc.IntegrityError as e:
+            s.rollback()
             logger.warning(f"Bulk insert collision for {url}: {e}")
             continue
         except Exception as e:
-            db.rollback()
+            s.rollback()
             logger.warning(f"Bulk insert failed for {url}: {e}")
             continue
         if len(created) >= 3000:
@@ -1193,13 +1194,13 @@ def _bulk_insert_rows(db, user_id, rows, typ, fg, bg, base_url):
 
 def _bulk_job(user_id, rows, typ, fg, bg, base_url):
     """RQ entrypoint (module-level so workers can import it)."""
-    db = get_db()
+    s = get_session()
     try:
-        created = _bulk_insert_rows(db, user_id, rows, typ, fg, bg, base_url)
+        created = _bulk_insert_rows(s, user_id, rows, typ, fg, bg, base_url)
         logger.info(f"Bulk job generated {len(created)} for user {user_id}")
         return {"created": created, "count": len(created)}
     finally:
-        db.close()
+        s.close()
 
 
 @app.route("/api/qrcodes/bulk/<job_id>", methods=["GET"])
@@ -1320,18 +1321,24 @@ def analytics_overview():
 @token_required
 def qr_analytics(qr_id):
     db=get_db()
-    qr = qr_repo.get_owned(db, qr_id, g.user_id)
+    s = get_session()
+    qr = qr_repo.get_owned(s, qr_id, g.user_id)
     if not qr:
+        s.close()
         db.close()
         return jsonify({"error":"Not found"}),404
     detail = scans_repo.detail_for_qr(db, qr_id)
+    s.close()
     db.close()
-    return jsonify({"qr":dict(qr), **detail})
+    return jsonify({"qr": qr_repo.to_public(qr), **detail})
 
 @app.route("/r/<code>", methods=["GET", "POST"])
 def redirect_dynamic(code):
+    s = get_session()
     db=get_db()
-    row = qr_repo.get_by_short(db, code)
+    _qr = qr_repo.get_by_short(s, code)
+    # Server-side only: the decision must be able to verify password_hash.
+    row = qr_repo.to_internal(_qr) if _qr is not None else None
     # Password attempt — POST only to avoid URL leak (+ API header alt).
     # Expiry/limit/password/smart-url decisions live in core/redirect_service.
     ua0=request.headers.get("User-Agent","")
@@ -1347,15 +1354,15 @@ def redirect_dynamic(code):
                 pwd = auth_pwd
     decision = redirect_service.decide(row, pwd, ua0, accept0)
     if decision["action"] == "missing":
-        db.close()
+        s.close()
         return "QR not found or expired",404
     if decision["action"] == "gone":
-        db.close()
+        s.close()
         return decision["message"],410
     if decision["action"] == "password":
         if request.method == "POST":
             # Wrong password — show form with error
-            db.close()
+            s.close()
             return """
                 <html style="font-family:Inter,sans-serif;background:#0A0A0A;color:white;display:flex;align-items:center;justify-content:center;min-height:100vh">
                 <div style="background:#111;border:1px solid #222;padding:40px;border-radius:24px;max-width:400px;width:100%;text-align:center">
@@ -1369,7 +1376,7 @@ def redirect_dynamic(code):
                 <p style="font-size:12px;color:#888;margin-top:12px">Secured by NARE & CO. â€¢ Grid White / Black / Neon Green</p>
                 </div></html>
                 """,401
-        db.close()
+        s.close()
         return """
             <html style="font-family:Inter,sans-serif;background:#0A0A0A;color:white;display:flex;align-items:center;justify-content:center;min-height:100vh">
             <div style="background:#111;border:1px solid #222;padding:40px;border-radius:24px;max-width:400px;width:100%;text-align:center">
@@ -1393,7 +1400,7 @@ def redirect_dynamic(code):
     scan_id = scans_repo.record_scan(db, row["id"], now, ip, ua, device, browser, os_name)
     if smart:
         logger.info(f"Smart URL resolved for {code} -> {target} (device={device})")
-    db.close()
+    s.close()
     if scan_id is not None:
         try:
             _enrich_scan_geo_async(scan_id, ip)
@@ -1417,9 +1424,10 @@ def redirect_dynamic(code):
 @token_required
 def download_qr(qr_id):
     fmt=request.args.get("format","png").lower()
-    db=get_db()
-    row = qr_repo.get_owned(db, qr_id, g.user_id)
-    db.close()
+    s = get_session()
+    _qr = qr_repo.get_owned(s, qr_id, g.user_id)
+    row = qr_repo.to_public(_qr) if _qr is not None else None
+    s.close()
     if not row:
         return jsonify({"error":"Not found"}),404
     if row["is_dynamic"]:
@@ -1478,14 +1486,14 @@ def download_qr(qr_id):
 @app.route("/api/v1/qrcodes/<int:qr_id>/duplicate", methods=["POST"])
 @token_required
 def duplicate(qr_id):
-    db=get_db()
+    s = get_session()
     try:
-        nid = qr_repo.duplicate_owned(db, qr_id, g.user_id)
+        nid = qr_repo.duplicate_owned(s, qr_id, g.user_id)
     except Exception as e:
         logger.exception(f"Duplicate failed: {e}")
-        db.close()
+        s.close()
         return jsonify({"error":"Duplicate failed"}), 500
-    db.close()
+    s.close()
     if nid is None:
         return jsonify({"error":"Not found"}),404
     return jsonify({"id":nid})
