@@ -56,13 +56,23 @@ def test_detect_device():
     assert o == "Android"
 
 
-def test_parity_with_app():
-    """app.utils must match app.py wrappers exactly (same behavior post-extract)."""
-    import server as nare
+def test_parity_with_consumers():
+    """app.utils is the single source: its consumers must resolve to it.
 
-    assert nare.hex_to_rgb("#00FF88") == hex_to_rgb("#00FF88")
-    assert nare.build_qr_content("url", {"url": "https://example.com"}) == build_qr_content(
-        "url", {"url": "https://example.com"}
-    )
-    assert nare.detect_device("x") == detect_device("x")
-    assert nare.validate_email_format("a@b.com") == validate_email_format("a@b.com")
+    After the Phase 2 route split there is no wrapper layer in server.py, so
+    parity is asserted by checking that the modules which use these helpers
+    (renderer, redirect service, schemas) import the very same functions.
+    """
+    from app import utils
+    from app.schemas import validate_email_format as schema_email
+    from app.services import redirect_service
+    from app.services import render
+
+    assert render.hex_to_rgb is utils.hex_to_rgb
+    assert render.create_qr_image is not None
+    assert redirect_service.detect_device is utils.detect_device
+    assert schema_email is utils.validate_email_format
+    # and the values agree with the originals
+    assert hex_to_rgb("#00FF88") == (0, 255, 136)
+    assert build_qr_content("url", {"url": "https://example.com"}) == "https://example.com"
+    assert detect_device("x")[0] == "Desktop"
