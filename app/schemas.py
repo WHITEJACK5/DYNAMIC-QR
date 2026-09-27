@@ -234,11 +234,27 @@ class GenerateRequest(QRStyle):
     is_dynamic: bool = False
     name: Any = "My QR"
     logo_base64: Optional[str] = None
+    # Access-control options (were read straight off the raw body before)
+    password: Optional[Any] = None
+    scan_limit: Optional[Any] = None
+    expiry_date: Optional[Any] = None
 
     @field_validator("type", mode="before")
     @classmethod
     def _type(cls, v):
         return _norm_qr_type(v)
+
+    @field_validator("scan_limit", mode="before")
+    @classmethod
+    def _scan_limit(cls, v):
+        # Legacy rule: non-positive or unparsable -> treated as "no limit".
+        if v is None or v == "":
+            return None
+        try:
+            n = int(v)
+        except (TypeError, ValueError):
+            return None
+        return n if n > 0 else None
 
     @field_validator("data", mode="before")
     @classmethod
@@ -261,6 +277,29 @@ class PreviewRequest(QRStyle):
     @classmethod
     def _data(cls, v):
         return _norm_qr_data(v)
+
+
+class BulkFormRequest(BaseModel):
+    """Validation for the multipart bulk-upload form (the last route without a
+    schema). The CSV file itself is streamed, not parsed here."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    type: str = "url"
+    fg_color: str = "#0A0A0A"
+    bg_color: str = "#FFFFFF"
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def _type(cls, v):
+        return _norm_qr_type(v)
+
+    @field_validator("fg_color", "bg_color", mode="before")
+    @classmethod
+    def _color(cls, v, info):
+        if not isinstance(v, str) or not HEX_COLOR.match(v):
+            raise ValueError(f"Invalid color {info.field_name}")
+        return v
 
 
 class ForgotRequest(BaseModel):
