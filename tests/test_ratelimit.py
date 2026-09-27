@@ -23,7 +23,7 @@ def test_memory_fallback_limits():
 
 
 def test_shared_store_with_app():
-    import app as nare
+    import server as nare
 
     assert nare._rate_store is ratelimit.mem_store
     nare._rate_store.clear()

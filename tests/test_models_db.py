@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-32chars")
 
-import app as nare
+import server as nare
 from core import db as cdb
 from core.models import Base, QRCode, Scan, User
 

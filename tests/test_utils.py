@@ -58,7 +58,7 @@ def test_detect_device():
 
 def test_parity_with_app():
     """core.utils must match app.py wrappers exactly (same behavior post-extract)."""
-    import app as nare
+    import server as nare
 
     assert nare.hex_to_rgb("#00FF88") == hex_to_rgb("#00FF88")
     assert nare.build_qr_content("url", {"url": "https://example.com"}) == build_qr_content(

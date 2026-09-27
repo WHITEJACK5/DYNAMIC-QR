@@ -12,8 +12,8 @@ os.environ.setdefault("BASE_URL", "http://localhost:5000")
 
 from pydantic import ValidationError
 
-import app as nare
-from app import app
+import server as nare
+from server import app
 from core.schemas import LoginRequest, RegisterRequest, first_error
 
 

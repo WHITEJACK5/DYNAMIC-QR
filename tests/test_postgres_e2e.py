@@ -22,8 +22,8 @@ pytestmark = pytest.mark.skipif(
 
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-32chars")
 
-import app as nare  # noqa: E402  (must come after DATABASE_URL is set)
-from app import app as flask_app  # noqa: E402
+import server as nare  # noqa: E402  (must come after DATABASE_URL is set)
+from server import app as flask_app  # noqa: E402
 
 
 @pytest.fixture(autouse=True)

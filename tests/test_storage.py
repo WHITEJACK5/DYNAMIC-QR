@@ -97,7 +97,7 @@ def test_new_key_is_unpredictable_and_sanitized():
 
 
 def test_renderer_accepts_logo_bytes_and_storage_ref(monkeypatch, tmp_path):
-    import app as nare
+    import server as nare
 
     img = nare.create_qr_image("https://example.com", logo_bytes=_png(), size=300)
     assert img.size == (300, 300)

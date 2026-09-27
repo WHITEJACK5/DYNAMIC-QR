@@ -12,8 +12,8 @@ os.environ.pop("REDIS_URL", None)
 
 import pytest
 
-import app as nare
-from app import app
+import server as nare
+from server import app
 from core import jobs
 
 

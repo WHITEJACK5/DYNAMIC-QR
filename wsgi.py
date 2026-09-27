@@ -10,7 +10,7 @@ proxy, e.g.::
 entrypoint. No Postgres/Redis wiring yet — those land in Phase 2f-2h
 (rate limit / jobs / cache) and Phase 3 (data layer).
 """
-from app import app as application  # noqa: F401 — WSGI callable
+from server import app as application  # noqa: F401 — WSGI callable
 
 # gunicorn also accepts `wsgi:app`; keep both names working.
 app = application
