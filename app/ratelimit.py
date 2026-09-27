@@ -1,69 +1,59 @@
-"""Rate limiting: Redis-backed with in-memory fallback (Phase 2f).
+"""Rate limiting on Flask-Limiter (Phase 2f completion).
 
-Production sets REDIS_URL (e.g. redis://localhost:6379/0) so limits survive
-restarts and are shared across gunicorn workers. Local dev / CI without
-Redis keeps the original in-memory sliding window — same call signature,
-same behavior. Any Redis error degrades to memory, never 500s.
+The bible names Flask-Limiter + a Redis backend, so this wraps it rather than
+hand-rolling counters. Storage resolution:
 
-Key format and semantics are unchanged from app.py's original
-`_is_rate_limited(key, limit, window_sec)`.
+  REDIS_URL set   -> RedisStorage (shared across gunicorn workers, survives restarts)
+  REDIS_URL unset -> memory://   (single-process local dev / CI, per-process)
+
+Limits are declared at each route with the `rate_limit` decorator in server.py,
+so a limit travels with the view it protects. Behaviour change worth knowing:
+limits now apply in-process even without Redis, where the old hand-rolled
+limiter skipped counting when no store was reachable. Existing limits are
+unchanged (5/min register+login, 3/10min forgot-password, 20/min generate).
 """
-import datetime
 import logging
 import os
 
+from flask import jsonify
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
 logger = logging.getLogger("nare")
 
-mem_store = {}  # {key: [timestamps]} — fallback + local dev
-_redis_client = None
+#: The JSON body the API has always returned for 429. Flask-Limiter's default
+#: is plain text, which would break clients (and the dashboard) expecting JSON.
+RATE_LIMIT_MESSAGE = "Too many requests. Please try again later."
 
 
-def reset_state():
-    """Clear fallback memory and drop the cached Redis client (tests)."""
-    mem_store.clear()
-    global _redis_client
-    _redis_client = None
+def _json_429(_request_limit):
+    return jsonify({"error": RATE_LIMIT_MESSAGE}), 429
 
 
-def get_redis_client():
-    url = os.getenv("REDIS_URL", "").strip()
-    if not url:
-        return None
-    global _redis_client
-    if _redis_client is not None:
-        return _redis_client
-    try:
-        import redis
-
-        client = redis.Redis.from_url(url, socket_timeout=1)
-        client.ping()
-        _redis_client = client
-        logger.info("Rate limiter using Redis")
-        return client
-    except Exception as e:
-        logger.warning(f"Redis unavailable, rate limiter on memory fallback: {e}")
-        return None
+def storage_uri() -> str:
+    return os.getenv("REDIS_URL", "").strip() or "memory://"
 
 
-def _mem_limited(key, limit, window_sec):
-    now = datetime.datetime.utcnow().timestamp()
-    lst = [t for t in mem_store.get(key, []) if now - t < window_sec]
-    if len(lst) >= limit:
-        mem_store[key] = lst
-        return True
-    lst.append(now)
-    mem_store[key] = lst
-    return False
+def build_limiter(app) -> Limiter:
+    uri = storage_uri()
+    if uri == "memory://":
+        logger.info("Rate limiter: in-memory store (per process)")
+    else:
+        logger.info("Rate limiter: Redis-backed store (shared across workers)")
 
+    @app.errorhandler(429)
+    def _rate_limited(_exc):
+        # Flask-Limiter's built-in 429 is HTML; this API has always answered
+        # JSON, and the dashboard/JS clients parse it.
+        return jsonify({"error": RATE_LIMIT_MESSAGE}), 429
 
-def is_rate_limited(key, limit, window_sec):
-    client = get_redis_client()
-    if client is not None:
-        try:
-            count = client.incr(key)
-            if count == 1:
-                client.expire(key, int(window_sec))
-            return count > limit
-        except Exception as e:
-            logger.warning(f"Redis rate-limit failed, memory fallback: {e}")
-    return _mem_limited(key, limit, window_sec)
+    return Limiter(
+        key_func=get_remote_address,
+        app=app,
+        storage_uri=uri,
+        strategy="fixed-window",
+        headers_enabled=True,  # emits X-RateLimit-* so clients can back off
+        # A Redis outage must not take the API down; fall back in-process.
+        in_memory_fallback_enabled=True,
+        in_memory_fallback=["5 per minute"],
+    )
