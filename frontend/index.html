@@ -43,7 +43,7 @@
       <div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <span class="badge badge-neon">● Local QR Generator</span>
-          <span class="badge badge-white">Personal deployment • Local SQLite</span>
+          <span class="badge badge-white">Personal deployment • SQLite or PostgreSQL</span>
           <span class="badge badge-black">Grid White • Black • Neon Green</span>
         </div>
         <h1>The Most Advanced <span class="neon">QR Code Generator</span> with Logo Online</h1>
@@ -302,12 +302,12 @@
       <div class="card card-dark">
         <div class="feature-ico">◎</div>
         <h3>Scan Analytics</h3>
-        <p style="color:#AAA;font-size:13px">Total scans, time, location, device — compare campaigns, optimize.</p>
+        <p style="color:#AAA;font-size:13px">Total scans, 14-day timeline, device breakdown, and country when the geo lookup succeeds.</p>
       </div>
       <div class="card card-dark">
         <div class="feature-ico">⬢</div>
         <h3>Lifetime Valid</h3>
-        <p style="color:#AAA;font-size:13px">Static never expires. Dynamic unlimited scans with active plan.</p>
+        <p style="color:#AAA;font-size:13px">Static codes never expire. Dynamic codes run until you set an expiry or scan limit, or delete them.</p>
       </div>
     </div>
   </div>
@@ -319,11 +319,11 @@
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
       <div>
         <div class="kicker neon">Personal deployment — no SLA</div>
-        <h2 style="font-size:28px;margin-top:10px">Local-first • SQLite • No external tracking</h2>
-        <p style="color:#AAA;max-width:640px">Runs on this machine via Flask + SQLite (<code>data/nare.db</code>). No uptime guarantee. Passwords hashed (Werkzeug), JWT auth, optional TOTP 2FA. See <a href="/manual.html" style="color:var(--neon);text-decoration:underline">Manual</a> for what is actually implemented.</p>
+        <h2 style="font-size:28px;margin-top:10px">Self-hosted • SQLite or PostgreSQL • No external tracking</h2>
+        <p style="color:#AAA;max-width:640px">Runs on your own machine via Flask. SQLite (<code>data/nare.db</code>) by default; set <code>DATABASE_URL</code> to run on PostgreSQL instead. No uptime guarantee. Passwords hashed (Werkzeug), JWT auth, optional TOTP 2FA. See <a href="/manual.html" style="color:var(--neon);text-decoration:underline">Manual</a> for what is actually implemented.</p>
       </div>
       <div class="stats" style="grid-template-columns:repeat(2,1fr);min-width:280px">
-        <div class="stat" style="background:#111;color:white;border-color:#222;box-shadow:none"><strong style="color:var(--neon)">Local</strong><span>SQLite DB</span></div>
+        <div class="stat" style="background:#111;color:white;border-color:#222;box-shadow:none"><strong style="color:var(--neon)">Yours</strong><span>SQLite or Postgres</span></div>
         <div class="stat" style="background:#111;color:white;border-color:#222;box-shadow:none"><strong style="color:var(--neon)">25+</strong><span>QR types</span></div>
       </div>
     </div>
@@ -480,7 +480,7 @@
     <div class="modal-body">
       <div style="background:var(--black);color:var(--neon);padding:16px;border-radius:12px;font-family:monospace;font-size:12px;line-height:1.7">
         POST /api/generate { type:"url", data:{url:"https://nareandco.com"}, is_dynamic:true }<br>
-        → 201 Created { short_code:"aB3x9Zq", image_base64:"data:image/png...", qr_id: 42 }<br><br>
+        →         200 OK { short_code:"aB3x9Zq", image_base64:"data:image/png...", qr_id: 42 }<br><br>
         curl -X POST http://localhost:5000/api/generate \<br>
         &nbsp;&nbsp;-H "Authorization: Bearer &lt;token&gt;" \<br>
         &nbsp;&nbsp;-d '{"type":"wifi","data":{"ssid":"NARE-WIFI","password":"neon123"}}'
