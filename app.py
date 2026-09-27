@@ -177,114 +177,48 @@ def get_db():
     return db
 
 def init_db():
+    """Schema comes from Alembic migrations (Phase 3b2) — no inline DDL.
+
+    Fresh clone: no tables and no alembic_version -> upgrade head.
+    Legacy DB (created by the old inline DDL): tables already exist but
+    unversioned -> stamp head, so no data is destroyed.
+    Already migrated: nothing to do.
+    """
+    from core import migrations as _migrations
+    from core import db as _cdb
+
+    # Keep ORM/migrations pointed at the same file get_db() uses.
+    _cdb.set_default_sqlite(DB_PATH)
     is_fresh = not os.path.exists(DB_PATH) or os.path.getsize(DB_PATH) == 0
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        name TEXT,
-        created_at TEXT,
-        is_premium INTEGER DEFAULT 0,
-        twofa_enabled INTEGER DEFAULT 0,
-        twofa_secret TEXT,
-        reset_token TEXT,
-        reset_expires TEXT
-    )""")
-    # migrate existing DB: add reset columns if missing
     try:
-        cur.execute("ALTER TABLE users ADD COLUMN reset_token TEXT")
-    except Exception:
-        pass
-    try:
-        cur.execute("ALTER TABLE users ADD COLUMN reset_expires TEXT")
-    except Exception:
-        pass
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS folders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        name TEXT,
-        created_at TEXT,
-        FOREIGN KEY(user_id) REFERENCES users(id)
-    )""")
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS qrcodes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        folder_id INTEGER,
-        name TEXT,
-        type TEXT,
-        content TEXT,
-        data_json TEXT,
-        is_dynamic INTEGER,
-        short_code TEXT UNIQUE,
-        fg_color TEXT,
-        bg_color TEXT,
-        gradient TEXT,
-        pattern TEXT,
-        eye_style TEXT,
-        frame_text TEXT,
-        frame_color TEXT,
-        logo_path TEXT,
-        has_password INTEGER DEFAULT 0,
-        password_hash TEXT,
-        expiry_date TEXT,
-        scan_limit INTEGER,
-        scan_count INTEGER DEFAULT 0,
-        created_at TEXT,
-        updated_at TEXT,
-        FOREIGN KEY(user_id) REFERENCES users(id)
-    )""")
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS scans (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        qr_id INTEGER,
-        timestamp TEXT,
-        ip TEXT,
-        user_agent TEXT,
-        device TEXT,
-        browser TEXT,
-        os TEXT,
-        country TEXT,
-        city TEXT,
-        FOREIGN KEY(qr_id) REFERENCES qrcodes(id)
-    )""")
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS templates (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        name TEXT,
-        config_json TEXT,
-        created_at TEXT
-    )""")
-    db.commit()
-    try:
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_qr_short ON qrcodes(short_code)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_scans_qr ON scans(qr_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_qr_user ON qrcodes(user_id)")
-        db.commit()
+        if _migrations.current_revision() is None:
+            if _migrations.user_tables():
+                # Pre-Alembic database with the same schema: adopt it.
+                _migrations.stamp_head()
+                logger.info("Existing database stamped at Alembic head")
+            else:
+                _migrations.upgrade_to_head()
+                print(f"[NARE & CO.] Fresh DB created at {DB_PATH} — tables: "
+                      "users, qrcodes, scans, folders, templates (Alembic head)")
+                print("[NARE & CO.] Local DB ready for personal use — login + QR "
+                      "managing + analytics (SQLite)")
+                logger.info(f"Fresh DB created at {DB_PATH}")
     except Exception as e:
-        logger.warning(f"Index creation failed: {e}")
-    db.close()
-    if is_fresh:
-        print(f"[NARE & CO.] Fresh DB created at {DB_PATH} â€” tables: users, qrcodes, scans, folders, templates")
-        print("[NARE & CO.] Local DB ready for personal use â€” login + QR managing + analytics (SQLite)")
-        logger.info(f"Fresh DB created at {DB_PATH}")
-    else:
-        try:
-            _db = get_db()
-            _cur = _db.cursor()
-            _cur.execute("SELECT COUNT(*) FROM users")
-            _u = _cur.fetchone()[0]
-            _cur.execute("SELECT COUNT(*) FROM qrcodes")
-            _q = _cur.fetchone()[0]
-            _db.close()
-            print(f"[NARE & CO.] DB loaded â€” {DB_PATH} â€” users:{_u} qrs:{_q}")
-        except Exception as e:
-            logger.warning(f"DB status check failed: {e}")
+        logger.exception(f"DB migration failed: {e}")
+        raise
+    try:
+        _db = get_db()
+        _cur = _db.cursor()
+        _cur.execute("SELECT COUNT(*) FROM users")
+        _u = _cur.fetchone()[0]
+        _cur.execute("SELECT COUNT(*) FROM qrcodes")
+        _q = _cur.fetchone()[0]
+        _db.close()
+        if not is_fresh or _u:
+            print(f"[NARE & CO.] DB loaded — {DB_PATH} — users:{_u} qrs:{_q}")
+    except Exception as e:
+        logger.warning(f"DB status check failed: {e}")
+
 
 init_db()
 
