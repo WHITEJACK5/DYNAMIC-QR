@@ -13,7 +13,7 @@ os.environ.setdefault("BASE_URL", "http://localhost:5000")
 
 import server as nare
 from server import app
-from core.schemas import ForgotRequest, Login2FARequest, ResetRequest, TwoFACodeRequest, first_error
+from app.schemas import ForgotRequest, Login2FARequest, ResetRequest, TwoFACodeRequest, first_error
 
 
 @pytest.fixture(autouse=True)

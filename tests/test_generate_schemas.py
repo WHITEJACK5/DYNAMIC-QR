@@ -13,7 +13,7 @@ os.environ.setdefault("BASE_URL", "http://localhost:5000")
 
 import server as nare
 from server import app
-from core.schemas import GenerateRequest, PreviewRequest, first_error
+from app.schemas import GenerateRequest, PreviewRequest, first_error
 
 
 @pytest.fixture(autouse=True)

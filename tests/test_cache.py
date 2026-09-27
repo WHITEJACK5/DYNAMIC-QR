@@ -14,7 +14,7 @@ import pytest
 
 import server as nare
 from server import app
-from core import cache
+from app import cache
 
 
 @pytest.fixture(autouse=True)

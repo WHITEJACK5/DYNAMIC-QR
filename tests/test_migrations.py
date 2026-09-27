@@ -12,8 +12,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-32chars")
 
-from core import migrations as mig
-from core.models import Base
+from app import migrations as mig
+from app.models import Base
 
 PG_URL = os.getenv("TEST_DATABASE_URL", "").strip()
 requires_pg = pytest.mark.skipif(not PG_URL, reason="TEST_DATABASE_URL not set")

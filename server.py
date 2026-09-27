@@ -28,9 +28,9 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.utils import ImageReader
 
-# Phase 2a: pure helpers live in core/utils.py (zero Flask/DB imports).
+# Phase 2a: pure helpers live in app/utils.py (zero Flask/DB imports).
 # app.py re-exports them so `import app as nare; nare.hex_to_rgb` keeps working.
-from core.utils import (
+from app.utils import (
     build_gs1_content,  # noqa: F401 — re-exported for backwards compat
     build_qr_content,
     detect_device,
@@ -42,7 +42,7 @@ from core.utils import (
 # Phase 2c: explicit request schemas (Pydantic v2) — auth slice first.
 from pydantic import ValidationError
 
-from core.schemas import (
+from app.schemas import (
     Disable2FARequest,
     FolderCreateRequest,
     ForgotRequest,
@@ -140,15 +140,15 @@ def _version_headers(resp):
         resp.headers.setdefault("Link", f'</api/v1{path[4:]}>; rel="successor-version"')
     return resp
 
-# Rate limiting — Redis-backed with in-memory fallback (Phase 2f, core/ratelimit.py).
+# Rate limiting — Redis-backed with in-memory fallback (Phase 2f, app/ratelimit.py).
 # `_rate_store` stays importable (tests clear it); `_is_rate_limited` keeps its signature.
-from core import ratelimit as _ratelimit
-from core import folders_repo, qr_repo, scans_repo, templates_repo, users_repo
-from core import redirect_service
-from core import storage as _storage
-from core import tokens as _tokens
-from core import cache as _qr_cache
-from core import pagination
+from app import ratelimit as _ratelimit
+from app.repositories import folders_repo, qr_repo, scans_repo, templates_repo, users_repo
+from app.services import redirect_service
+from app.services import storage as _storage
+from app.services import tokens as _tokens
+from app import cache as _qr_cache
+from app import pagination
 
 _rate_store = _ratelimit.mem_store  # shared dict — same object tests already clear
 
@@ -180,7 +180,7 @@ def get_session():
     SQLite (local default) or PostgreSQL (DATABASE_URL) — the raw
     sqlite3 connection path was removed in Phase 3c4.
     """
-    from core import db as _cdb
+    from app import db as _cdb
 
     return _cdb.get_session()
 
@@ -192,8 +192,8 @@ def init_db():
     unversioned -> stamp head, so no data is destroyed.
     Already migrated: nothing to do.
     """
-    from core import migrations as _migrations
-    from core import db as _cdb
+    from app import migrations as _migrations
+    from app import db as _cdb
 
     # Keep ORM/migrations pointed at the same file get_db() uses.
     _cdb.set_default_sqlite(DB_PATH)
@@ -217,7 +217,7 @@ def init_db():
         raise
     try:
         _s = get_session()
-        from core.models import QRCode, User
+        from app.models import QRCode, User
 
         _u = _s.query(User).count()
         _q = _s.query(QRCode).count()
@@ -278,11 +278,11 @@ def get_base_url(req=None):
         return "http://localhost:5000"
 
 # Phase 2a: hex_to_rgb, generate_short_code, validate_email_format,
-# validate_password_strength, build_gs1_content now live in core/utils.py
+# validate_password_strength, build_gs1_content now live in app/utils.py
 # (imported at top). Deleted here to leave one source of truth.
 
-# Phase 2a: build_qr_content + detect_device live in core/utils.py (imported at top).
-# Phase 2q: resolve_smart_url moved to core/redirect_service.resolve_target.
+# Phase 2a: build_qr_content + detect_device live in app/utils.py (imported at top).
+# Phase 2q: resolve_smart_url moved to app/services/redirect_service.resolve_target.
 
 def get_geo_from_ip(ip):
     # Real geo via ip-api.com (free, no key) â€” fallback to Unknown
@@ -339,9 +339,9 @@ def _enrich_scan_geo_async(scan_id, ip):
 
     Opens its own SQLite connection (the request's connection is already
     closed by the time this runs). Failures are logged, never raised.
-    Phase 2g: dispatched via core.jobs (RQ when REDIS_URL is set, else thread).
+    Phase 2g: dispatched via app.jobs (RQ when REDIS_URL is set, else thread).
     """
-    from core.jobs import enqueue_call
+    from app.jobs import enqueue_call
 
     return enqueue_call(_geo_enrich_job, scan_id, ip)
 
@@ -1135,7 +1135,7 @@ def bulk_generate():
     # Phase 2o: RQ when configured (202 + status poll), else inline (200).
     # Local dev / CI without REDIS_URL always takes the inline path, so the
     # dashboard's sync {created,count} contract is unchanged there.
-    from core.jobs import get_queue
+    from app.jobs import get_queue
 
     queue = get_queue()
     if queue is not None:
@@ -1200,7 +1200,7 @@ def _bulk_job(user_id, rows, typ, fg, bg, base_url):
 @app.route("/api/v1/qrcodes/bulk/<job_id>", methods=["GET"])
 @token_required
 def bulk_status(job_id):
-    from core.jobs import get_queue
+    from app.jobs import get_queue
 
     queue = get_queue()
     if queue is None:
@@ -1329,7 +1329,7 @@ def redirect_dynamic(code):
     # Server-side only: the decision must be able to verify password_hash.
     row = qr_repo.to_internal(_qr) if _qr is not None else None
     # Password attempt — POST only to avoid URL leak (+ API header alt).
-    # Expiry/limit/password/smart-url decisions live in core/redirect_service.
+    # Expiry/limit/password/smart-url decisions live in app/services/redirect_service.
     ua0=request.headers.get("User-Agent","")
     accept0=request.headers.get("Accept-Language","")
     pwd = None

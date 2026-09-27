@@ -3,7 +3,7 @@ import datetime
 
 from sqlalchemy import func
 
-from core.models import Folder
+from app.models import Folder
 
 
 def count_for_user(s, user_id):

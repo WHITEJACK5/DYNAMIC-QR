@@ -12,7 +12,7 @@ import pytest
 
 import server as nare
 from server import app
-from core.pagination import parse_pagination
+from app.pagination import parse_pagination
 
 
 @pytest.fixture(autouse=True)

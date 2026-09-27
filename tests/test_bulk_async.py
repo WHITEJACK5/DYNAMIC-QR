@@ -14,7 +14,7 @@ import pytest
 
 import server as nare
 from server import app
-from core import jobs
+from app import jobs
 
 
 @pytest.fixture(autouse=True)
@@ -97,7 +97,7 @@ def test_enqueue_path_202_and_status(client, monkeypatch):
 
     monkeypatch.setattr(rq.job.Job, "fetch", staticmethod(lambda *a, **k: FakeDone()))
     # need the app to see our FakeQueue through jobs.get_queue (already patched)
-    import core.jobs as _j
+    import app.jobs as _j
 
     monkeypatch.setattr(_j, "get_queue", lambda: FakeQueue())
     r = client.get("/api/v1/qrcodes/bulk/job-1", headers={"Authorization": f"Bearer {tok}"})
@@ -110,7 +110,7 @@ def test_status_unknown_or_foreign(client, monkeypatch):
     class FakeQueue:
         connection = object()
 
-    import core.jobs as _j
+    import app.jobs as _j
 
     monkeypatch.setattr(_j, "get_queue", lambda: FakeQueue())
     monkeypatch.setattr(rq.job.Job, "fetch", staticmethod(lambda *a, **k: (_ for _ in ()).throw(Exception("gone"))))

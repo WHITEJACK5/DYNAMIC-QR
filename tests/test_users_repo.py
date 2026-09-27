@@ -19,9 +19,9 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-
 
 import jwt as _jwt
 
-from core import migrations as mig
-from core import tokens
-from core import folders_repo, templates_repo, users_repo
+from app import migrations as mig
+from app.services import tokens
+from app.repositories import folders_repo, templates_repo, users_repo
 
 SECRET = "test-secret-key-for-ci-must-be-long-enough-32chars"
 PG_URL = os.getenv("TEST_DATABASE_URL", "").strip()
@@ -36,7 +36,7 @@ def session(tmp_path):
     """
     from sqlalchemy.orm import sessionmaker
 
-    from core.models import Base
+    from app.models import Base
 
     if PG_URL:
         eng0 = create_engine(PG_URL)

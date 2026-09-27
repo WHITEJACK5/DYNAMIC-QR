@@ -14,7 +14,7 @@ from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
 
-from core.db import database_url
+from app.db import database_url
 
 logger = logging.getLogger("nare")
 

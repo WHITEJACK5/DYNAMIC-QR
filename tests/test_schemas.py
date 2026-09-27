@@ -14,7 +14,7 @@ from pydantic import ValidationError
 
 import server as nare
 from server import app
-from core.schemas import LoginRequest, RegisterRequest, first_error
+from app.schemas import LoginRequest, RegisterRequest, first_error
 
 
 @pytest.fixture(autouse=True)

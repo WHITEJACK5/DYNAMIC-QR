@@ -11,7 +11,7 @@ import logging
 
 from werkzeug.security import check_password_hash
 
-from core.utils import detect_device
+from app.utils import detect_device
 
 logger = logging.getLogger("nare")
 

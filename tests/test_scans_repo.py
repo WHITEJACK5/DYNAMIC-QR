@@ -10,9 +10,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-32chars")
 
-from core import migrations as mig
-from core import scans_repo
-from core.models import Base, User
+from app import migrations as mig
+from app.repositories import scans_repo
+from app.models import Base, User
 
 PG_URL = os.getenv("TEST_DATABASE_URL", "").strip()
 
@@ -47,7 +47,7 @@ def _user(s, email="a@x.com"):
 
 
 def _qr(s, uid, name="q", code="SCAN123"):
-    from core import qr_repo
+    from app.repositories import qr_repo
 
     return qr_repo.create_full(
         s, user_id=uid, name=name, type="url", content="https://example.com",
@@ -59,11 +59,11 @@ def test_record_and_geo(s):
     qid = _qr(s, uid)
     sid = scans_repo.record_scan(s, qid, "2026-01-01T00:00:00", "9.9.9.9", "ua", "Mobile", "Chrome", "Android")
     assert sid
-    from core.models import Scan
+    from app.models import Scan
 
     row = s.get(Scan, sid)
     assert (row.country, row.city) == ("Pending", "Pending")
-    from core import qr_repo
+    from app.repositories import qr_repo
 
     assert qr_repo.get_owned(s, qid, uid).scan_count == 1
     scans_repo.update_geo(s, sid, "Testland", "Testville")
