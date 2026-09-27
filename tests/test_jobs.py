@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-32chars")
 os.environ.pop("REDIS_URL", None)
 
-from core import jobs
+from app import jobs
 
 
 def setup_function(_):

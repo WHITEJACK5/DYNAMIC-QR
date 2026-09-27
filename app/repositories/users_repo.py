@@ -6,7 +6,7 @@ about Flask.
 """
 import datetime
 
-from core.models import User
+from app.models import User
 
 
 def find_id_by_email(s, email):

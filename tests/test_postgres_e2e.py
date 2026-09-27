@@ -43,7 +43,7 @@ def client():
 def _reset_schema():
     from sqlalchemy import create_engine
 
-    from core.models import Base
+    from app.models import Base
 
     eng = create_engine(DB_URL)
     Base.metadata.drop_all(eng)

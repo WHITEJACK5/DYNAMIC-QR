@@ -13,7 +13,7 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-
 
 from PIL import Image
 
-from core import storage
+from app.services import storage
 
 
 @pytest.fixture(autouse=True)

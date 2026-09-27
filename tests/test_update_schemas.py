@@ -13,7 +13,7 @@ os.environ.setdefault("BASE_URL", "http://localhost:5000")
 
 import server as nare
 from server import app
-from core.schemas import FolderCreateRequest, QRUpdateRequest, TemplateCreateRequest, first_error
+from app.schemas import FolderCreateRequest, QRUpdateRequest, TemplateCreateRequest, first_error
 
 
 @pytest.fixture(autouse=True)

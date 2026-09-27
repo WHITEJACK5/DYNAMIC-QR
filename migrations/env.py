@@ -1,4 +1,4 @@
-"""Alembic environment — URL from DATABASE_URL, metadata from core.models.
+"""Alembic environment — URL from DATABASE_URL, metadata from app.models.
 
 No credentials in alembic.ini: the URL is resolved here so the same config
 works for local SQLite, CI, and a managed Postgres.
@@ -14,8 +14,8 @@ APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if APP_DIR not in sys.path:
     sys.path.insert(0, APP_DIR)
 
-from core.db import database_url  # noqa: E402
-from core.models import Base  # noqa: E402
+from app.db import database_url  # noqa: E402
+from app.models import Base  # noqa: E402
 
 config = context.config
 if config.config_file_name is not None:

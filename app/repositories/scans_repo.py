@@ -8,7 +8,7 @@ import logging
 
 from sqlalchemy import String, cast, func
 
-from core.models import QRCode, Scan
+from app.models import QRCode, Scan
 
 logger = logging.getLogger("nare")
 
