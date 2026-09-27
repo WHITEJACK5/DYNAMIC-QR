@@ -14,9 +14,9 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-
 import sqlalchemy.exc
 from sqlalchemy.orm import sessionmaker
 
-from core import migrations as mig
-from core import qr_repo
-from core.models import Base, Scan, User
+from app import migrations as mig
+from app.repositories import qr_repo
+from app.models import Base, Scan, User
 
 PG_URL = os.getenv("TEST_DATABASE_URL", "").strip()
 

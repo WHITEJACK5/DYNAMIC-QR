@@ -16,9 +16,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-32chars")
 
-import app as nare
-from core import db as cdb
-from core.models import Base, QRCode, Scan, User
+import server as nare
+from app import db as cdb
+from app.models import Base, QRCode, Scan, User
 
 PG_URL = os.getenv("TEST_DATABASE_URL", "").strip()
 requires_pg = pytest.mark.skipif(not PG_URL, reason="TEST_DATABASE_URL not set (Postgres not available)")

@@ -25,4 +25,4 @@ if [ -f "venv/bin/activate" ]; then
 fi
 pip install -r requirements.txt
 echo "=== NARE & CO. starting on http://localhost:5000 ==="
-python app.py
+python server.py

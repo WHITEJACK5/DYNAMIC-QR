@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-32chars")
 os.environ.pop("REDIS_URL", None)
 
-from core import jobs
+from app import jobs
 
 
 def setup_function(_):
@@ -61,7 +61,7 @@ def test_rq_path_via_fake_queue(monkeypatch):
 
 
 def test_enrich_uses_queue():
-    import app as nare
+    import server as nare
 
     assert callable(nare._geo_enrich_job)  # module-level, RQ-importable
     assert nare._enrich_scan_geo_async.__code__.co_names.count("enqueue_call") >= 1

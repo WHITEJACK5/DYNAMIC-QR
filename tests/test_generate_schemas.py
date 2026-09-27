@@ -11,9 +11,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-32chars")
 os.environ.setdefault("BASE_URL", "http://localhost:5000")
 
-import app as nare
-from app import app
-from core.schemas import GenerateRequest, PreviewRequest, first_error
+import server as nare
+from server import app
+from app.schemas import GenerateRequest, PreviewRequest, first_error
 
 
 @pytest.fixture(autouse=True)

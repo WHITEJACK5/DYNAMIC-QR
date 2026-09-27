@@ -12,7 +12,7 @@ from typing import Any, Optional
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError, field_validator
 
-from core.utils import validate_email_format, validate_password_strength
+from app.utils import validate_email_format, validate_password_strength
 
 HEX_COLOR = re.compile(r"^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$")
 

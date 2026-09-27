@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-32chars")
 
-from core.utils import (
+from app.utils import (
     build_gs1_content,
     build_qr_content,
     detect_device,
@@ -57,8 +57,8 @@ def test_detect_device():
 
 
 def test_parity_with_app():
-    """core.utils must match app.py wrappers exactly (same behavior post-extract)."""
-    import app as nare
+    """app.utils must match app.py wrappers exactly (same behavior post-extract)."""
+    import server as nare
 
     assert nare.hex_to_rgb("#00FF88") == hex_to_rgb("#00FF88")
     assert nare.build_qr_content("url", {"url": "https://example.com"}) == build_qr_content(

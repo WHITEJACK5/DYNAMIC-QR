@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from werkzeug.security import generate_password_hash
 
-from core.redirect_service import decide, resolve_target
+from app.services.redirect_service import decide, resolve_target
 
 
 def _row(**kw):

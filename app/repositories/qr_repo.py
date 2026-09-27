@@ -12,8 +12,8 @@ import logging
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
 
-from core.models import QRCode, Scan
-from core.utils import build_qr_content, generate_short_code
+from app.models import QRCode, Scan
+from app.utils import build_qr_content, generate_short_code
 
 logger = logging.getLogger("nare")
 

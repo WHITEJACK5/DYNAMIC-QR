@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-32chars")
 os.environ.pop("REDIS_URL", None)
 
-from core import ratelimit
+from app import ratelimit
 
 
 def setup_function(_):
@@ -23,7 +23,7 @@ def test_memory_fallback_limits():
 
 
 def test_shared_store_with_app():
-    import app as nare
+    import server as nare
 
     assert nare._rate_store is ratelimit.mem_store
     nare._rate_store.clear()
