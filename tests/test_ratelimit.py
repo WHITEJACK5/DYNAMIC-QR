@@ -1,57 +1,99 @@
-"""Phase 2f: Redis-backed limiter, memory fallback, shared _rate_store."""
+"""Phase 2f: rate limiting is Flask-Limiter, Redis-backed when REDIS_URL is set.
+
+These assert the real mechanism (a live Flask app making real requests), not a
+stand-in for it.
+"""
 import os
 import sys
+import tempfile
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+import pytest
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-32chars")
+os.environ.setdefault("BASE_URL", "http://localhost:5000")
 os.environ.pop("REDIS_URL", None)
 
+import server as nare
 from app import ratelimit
+from server import app as flask_app
 
 
-def setup_function(_):
-    os.environ.pop("REDIS_URL", None)
-    ratelimit.reset_state()
-
-
-def test_memory_fallback_limits():
-    for _ in range(5):
-        assert ratelimit.is_rate_limited("k1", 5, 60) is False
-    assert ratelimit.is_rate_limited("k1", 5, 60) is True
-    assert ratelimit.is_rate_limited("other", 5, 60) is False  # per-key
-
-
-def test_shared_store_with_app():
-    import server as nare
-
-    assert nare._rate_store is ratelimit.mem_store
+@pytest.fixture(autouse=True)
+def _reset():
     nare._rate_store.clear()
-    assert nare._is_rate_limited("k2", 1, 60) is False
-    assert nare._is_rate_limited("k2", 1, 60) is True
+    yield
+    nare._rate_store.clear()
 
 
-def test_redis_failure_falls_back():
-    os.environ["REDIS_URL"] = "redis://127.0.0.1:6399/0"  # nothing here
-    for _ in range(2):
-        assert ratelimit.is_rate_limited("k3", 2, 60) is False
-    assert ratelimit.is_rate_limited("k3", 2, 60) is True
+@pytest.fixture
+def client():
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
+    tmp.close()
+    old = nare.DB_PATH
+    nare.DB_PATH = tmp.name
+    nare.init_db()
+    flask_app.config["TESTING"] = True
+    with flask_app.test_client() as c:
+        yield c
+    try:
+        os.unlink(tmp.name)
+    except OSError:
+        pass
+    nare.DB_PATH = old
 
 
-def test_redis_success_path(monkeypatch):
-    class FakeRedis:
-        def __init__(self):
-            self.counts = {}
+def test_limiter_is_flask_limiter():
+    from flask_limiter import Limiter
 
-        def incr(self, key):
-            self.counts[key] = self.counts.get(key, 0) + 1
-            return self.counts[key]
+    assert isinstance(nare.limiter, Limiter)
 
-        def expire(self, key, window):
-            pass
 
-    fake = FakeRedis()
-    monkeypatch.setattr(ratelimit, "get_redis_client", lambda: fake)
-    assert ratelimit.is_rate_limited("rk", 2, 60) is False
-    assert ratelimit.is_rate_limited("rk", 2, 60) is False
-    assert ratelimit.is_rate_limited("rk", 2, 60) is True
+def test_storage_uri_follows_redis_url():
+    os.environ.pop("REDIS_URL", None)
+    assert ratelimit.storage_uri() == "memory://"
+    os.environ["REDIS_URL"] = "redis://127.0.0.1:6379/0"
+    assert ratelimit.storage_uri() == "redis://127.0.0.1:6379/0"
+    os.environ.pop("REDIS_URL", None)
+
+
+def test_login_is_rate_limited_to_five_per_minute(client):
+    codes = []
+    for _ in range(8):
+        r = client.post("/api/login", json={"email": "a@b.com", "password": "WrongPass123!"})
+        codes.append(r.status_code)
+    assert codes[:5] == [401] * 5, codes
+    assert codes[5:] == [429] * 3, codes
+    assert "Too many requests" in client.post(
+        "/api/login", json={"email": "a@b.com", "password": "x"}
+    ).json["error"]
+
+
+def test_rate_limit_headers_are_emitted(client):
+    r = client.post("/api/login", json={"email": "a@b.com", "password": "WrongPass123!"})
+    assert r.status_code == 401
+    assert r.headers.get("X-RateLimit-Limit") == "5"
+    assert int(r.headers.get("X-RateLimit-Remaining")) <= 4
+
+
+def test_buckets_are_independent_per_endpoint(client):
+    # burn the login bucket
+    for _ in range(6):
+        client.post("/api/login", json={"email": "a@b.com", "password": "WrongPass123!"})
+    assert client.post("/api/login", json={"email": "a@b.com", "password": "x"}).status_code == 429
+    # forgot-password has its own 3/10min bucket and is unaffected
+    r = client.post("/api/forgot-password", json={"email": "nobody@x.com"})
+    assert r.status_code == 200
+    # and generate is not blocked either
+    r = client.post("/api/generate", json={"type": "url", "data": {"url": "https://example.com"}})
+    assert r.status_code == 200
+
+
+def test_reset_clears_the_counters(client):
+    for _ in range(6):
+        client.post("/api/login", json={"email": "a@b.com", "password": "x"})
+    assert client.post("/api/login", json={"email": "a@b.com", "password": "x"}).status_code == 429
+    nare._rate_store.clear()
+    r = client.post("/api/login", json={"email": "a@b.com", "password": "x"})
+    assert r.status_code == 401

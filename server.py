@@ -143,7 +143,12 @@ def _version_headers(resp):
 
 # Rate limiting — Redis-backed with in-memory fallback (Phase 2f, app/ratelimit.py).
 # `_rate_store` stays importable (tests clear it); `_is_rate_limited` keeps its signature.
-from app import ratelimit as _ratelimit
+from app.ratelimit import build_limiter
+
+# Rate limiting (Phase 2f): Flask-Limiter, Redis-backed when REDIS_URL is set
+# and in-memory otherwise. Limits are declared per endpoint name in
+# app/ratelimit.py so they survive route moves into blueprints.
+limiter = build_limiter(app)
 from app.repositories import folders_repo, qr_repo, scans_repo, templates_repo, users_repo
 from app.services import redirect_service
 from app.services import storage as _storage
@@ -151,26 +156,29 @@ from app.services import tokens as _tokens
 from app import cache as _qr_cache
 from app import pagination
 
-_rate_store = _ratelimit.mem_store  # shared dict — same object tests already clear
+class _LimiterReset:
+    """Test helper kept for compatibility: older suites called
+    `nare._rate_store.clear()`. With Flask-Limiter the counter lives in the
+    limiter's storage, so clearing means resetting it."""
+
+    def clear(self):
+        try:
+            limiter.reset()
+        except Exception as e:  # pragma: no cover - defensive
+            logger.warning(f"limiter reset failed: {e}")
 
 
-def _is_rate_limited(key, limit, window_sec):
-    return _ratelimit.is_rate_limited(key, limit, window_sec)
+_rate_store = _LimiterReset()
+
 
 def rate_limit(limit=5, window=60, key_func=None):
+    """Apply a Flask-Limiter limit to a view.
+
+    `limit` is a count and `window` seconds, matching the historical call
+    sites; they are rendered into Flask-Limiter's "N per M seconds" form.
+    """
     def decorator(f):
-        @wraps(f)
-        def wrapped(*args, **kwargs):
-            try:
-                k = key_func() if key_func else request.remote_addr or "unknown"
-            except Exception:
-                k = request.remote_addr or "unknown"
-            endpoint_key = f"{f.__name__}:{k}"
-            if _is_rate_limited(endpoint_key, limit, window):
-                logger.warning(f"Rate limited {endpoint_key}")
-                return jsonify({"error": "Too many requests. Please try again later."}), 429
-            return f(*args, **kwargs)
-        return wrapped
+        return limiter.limit(f"{limit} per {window} seconds")(f)
     return decorator
 
 # ---------------- DB ----------------
