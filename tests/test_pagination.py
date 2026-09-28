@@ -42,6 +42,10 @@ def client():
 def _register(client, email="page@example.com"):
     r = client.post("/api/register", json={"email": email, "password": "StrongPass123!", "name": "P"})
     assert r.status_code == 200, r.get_data(as_text=True)
+    # Phase 4d: dynamic QRs need a verified address; these tests are about
+    # pagination, so the account is treated as verified.
+    from conftest import mark_verified
+    mark_verified(email)
     return r.json["token"]
 
 

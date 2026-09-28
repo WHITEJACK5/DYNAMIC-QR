@@ -64,6 +64,8 @@ def test_bulk_form_schema():
 
 def test_generate_endpoint_accepts_protection_fields(client):
     r = client.post("/api/register", json={"email": "prot@x.com", "password": "StrongPass123!", "name": "P"})
+    from conftest import mark_verified
+    mark_verified("prot@x.com")  # Phase 4d: dynamic QRs need a verified address
     tok = r.json["token"]
     h = {"Authorization": f"Bearer {tok}"}
     r = client.post("/api/generate", json={
@@ -82,6 +84,8 @@ def test_generate_endpoint_accepts_protection_fields(client):
 
 def test_bulk_endpoint_rejects_bad_form_colors(client):
     r = client.post("/api/register", json={"email": "b@x.com", "password": "StrongPass123!", "name": "B"})
+    from conftest import mark_verified
+    mark_verified("b@x.com")  # Phase 4d: bulk dynamic QRs need a verified address
     h = {"Authorization": f"Bearer {r.json['token']}"}
     csv = "url,name\nhttps://example.com/a,A\n"
     data = {"file": (io.BytesIO(csv.encode()), "b.csv"), "type": "url", "fg_color": "oops"}

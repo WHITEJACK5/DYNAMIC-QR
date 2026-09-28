@@ -331,6 +331,36 @@ class LogoutRequest(BaseModel):
         return (v or "").strip() if isinstance(v, str) else ""
 
 
+class VerifyEmailRequest(BaseModel):
+    """Phase 4d: confirm an address with the token from the email link."""
+
+    model_config = ConfigDict(validate_default=True)
+
+    token: str = ""
+
+    @field_validator("token", mode="before")
+    @classmethod
+    def _token(cls, v):
+        t = (v or "").strip() if isinstance(v, str) else ""
+        if not t:
+            raise ValueError("token required")
+        return t
+
+
+class ResendVerificationRequest(BaseModel):
+    model_config = ConfigDict(validate_default=True)
+
+    email: str = ""
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _email(cls, v):
+        e = _norm_email(v)
+        if not e or not validate_email_format(e):
+            raise ValueError("Valid email required")
+        return e
+
+
 class ForgotRequest(BaseModel):
     model_config = ConfigDict(validate_default=True)
 

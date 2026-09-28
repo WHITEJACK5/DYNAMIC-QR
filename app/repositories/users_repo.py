@@ -24,7 +24,40 @@ def find_by_email(s, email):
         "name": u.name, "created_at": u.created_at,
         "twofa_enabled": u.twofa_enabled, "twofa_secret": u.twofa_secret,
         "is_premium": u.is_premium,
+        "email_verified": bool(u.email_verified),
     }
+
+
+def find_verify(s, email):
+    """Verification state for a user, or None if there is no such user."""
+    u = s.query(User).filter(User.email == email).one_or_none()
+    if u is None:
+        return None
+    return {"email_verified": u.email_verified or 0,
+            "verify_token": u.verify_token,
+            "verify_expires": u.verify_expires}
+
+
+def set_verify_token(s, email, token_hash, expires_iso):
+    s.query(User).filter(User.email == email).update(
+        {"verify_token": token_hash, "verify_expires": expires_iso}
+    )
+    s.commit()
+
+
+def mark_email_verified(s, email):
+    """Idempotent, and clears the token so a link cannot be replayed."""
+    s.query(User).filter(User.email == email).update(
+        {"email_verified": 1, "verify_token": None, "verify_expires": None}
+    )
+    s.commit()
+
+
+def is_verified(s, user_id):
+    u = s.get(User, user_id)
+    if u is None:
+        return False
+    return bool(u.email_verified)
 
 
 def find_public_by_id(s, user_id):
@@ -34,6 +67,7 @@ def find_public_by_id(s, user_id):
     return {
         "id": u.id, "email": u.email, "name": u.name, "created_at": u.created_at,
         "is_premium": u.is_premium, "twofa_enabled": u.twofa_enabled,
+        "email_verified": bool(u.email_verified),
     }
 
 

@@ -57,6 +57,8 @@ def test_register_login_list_parity(client):
     r = client.post("/api/v1/register", json={"email": "v1@x.com", "password": "StrongPass123!", "name": "V"})
     assert r.status_code == 200
     assert "Deprecation" not in r.headers
+    from conftest import mark_verified
+    mark_verified("v1@x.com")  # Phase 4d: dynamic QRs need a verified address
     tok = r.json["token"]
     r = client.post("/api/v1/login", json={"email": "v1@x.com", "password": "StrongPass123!"})
     assert r.status_code == 200 and "token" in r.json

@@ -74,3 +74,19 @@ def needs_upgrade() -> bool:
 
 def head_revision() -> str:
     return ScriptDirectory.from_config(config()).get_current_head()
+
+
+def revision_chain(head: str | None = None):
+    """Oldest-to-newest list of revision ids up to `head`.
+
+    Exposed so tests can assert the shape of the history (linear, expected
+    length) without hardcoding a single id that changes with every migration.
+    """
+    script = ScriptDirectory.from_config(config())
+    revisions = [script.get_revision(head or script.get_current_head()).revision]
+    while True:
+        down = script.get_revision(revisions[-1]).down_revision
+        if down is None:
+            break
+        revisions.append(down)
+    return list(reversed(revisions))

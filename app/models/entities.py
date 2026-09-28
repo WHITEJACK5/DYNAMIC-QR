@@ -32,6 +32,13 @@ class User(Base):
     twofa_secret: Mapped[str | None] = mapped_column(String, nullable=True)
     reset_token: Mapped[str | None] = mapped_column(String, nullable=True)
     reset_expires: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Phase 4d: email verification. 0/1 like the other legacy flags, with a
+    # server default so existing rows and raw INSERTs keep working.
+    email_verified: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0, server_default=text("0"))
+    verify_token: Mapped[str | None] = mapped_column(String, nullable=True)
+    verify_expires: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    __table_args__ = (Index("idx_users_verify_token", "verify_token"),)
 
     qrcodes: Mapped[list["QRCode"]] = relationship(back_populates="user")
 

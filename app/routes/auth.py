@@ -1,19 +1,21 @@
 """Authentication: register/login, password reset, TOTP 2FA, /api/me."""
 
-import datetime, secrets
+import datetime, hashlib, secrets
 
 from app.config import JWT_ALGO, JWT_SECRET, logger
 from flask import Blueprint, g, jsonify, request
 from pydantic import ValidationError
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from app.extensions import get_session, rate_limit, token_required
+from app.extensions import get_base_url, get_session, rate_limit, token_required
+from app.models import User as _User
 from app.repositories import folders_repo, users_repo
 from app.schemas import (
     Disable2FARequest, ForgotRequest, Login2FARequest, LoginRequest,
-    LogoutRequest, RefreshRequest, RegisterRequest, ResetRequest,
-    TwoFACodeRequest, first_error,
+    LogoutRequest, RefreshRequest, RegisterRequest, ResendVerificationRequest,
+    ResetRequest, TwoFACodeRequest, VerifyEmailRequest, first_error,
 )
+from app.services import mailer as _mailer
 from app.services import tokens as _tokens
 from app.services.render import create_qr_image, image_to_base64
 
@@ -40,12 +42,22 @@ def register():
         uid = users_repo.create_user(s, email, pwd_hash, name)
         folders_repo.create_for_user(s, uid, "My QR Codes")
         token, refresh = _tokens.mint_pair(uid, email, JWT_SECRET, JWT_ALGO)
+        # Phase 4d: issue the confirmation link. Unverified accounts may use
+        # static QRs but not dynamic ones.
+        sent, _raw = _issue_verification(s, email, get_base_url(request))
         s.close()
         logger.info(f"New user registered: {email}")
+        if not sent:
+            logger.warning(
+                "Registration succeeded but the verification email was not "
+                f"delivered for {email}; account is unverified until it is sent"
+            )
         # "token" kept alongside the explicit names so existing clients and
         # the frontend keep working; it is the 15-minute access token.
         return jsonify({"token":token,"access_token":token,"refresh_token":refresh,
                         "expires_in":_tokens.ACCESS_MINUTES * 60,
+                        "email_verified": False,
+                        "verification_email_sent": sent,
                         "user":{"id":uid,"email":email,"name":name}})
     except Exception as e:
         logger.exception(f"Register error for {email}: {e}")
@@ -81,6 +93,90 @@ def login():
     return jsonify({"token":token,"access_token":token,"refresh_token":refresh,
                     "expires_in":_tokens.ACCESS_MINUTES * 60,
                     "user":{"id":row["id"],"email":email,"name":row["name"]}})
+
+
+VERIFY_TOKEN_TTL_HOURS = 24
+
+
+def _issue_verification(session, email, base_url):
+    """Create a verification token, store its hash, and try to send the link.
+
+    Returns (sent, plain_token). The raw token is returned so tests and the
+    dev-only log path can use it; only its hash is persisted.
+    """
+    raw = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(raw.encode()).hexdigest()
+    expires = (datetime.datetime.utcnow()
+               + datetime.timedelta(hours=VERIFY_TOKEN_TTL_HOURS)).isoformat()
+    users_repo.set_verify_token(session, email, token_hash, expires)
+    url = _mailer.build_verify_url(base_url, raw)
+    return _mailer.send_verification(email, url, VERIFY_TOKEN_TTL_HOURS), raw
+
+
+@auth.route("/api/verify-email", methods=["POST"])
+@auth.route("/api/v1/verify-email", methods=["POST"])
+def verify_email():
+    """Phase 4d: confirm an address. The token may arrive in the body (API
+    client) or as ?token= so the emailed link works as a GET navigation."""
+    body = request.get_json(silent=True) or {}
+    raw = body.get("token") or request.args.get("token")
+    try:
+        req = VerifyEmailRequest.model_validate({"token": raw})
+    except ValidationError as e:
+        return jsonify({"error": first_error(e)}), 400
+    token_hash = hashlib.sha256(req.token.encode()).hexdigest()
+    s = get_session()
+    try:
+        row = s.query(_User).filter(_User.verify_token == token_hash).one_or_none()
+        if row is None:
+            return jsonify({"error": "Invalid or already-used verification link"}), 400
+        if row.verify_expires:
+            try:
+                if datetime.datetime.fromisoformat(row.verify_expires) < datetime.datetime.utcnow():
+                    return jsonify({"error": "Verification link expired"}), 400
+            except ValueError:
+                return jsonify({"error": "Verification link invalid"}), 400
+        email = row.email
+        users_repo.mark_email_verified(s, email)
+    finally:
+        s.close()
+    logger.info(f"Email verified: {email}")
+    return jsonify({"status": "verified", "email": email})
+
+
+@auth.route("/api/resend-verification", methods=["POST"])
+@auth.route("/api/v1/resend-verification", methods=["POST"])
+@rate_limit(limit=5, window=60, key_func=lambda: request.remote_addr or "unknown")
+def resend_verification():
+    """Reissue a verification link.
+
+    Every outcome returns the same 202 and the same body. Distinguishing
+    "no such account", "already verified" and "mail not delivered" by
+    status code would be an account-enumeration oracle, so delivery
+    failures are logged instead of reported. A user checks their own state
+    through GET /api/me, which requires their token.
+    """
+    neutral = {"status": "If that account needs verification, a link has been sent"}
+    try:
+        req = ResendVerificationRequest.model_validate(request.get_json(silent=True) or {})
+    except ValidationError as e:
+        return jsonify({"error": first_error(e)}), 400
+    s = get_session()
+    try:
+        state = users_repo.find_verify(s, req.email)
+        if state is None or state["email_verified"]:
+            return jsonify(neutral), 202
+        sent, _raw = _issue_verification(s, req.email, get_base_url(request))
+    finally:
+        s.close()
+    if not sent:
+        logger.error(
+            "Verification email for %s was not delivered; the account stays "
+            "unverified until SMTP is configured or the user retries", req.email
+        )
+    else:
+        logger.info(f"Verification email re-sent to {req.email}")
+    return jsonify(neutral), 202
 
 
 @auth.route("/api/refresh", methods=["POST"])

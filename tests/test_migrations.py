@@ -25,15 +25,19 @@ def _sqlite_url(tmp_path, name="m.db"):
     return f"sqlite:///{(tmp_path / name).as_posix()}"
 
 
-def test_head_and_baseline_are_single_revision():
-    assert mig.head_revision() == "0001_initial"
+def test_revision_chain_is_linear_and_head_is_latest():
+    """Phase 4d added 0002. Assert the shape of the chain, not one hardcoded
+    id, so the next migration does not have to edit this test."""
+    head = mig.head_revision()
+    assert head == "0002_email_verification"
+    assert mig.revision_chain(head) == ["0001_initial", "0002_email_verification"]
 
 
 def test_upgrade_creates_exact_schema(tmp_path):
     url = _sqlite_url(tmp_path)
     assert mig.current_revision(url) is None
     mig.upgrade_to_head(url)
-    assert mig.current_revision(url) == "0001_initial"
+    assert mig.current_revision(url) == mig.head_revision()
     assert mig.user_tables(url) == EXPECTED
     from sqlalchemy import create_engine, inspect
 
@@ -73,7 +77,7 @@ def test_postgres_migration_cycle():
     assert mig.user_tables(PG_URL) == set()
     mig.upgrade_to_head(PG_URL)
     assert mig.user_tables(PG_URL) == EXPECTED
-    assert mig.current_revision(PG_URL) == "0001_initial"
+    assert mig.current_revision(PG_URL) == mig.head_revision()
     insp = inspect(create_engine(PG_URL))
     for table, idx in EXPECTED_INDEXES.items():
         assert idx.issubset({i["name"] for i in insp.get_indexes(table)}), table

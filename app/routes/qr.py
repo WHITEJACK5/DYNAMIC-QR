@@ -24,7 +24,7 @@ from app.extensions import (
 )
 from app import jobs
 from app.jobs import get_queue  # noqa: F401 — kept for callers that import from here
-from app.repositories import qr_repo
+from app.repositories import qr_repo, users_repo
 from app.schemas import (
     BulkFormRequest, GenerateRequest, PreviewRequest, QRUpdateRequest, first_error,
 )
@@ -125,6 +125,21 @@ def generate():
     short_code = None
     final_content = content
     if is_dynamic:
+        # Phase 4d: dynamic QRs are a paid-shaped feature that costs real
+        # infrastructure, so they require a confirmed email address.
+        # Static QRs stay available to everyone.
+        if user_id is not None:
+            s_chk = get_session()
+            try:
+                verified = users_repo.is_verified(s_chk, user_id)
+            finally:
+                s_chk.close()
+            if not verified:
+                return jsonify({
+                    "error": "Verify your email address before creating dynamic QR codes",
+                    "code": "email_unverified",
+                    "resend": "/api/resend-verification",
+                }), 403
         # Unique short code (unchecked fresh fallback on repeated collision)
         s_tmp = get_session()
         short_code = qr_repo.mint_unique_short(s_tmp, 10)

@@ -33,8 +33,16 @@ def client():
     nare.DB_PATH = old_path
     nare._rate_store.clear()
 
+from conftest import mark_verified
+
+def verify(email):
+    """Accounts in this suite are treated as verified (see conftest)."""
+    mark_verified(email)
+
 def register(client, email="test@example.com", pwd="StrongPass123!", name="Test"):
-    return client.post("/api/register", json={"email":email,"password":pwd,"name":name})
+    r = client.post("/api/register", json={"email":email,"password":pwd,"name":name})
+    verify(email)
+    return r
 
 def login(client, email="test@example.com", pwd="StrongPass123!"):
     return client.post("/api/login", json={"email":email,"password":pwd})
