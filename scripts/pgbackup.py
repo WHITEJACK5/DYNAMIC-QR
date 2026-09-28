@@ -109,14 +109,37 @@ def verify():
     return int(count or 0)
 
 
+def rotate(keep=14, directory=DEFAULT_DIR):
+    """Delete dated dumps older than `keep` days. Returns removed paths."""
+    import glob
+    import time
+
+    cutoff = time.time() - keep * 86400
+    removed = []
+    for path in glob.glob(os.path.join(directory, "nare-*.dump")):
+        try:
+            if os.path.getmtime(path) < cutoff:
+                os.remove(path)
+                removed.append(path)
+        except OSError as e:
+            print(f"could not remove {path}: {e}")
+    if removed:
+        print(f"rotated {len(removed)} dump(s) older than {keep} days")
+    return removed
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="PostgreSQL backup/restore for NARE & CO.")
-    ap.add_argument("action", choices=["dump", "restore", "verify"])
+    ap.add_argument("action", choices=["dump", "rotate", "restore", "verify"])
     ap.add_argument("--out", default=os.path.join(DEFAULT_DIR, "nare-latest.dump"))
     ap.add_argument("--in", dest="inp", default=None)
+    ap.add_argument("--keep", type=int, default=14, help="days to keep (rotate action)")
+    ap.add_argument("--dir", dest="directory", default=DEFAULT_DIR)
     args = ap.parse_args(argv)
     if args.action == "dump":
         dump(args.out)
+    elif args.action == "rotate":
+        rotate(args.keep, args.directory)
     elif args.action == "restore":
         restore(args.inp or args.out)
     else:
