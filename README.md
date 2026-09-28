@@ -241,6 +241,40 @@ Requires the PostgreSQL client tools (`pg_dump`, `pg_restore`, `psql`) on the
 machine you run it from. **Copy dumps off the database host** — a dump next to
 the database is not a backup.
 
+## Secrets
+
+`.env` is for **local development only**. It is git-ignored, and CI fails if it
+is ever committed.
+
+In staging and production the secret comes from the host's secret store, which
+injects it as an environment variable:
+
+| Host | Where the secret goes |
+|---|---|
+| Render | Dashboard → your service → Environment → Add secret |
+| Railway | project → Variables → add `SECRET_KEY` |
+| Fly.io | `fly secrets set SECRET_KEY=...` |
+| AWS | Secrets Manager / SSM, exported by the task definition |
+
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Two behaviours make a misconfigured deploy fail loudly instead of quietly:
+
+- **Production refuses to start without `SECRET_KEY`.** Previously the app
+  generated one and wrote it into the container filesystem — a key that dies
+  with the container, invalidating every session on the next restart, while
+  the deploy still looked healthy. The error names each provider above.
+- **Production does not read `.env` at all.** A file baked into the image, or
+  left over from an earlier build, would otherwise silently shadow the
+  injected secret. If one is present the app logs a warning naming the path.
+
+Production is detected from the variables those platforms set (`RENDER`,
+`RAILWAY_ENVIRONMENT`, `FLY_APP_NAME`, `DYNO`, `KUBERNETES_SERVICE_HOST`), or
+by setting `APP_ENV=production` explicitly. A container on an unrecognised host
+is treated as development, so a fresh clone still works with zero setup.
+
 ## Logo storage
 
 Uploaded logos go to S3-compatible object storage. This is required — there is no
