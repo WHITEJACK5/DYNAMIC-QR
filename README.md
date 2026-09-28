@@ -78,27 +78,47 @@ curl -X PUT -H "Authorization: Bearer <token>" -H "Content-Type: application/jso
 
 ```
 nare-and-co/
-  server.py              # Flask app: thin HTTP handlers, versioned /api/v1 routes
-  wsgi.py             # production entrypoint (gunicorn wsgi:application)
-  alembic.ini         # migrations config (URL comes from the environment)
-  core/               # everything except HTTP plumbing
-    models.py         # SQLAlchemy models (the schema of record)
-    db.py             # engine + session factory, dialect-specific pooling
-    migrations.py     # programmatic upgrade/downgrade helpers
-    qr_repo.py        # QR-code repository (all qrcodes-table access)
-    users_repo.py     # users table
-    scans_repo.py     # scans table
-    folders_repo.py   # folders table
-    templates_repo.py # templates table
-    redirect_service.py  # pure redirect decisions (expiry/limit/password/smart URL)
-    schemas.py        # Pydantic request schemas for every JSON route
-    tokens.py         # JWT mint/verify
-    storage.py        # logo storage (S3-compatible object storage)
-    ratelimit.py      # rate limiting (Redis, in-memory fallback)
-    jobs.py           # background jobs (RQ, thread fallback)
-    cache.py          # read-through cache (Redis, in-memory fallback)
-    pagination.py     # shared limit/offset parsing
-    utils.py          # pure helpers (QR content builders, validation)
+  server.py              # composition root + dev entrypoint (app.run, dev only)
+  wsgi.py                # production entrypoint (gunicorn wsgi:application)
+  alembic.ini            # migrations config (URL comes from the environment)
+  app/
+    routes/              # HTTP layer: thin handlers on Blueprints
+      auth.py            #   register / login / 2FA
+      qr.py              #   generate / CRUD / download / preview
+      analytics.py       #   scan and aggregate analytics
+      redirect.py        #   /r/<code> — the public redirect path
+      meta.py            #   health, version, pagination meta
+      pages.py           #   frontend page serving
+    services/            # business logic
+      render.py          #   QR rendering (patterns, frames, gradients, logos)
+      redirect_service.py#   redirect decisions (expiry/limit/password/smart URL)
+      geo.py             #   IP geolocation (off the redirect path)
+      tokens.py          #   JWT mint/verify
+      storage.py         #   logo storage (S3-compatible object storage)
+    repositories/        # all SQL, session-based
+      users_repo.py      #   users table
+      qr_repo.py         #   qrcodes table
+      scans_repo.py      #   scans table
+      folders_repo.py    #   folders table
+      templates_repo.py  #   templates table
+    models/              # data models (the schema of record)
+      entities.py        #   SQLAlchemy ORM declarations
+    utils/               # pure helpers, no Flask/DB/network
+      qr_content.py      #   QR payload construction per type
+      validation.py      #   colour parsing, short codes, password checks
+      device.py          #   user-agent parsing
+    schemas.py           # Pydantic request schemas for every JSON route
+    db.py                # engine + session factory, dialect-specific pooling
+    config.py            # environment + secret bootstrap
+    extensions.py        # app object, CORS, auth decorators, limiter
+    jobs.py              # background jobs (RQ, thread fallback)
+    cache.py             # read-through cache (Redis, in-memory fallback)
+    ratelimit.py         # rate limiting (Redis, in-memory fallback)
+    pagination.py        # shared limit/offset parsing
+    migrations.py        # programmatic upgrade/downgrade helpers
+  migrations/            # Alembic: env.py + versions/
+  scripts/pgbackup.py    # pg_dump / pg_restore / verify / rotate
+  deploy/                # nginx, systemd backup unit + timer, crontab example
   migrations/
     versions/         # versioned, reversible schema migrations
   scripts/
@@ -152,7 +172,7 @@ versioned, reversible migrations and the app upgrades on startup:
 ```bash
 alembic upgrade head        # apply
 alembic downgrade -1        # roll back one
-alembic revision --autogenerate -m "add x"   # after editing core/models.py
+alembic revision --autogenerate -m "add x"   # after editing app/models/entities.py
 ```
 
 A pre-Alembic `data/nare.db` is adopted by stamping it at head — your data is

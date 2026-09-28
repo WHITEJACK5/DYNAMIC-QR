@@ -1,65 +1,13 @@
-"""Pure helpers extracted verbatim from app.py (Phase 2a).
+"""QR payload construction — turning a validated request into the string that
+gets encoded, per QR type (Phase 2a).
 
-No Flask, no SQLite, no network. Safe to unit-test in isolation.
-app.py imports these and keeps thin backwards-compat wrappers.
+Pure: no DB, no rendering. Rendering is app/services/render.py.
 """
 import json
 import logging
 import re
-import secrets
-import string
 
 logger = logging.getLogger("nare")
-
-
-def hex_to_rgb(h):
-    h = h.lstrip('#')
-    if len(h) == 3:
-        h = ''.join([c * 2 for c in h])
-    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
-
-
-def generate_short_code(n=8):
-    # Use 62-char alphabet for full entropy: 62^8 ~ 2.18e14
-    alphabet = string.ascii_letters + string.digits
-    return ''.join(secrets.choice(alphabet) for _ in range(n))
-
-
-def validate_email_format(email):
-    # Basic regex first (permissive for personal/test domains like .local, .test)
-    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
-        return False
-    try:
-        from email_validator import validate_email
-        validate_email(email, check_deliverability=False)
-        return True
-    except ImportError:
-        return True
-    except Exception:
-        # If validator rejects but regex passes (e.g., .local), allow for personal use
-        return True
-
-
-def validate_password_strength(pwd):
-    # Industry: >=8 chars, at least 3 of 4 categories
-    if len(pwd) < 8:
-        return False, "Password must be at least 8 characters"
-    cats = 0
-    if re.search(r"[A-Z]", pwd):
-        cats += 1
-    if re.search(r"[a-z]", pwd):
-        cats += 1
-    if re.search(r"\d", pwd):
-        cats += 1
-    if re.search(r"[^A-Za-z0-9]", pwd):
-        cats += 1
-    if cats < 3:
-        return False, "Password must include 3 of: uppercase, lowercase, digit, special char"
-    # also check common weak passwords
-    weak = {"password", "12345678", "qwerty123", "letmein", "admin123"}
-    if pwd.lower() in weak:
-        return False, "Password is too common"
-    return True, ""
 
 
 def build_gs1_content(data):
@@ -177,31 +125,3 @@ def build_qr_content(qr_type, data):
     except Exception as e:
         logger.warning(f"build_qr_content error for {qr_type}: {e}")
         return str(data)
-
-
-def detect_device(user_agent):
-    ua = (user_agent or "").lower()
-    device = "Desktop"
-    browser = "Unknown"
-    os_name = "Unknown"
-    if "mobile" in ua or "android" in ua or "iphone" in ua:
-        device = "Mobile"
-    elif "tablet" in ua or "ipad" in ua:
-        device = "Tablet"
-    if "chrome" in ua and "edg" not in ua:
-        browser = "Chrome"
-    elif "firefox" in ua:
-        browser = "Firefox"
-    elif "safari" in ua and "chrome" not in ua:
-        browser = "Safari"
-    elif "edg" in ua:
-        browser = "Edge"
-    if "windows" in ua:
-        os_name = "Windows"
-    elif "android" in ua:
-        os_name = "Android"
-    elif "iphone" in ua or "mac os" in ua:
-        os_name = "iOS/Mac"
-    elif "linux" in ua:
-        os_name = "Linux"
-    return device, browser, os_name
