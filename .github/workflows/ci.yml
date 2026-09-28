@@ -120,7 +120,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: gitleaks (working tree + full git history)
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         with:
           # Narrow allowlist for the test-only placeholder SECRET_KEY; it
           # matches that literal value, not a path, so a real key in tests/
