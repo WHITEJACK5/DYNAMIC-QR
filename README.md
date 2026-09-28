@@ -166,9 +166,26 @@ databases, use the script in this repo:
 
 ```bash
 export DATABASE_URL=postgresql://user:password@localhost:5432/nare
-python -m scripts.pgbackup dump --out backups/nare-$(date +%F).dump   # schedule daily
-python -m scripts.pgbackup verify                                     # reachable + table count
+python -m scripts.pgbackup dump --out backups/nare-$(date +%F).dump
+python -m scripts.pgbackup rotate --keep 14     # prune dumps older than 14 days
+python -m scripts.pgbackup verify               # reachable + table count
 ```
+
+Scheduling it is provided, not left to a comment. systemd:
+
+```bash
+echo 'DATABASE_URL=postgresql://user:password@localhost:5432/nare' \
+  | sudo tee /etc/nare-backup.env && sudo chmod 600 /etc/nare-backup.env
+sudo cp deploy/nare-backup.service deploy/nare-backup.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now nare-backup.timer
+systemctl list-timers nare-backup.timer         # confirm next run
+journalctl -u nare-backup.service              # read the log
+```
+
+Without systemd, use `deploy/crontab.example` (`crontab -l` plus that file).
+Both run the same two commands above; `Persistent=true` / cron means a run
+missed while the machine was off still happens.
 
 Restore (drops and rebuilds the schema, then replays the dump):
 

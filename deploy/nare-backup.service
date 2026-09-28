@@ -1,0 +1,39 @@
+# NARE & CO. — automated PostgreSQL backup (systemd).
+#
+# Installed by the deploy step; runs `pgbackup dump` then `pgbackup rotate`
+# so retention is enforced without a second scheduler. Enable with:
+#
+#   sudo cp deploy/nare-backup.service deploy/nare-backup.timer /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now nare-backup.timer
+#   systemctl list-timers nare-backup.timer     # confirm the next run
+#   journalctl -u nare-backup.service          # read the log
+#
+# DATABASE_URL must come from the environment, not this file: use an
+# EnvironmentFile pointing at a root-only credentials file.
+#
+#   echo 'DATABASE_URL=postgresql://user:pass@host:5432/nare' | sudo tee /etc/nare-backup.env
+#   sudo chmod 600 /etc/nare-backup.env
+
+[Unit]
+Description=NARE & CO. PostgreSQL backup (pg_dump + retention)
+Documentation=file:///srv/nare/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=postgres
+Group=postgres
+EnvironmentFile=/etc/nare-backup.env
+WorkingDirectory=/srv/nare
+# Dump, then prune anything older than --keep days.
+ExecStart=/usr/bin/python3 -m scripts.pgbackup dump --out backups/nare-$(date +\%F).dump
+ExecStartPost=/usr/bin/python3 -m scripts.pgbackup rotate --keep 14
+# A failed backup must be loud, not silent.
+SuccessExitStatus=0
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
