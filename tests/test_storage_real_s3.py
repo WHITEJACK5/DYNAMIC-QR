@@ -89,12 +89,14 @@ def test_delete_removes_the_object(s3):
         s3.client.get_object(Bucket=BUCKET, Key=key)
 
 
-def test_unconfigured_falls_back_to_local(monkeypatch):
+def test_unconfigured_raises_instead_of_falling_back(monkeypatch):
+    """Phase 3d requirement: local disk must not survive as a silent default."""
     monkeypatch.delenv("S3_BUCKET", raising=False)
     monkeypatch.delenv("S3_ENDPOINT_URL", raising=False)
+    monkeypatch.delenv("ALLOW_LOCAL_STORAGE", raising=False)
     storage.reset_state()
-    assert isinstance(storage.get_store(), storage.LocalLogoStore)
-    ref = storage.save_logo(_png())
-    assert os.path.exists(ref)
-    os.remove(ref)
+    with pytest.raises(storage.StorageNotConfigured):
+        storage.get_store()
+    with pytest.raises(storage.StorageNotConfigured):
+        storage.save_logo(_png())
     storage.reset_state()

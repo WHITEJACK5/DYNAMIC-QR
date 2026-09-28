@@ -82,6 +82,11 @@ def generate():
                     logger.warning(f"Logo validation failed: {e}")
                     raise
                 logo_ref_tmp = _storage.save_logo(img_data)
+            except (_storage.StorageNotConfigured, _storage.StorageUnavailable) as e:
+                # Object storage is unavailable: say so instead of 500 or,
+                # worse, quietly writing the logo to ephemeral local disk.
+                logger.error(f"Logo storage unavailable: {e}")
+                return jsonify({"error": str(e)}), 503
             except Exception as e:
                 logger.warning(f"Logo b64 processing failed: {e}")
                 logo_ref_tmp = None
@@ -103,7 +108,14 @@ def generate():
         except Exception as e:
             logger.warning(f"Logo file validation failed: {e}")
             return jsonify({"error":"Invalid image file"}), 400
-        logo_path = _storage.save_logo(logo_bytes, ext)
+        try:
+            logo_path = _storage.save_logo(logo_bytes, ext)
+        except _storage.StorageNotConfigured as e:
+            logger.error(f"Logo storage not configured: {e}")
+            return jsonify({"error": str(e)}), 503
+        except _storage.StorageUnavailable:
+            logger.error("Logo storage unavailable")
+            return jsonify({"error": "logo storage is unavailable"}), 503
     elif 'logo_ref_tmp' in locals() and logo_ref_tmp:
         logo_path = logo_ref_tmp
 

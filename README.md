@@ -93,7 +93,7 @@ nare-and-co/
     redirect_service.py  # pure redirect decisions (expiry/limit/password/smart URL)
     schemas.py        # Pydantic request schemas for every JSON route
     tokens.py         # JWT mint/verify
-    storage.py        # logo storage (S3-compatible, local fallback)
+    storage.py        # logo storage (S3-compatible object storage)
     ratelimit.py      # rate limiting (Redis, in-memory fallback)
     jobs.py           # background jobs (RQ, thread fallback)
     cache.py          # read-through cache (Redis, in-memory fallback)
@@ -199,8 +199,9 @@ the database is not a backup.
 
 ## Logo storage
 
-Uploaded logos go to S3-compatible object storage when configured, otherwise to
-`uploads/` on local disk:
+Uploaded logos go to S3-compatible object storage. This is required — there is no
+silent local fallback, because a container's disk is ephemeral and a logo that
+only exists on one box is data loss:
 
 ```bash
 # .env — works with AWS S3, Cloudflare R2, Backblaze B2
@@ -209,9 +210,17 @@ S3_ENDPOINT_URL=https://<account>.r2.cloudflarestorage.com
 AWS_REGION=auto
 ```
 
-The database stores an `s3://bucket/key` reference, so rows written before the
-switch (absolute local paths) keep rendering. If an S3 call fails the request is
-served from a local copy rather than failing. Preview logos are never persisted.
+The database stores an `s3://bucket/key` reference. Behaviour when storage is not
+usable is explicit:
+
+| Situation | Result |
+|---|---|
+| No `S3_BUCKET`, no `ALLOW_LOCAL_STORAGE` | `503` on logo upload, naming the missing variable |
+| S3 configured but the call fails | `503`, error logged; nothing written to local disk |
+| `ALLOW_LOCAL_STORAGE=1` | Local `uploads/` used — dev/test only, logs a warning at startup |
+
+`ALLOW_LOCAL_STORAGE` is opt-in and never inferred. Rows written while it was
+enabled keep rendering while it stays enabled. Preview logos are never persisted.
 
 ## Design System
 

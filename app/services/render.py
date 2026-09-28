@@ -100,11 +100,12 @@ def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="sq
     elif logo_path and str(logo_path).startswith(_storage.S3_PREFIX):
         logo = _storage.load_logo_image(logo_path)
     elif logo_path:
+        # A non-s3 reference is a local/legacy path. Reading it goes through
+        # storage so the opt-in rule is enforced in one place.
         try:
-            with open(logo_path, "rb") as fh:
-                logo = Image.open(io.BytesIO(fh.read())).convert("RGBA")
+            logo = _storage.load_logo_image(logo_path)
         except Exception as e:
-            logger.warning(f"logo open failed: {e}")
+            logger.warning(f"logo load failed: {e}")
     if logo is not None:
         try:
             logo_size = int(size * 0.22)
