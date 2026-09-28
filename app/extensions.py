@@ -22,6 +22,7 @@ from app.config import (
     logger,
 )
 from app.ratelimit import build_limiter
+from app import security as _security
 from app.services import tokens as _tokens
 
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="/static")
@@ -42,6 +43,12 @@ def version_headers(resp):
         resp.headers.setdefault("Deprecation", "true")
         resp.headers.setdefault("Link", f'</api/v1{path[4:]}>; rel="successor-version"')
     return resp
+
+
+@app.after_request
+def security_headers(resp):
+    """Phase 4b: CSP, nosniff, DENY framing, HSTS over HTTPS, no-referrer."""
+    return _security.apply_security_headers(resp)
 
 
 # Rate limiting (Phase 2f): Flask-Limiter, Redis-backed when REDIS_URL is set

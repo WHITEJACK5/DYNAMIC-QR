@@ -135,8 +135,32 @@ nare-and-co/
   static/
     css/style.css     # Grid white / black / neon green
     js/app.js         # 25 types, preview, logo, auth
-  tests/              # 100 tests; PostgreSQL legs run when TEST_DATABASE_URL is set
+  tests/              # 169 tests; PostgreSQL legs run when TEST_DATABASE_URL is set
 ```
+
+## Security headers
+
+Every response carries `Content-Security-Policy`, `X-Content-Type-Options:
+nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`,
+`X-DNS-Prefetch-Control: off` and `Cross-Origin-Opener-Policy: same-origin`.
+`Strict-Transport-Security` is added only on HTTPS requests (nginx sets
+`X-Forwarded-Proto`), so plain-HTTP development is not pinned to TLS.
+
+The policy is in `app/security.py` and is written for what this app actually
+serves:
+
+| Directive | Why |
+|---|---|
+| `script-src 'self' 'unsafe-inline'` | no CDN is used, but the raw-HTML frontend still has inline handlers |
+| `style-src` + `font-src` allow Google Fonts | every page loads Inter/JetBrains Mono from there |
+| `img-src 'self' data:` | QR previews are base64 data URIs |
+| `object-src 'none'`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'` | plugins, framing and base-tag injection are all unnecessary here |
+
+**`unsafe-inline` for scripts is the weakest part of this policy** and is
+recorded as such: the current frontend has 33 inline `onclick` handlers and an
+inline `<script>`. Phase 8's React + TypeScript build with a hashed bundle
+removes the need for it. `tests/test_security_headers.py` fails if the inline
+handlers disappear without the policy being tightened to match.
 
 ## Database: SQLite (default) or PostgreSQL
 
