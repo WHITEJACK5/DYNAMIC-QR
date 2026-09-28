@@ -112,10 +112,11 @@ def test_isolation_between_users(session):
 
 
 def test_tokens_roundtrip():
-    tok = tokens.mint_user_token(7, "a@x.com", SECRET, "HS256")
+    tok = tokens.mint_access_token(7, "a@x.com", SECRET, "HS256")
     payload = tokens.decode(tok, SECRET, "HS256")
     assert (payload["user_id"], payload["email"]) == (7, "a@x.com")
     assert "2fa_pending" not in payload
+    assert payload["typ"] == tokens.ACCESS
     temp = tokens.mint_temp_token(7, "a@x.com", SECRET, "HS256")
     assert tokens.decode(temp, SECRET, "HS256")["2fa_pending"] is True
     with pytest.raises(_jwt.ExpiredSignatureError):

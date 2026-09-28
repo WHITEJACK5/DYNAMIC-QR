@@ -101,13 +101,21 @@ def token_required(f):
             return jsonify({"error": "Missing token"}), 401
         try:
             data = _tokens.decode(token, JWT_SECRET, JWT_ALGO)
-            g.user_id = data["user_id"]
-            g.user_email = data["email"]
         except Exception as e:  # expired and invalid share one path
             if e.__class__.__name__ == "ExpiredSignatureError":
                 return jsonify({"error": "Token expired"}), 401
             logger.warning(f"Invalid token: {e}")
             return jsonify({"error": "Invalid token"}), 401
+        # Phase 4c: a valid signature is not enough — a revoked token must
+        # stop working before its natural expiry.
+        if _tokens.is_revoked(data.get("jti")):
+            logger.warning("Rejected revoked token")
+            return jsonify({"error": "Token revoked"}), 401
+        # A refresh token must never authenticate an ordinary request.
+        if data.get("typ") == _tokens.REFRESH:
+            return jsonify({"error": "Refresh tokens cannot be used to authenticate"}), 401
+        g.user_id = data["user_id"]
+        g.user_email = data["email"]
         return f(*args, **kwargs)
     return decorated
 

@@ -302,6 +302,35 @@ class BulkFormRequest(BaseModel):
         return v
 
 
+class RefreshRequest(BaseModel):
+    """Phase 4c: exchange a refresh token for a new access/refresh pair."""
+
+    model_config = ConfigDict(validate_default=True)
+
+    refresh_token: str = ""
+
+    @field_validator("refresh_token", mode="before")
+    @classmethod
+    def _token(cls, v):
+        t = (v or "").strip() if isinstance(v, str) else ""
+        if not t:
+            raise ValueError("refresh_token required")
+        return t
+
+
+class LogoutRequest(BaseModel):
+    """Phase 4c: revoke an access token, and a refresh token if supplied."""
+
+    model_config = ConfigDict(validate_default=True)
+
+    refresh_token: str = ""
+
+    @field_validator("refresh_token", mode="before")
+    @classmethod
+    def _token(cls, v):
+        return (v or "").strip() if isinstance(v, str) else ""
+
+
 class ForgotRequest(BaseModel):
     model_config = ConfigDict(validate_default=True)
 
