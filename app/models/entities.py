@@ -1,11 +1,13 @@
-"""SQLAlchemy ORM models (Phase 3a) — column-for-column match of the
-hand-written CREATE TABLE in app.py:init_db.
+"""SQLAlchemy ORM entity declarations.
 
-Introduces the ORM without switching app.py yet (Phase 3c rewires the
-repositories). Alembic (Phase 3b) autogenerates its baseline from these
-declarations, so the inline DDL can then be deleted. SQLite stays the
-default dialect for local/CI; DATABASE_URL=postgresql:// switches the
-engine and its pool (core/db.py).
+Column-for-column match of the original hand-written CREATE TABLE, which is
+why nullable/server_default are kept exactly as they were: raw SQL paths and
+the Alembic baseline (migrations/versions/0001_initial_schema.py) both depend
+on that shape.
+
+The directive requires a models *layer* (`app/models/`), so the declarations
+live here and `app.models` re-exports them — every existing
+`from app.models import Base, User, ...` keeps working unchanged.
 """
 from sqlalchemy import ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
