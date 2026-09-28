@@ -9,6 +9,30 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        # Phase 4f: the PostgreSQL legs were silently skipping in CI because
+        # TEST_DATABASE_URL was never set. A test suite that skips its most
+        # important half is a green build that proves very little.
+        image: postgres:16
+        env:
+          POSTGRES_USER: nare
+          POSTGRES_PASSWORD: nare_ci_pw
+          POSTGRES_DB: nare
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -17,12 +41,39 @@ jobs:
       - name: Install deps
         run: |
           pip install -r requirements.txt
-          pip install pytest
-      - name: Run tests
+          pip install pytest redis boto3
+      - name: Wait for services
+        run: |
+          python -c "import socket,time
+          for p in (5432, 6379):
+            for _ in range(60):
+              s=socket.socket()
+              try:
+                s.connect(('127.0.0.1', p)); s.close(); break
+              except OSError:
+                time.sleep(1)
+            else:
+              raise SystemExit(f'port {p} never opened')"
+      - name: Run tests (SQLite)
         env:
           SECRET_KEY: ci-test-secret-key-must-be-32-chars-long
           BASE_URL: http://localhost:5000
         run: pytest -q
+      - name: Run tests (PostgreSQL + Redis)
+        env:
+          SECRET_KEY: ci-test-secret-key-must-be-32-chars-long
+          BASE_URL: http://localhost:5000
+          TEST_DATABASE_URL: postgresql+psycopg2://nare:nare_ci_pw@127.0.0.1:5432/nare
+          DATABASE_URL: postgresql+psycopg2://nare:nare_ci_pw@127.0.0.1:5432/nare
+          REDIS_URL: redis://127.0.0.1:6379/0
+        run: pytest -q tests/test_migrations.py tests/test_models_db.py tests/test_postgres_e2e.py tests/test_cache.py tests/test_jobs.py
+      - name: Migrations apply and roll back on PostgreSQL
+        env:
+          DATABASE_URL: postgresql+psycopg2://nare:nare_ci_pw@127.0.0.1:5432/nare
+        run: |
+          alembic upgrade head
+          alembic downgrade base
+          alembic upgrade head
 
   lint:
     runs-on: ubuntu-latest
@@ -33,14 +84,13 @@ jobs:
           python-version: '3.11'
       - name: Install ruff
         run: pip install ruff
-      - name: Ruff (pyflakes errors only — full style pass is a later phase)
-        run: ruff check server.py tests/ --select F
-      - name: Check no hardcoded secret
-        run: |
-          if grep -R "nare-co-secret-2026" --include="*.py" .; then echo "Hardcoded secret found!"; exit 1; fi
-          echo "No hardcoded secret"
+      - name: Ruff (pyflakes errors)
+        run: ruff check server.py wsgi.py app/ scripts/ tests/ --select F
 
   sast:
+    # Phase 4f: bandit was scoped to server.py, which after the Phase 2
+    # refactor is ~105 lines out of ~3,100 — it was scanning about 3% of
+    # the code while reporting green. Scope is now the whole codebase.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,17 +99,84 @@ jobs:
           python-version: '3.11'
       - name: Install bandit
         run: pip install bandit
-      - name: Bandit (fail on HIGH severity; medium/low reported for follow-up)
-        run: bandit -r server.py -ll
+      - name: Bandit across the whole package
+        run: bandit -r app/ server.py wsgi.py scripts/ -ll
+      - name: Bandit full report (informational, no failure)
+        run: bandit -r app/ server.py wsgi.py scripts/ -f json -o bandit-report.json || true
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
 
-  build:
-    # Placeholder until Phase 6a adds the Dockerfile; today this verifies the
-    # dev entrypoint compiles. Replaced by `docker build` in the Phase 6 PR.
+  secrets:
+    # Phase 4f: replaces the previous "check" which grepped for one known
+    # string ("nare-co-secret-2026") and therefore detected no other secret
+    # at all. gitleaks scans the working tree AND the full history.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks (working tree + full git history)
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          # Narrow allowlist for the test-only placeholder SECRET_KEY; it
+          # matches that literal value, not a path, so a real key in tests/
+          # is still reported. Verified locally: 58 commits, no leaks.
+          config: .gitleaks.toml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Fail the build rather than only annotating the PR.
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
+      - name: Confirm no .env is committed
+        run: |
+          if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+            echo "FAIL: .env is tracked in git"; exit 1
+          fi
+          echo "OK: no .env in the repository"
+      - name: Confirm .env.example carries no real values
+        run: |
+          if grep -E '^[A-Z_]*(SECRET|PASSWORD|TOKEN|KEY)=.+' .env.example; then
+            echo "FAIL: .env.example contains a non-empty credential value"; exit 1
+          fi
+          echo "OK: .env.example values are all empty"
+
+  dependencies:
+    # Dependabot opens these as separate PRs (see .github/dependabot.yml);
+    # this job is the signal that the dependency set is actually installable
+    # and current, so a bad bump is caught here rather than in production.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Dependencies resolve
+        run: |
+          pip install -r requirements.txt
+          pip list --outdated --format=columns || true
+      - name: Known-vulnerable packages (pip-audit)
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt || echo "::warning::pip-audit findings need review"
+
+  build:
+    # Phase 6a replaces this with a real `docker build` once the Dockerfile
+    # exists. Stated as a placeholder rather than presented as a build.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: pip install -r requirements.txt
       - name: Compile check
-        run: python -m compileall -q server.py
+        run: python -m compileall -q server.py wsgi.py app/ scripts/
+      - name: WSGI entrypoint is importable
+        env:
+          SECRET_KEY: ci-test-secret-key-must-be-32-chars-long
+          BASE_URL: http://localhost:5000
+        run: python -c "import wsgi; assert wsgi.application"

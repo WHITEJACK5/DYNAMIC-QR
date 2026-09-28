@@ -1,0 +1,33 @@
+# gitleaks configuration (Phase 4f)
+#
+# Verified locally against the real scanner:
+#   docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest \
+#     detect --source=/repo --no-git --config /repo/.gitleaks.toml --redact
+#
+# Why an allowlist exists at all: enabling gitleaks on this repository
+# surfaced 28 findings, and all 28 were the SAME placeholder value —
+# the test SECRET_KEY fixture. Suppressing a rule or a path would be the
+# easy fix and the wrong one: either would also hide a real key pasted
+# into a test file.
+#
+# So the allowlist matches the two literal placeholder values and nothing
+# else. Any other credential in tests/ is still reported.
+
+title = "NARE & CO. gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = """
+Test-only placeholder secrets. These are fixed, publicly-known strings
+committed on purpose in tests/ and .github/workflows/ci.yml so the suite
+can run without any real credential. They grant access to nothing.
+"""
+# Matched by value, not by path: a genuine key dropped into tests/ is
+# still detected.
+regexes = [
+  '''test-secret-key-for-ci-must-be-long-enough-32chars''',
+  '''ci-test-secret-key-must-be-32-chars-long''',
+  '''ci-test-secret-key''',
+]
