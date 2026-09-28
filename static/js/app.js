@@ -451,7 +451,9 @@ async function submitAuth(){
       return;
     }
     // success
-    localStorage.setItem('nare_token', j.token);
+    // Phase 4c: keeps the access + refresh pair and schedules renewal, so the
+    // 15-minute access token is refreshed before any call site uses it.
+    window.NareSession.storeSession(j);
     localStorage.setItem('nare_user', JSON.stringify(j.user));
     if(document.getElementById('rememberMe').checked){
       localStorage.setItem('nare_remember','1');
@@ -488,7 +490,7 @@ function updateAuthUI(){
     try{
       const u=JSON.parse(userStr);
       loginBtn.textContent="Log Out";
-      loginBtn.onclick=()=>{ localStorage.removeItem('nare_token'); localStorage.removeItem('nare_user'); toast("Logged out"); setTimeout(()=>location.reload(), 500); };
+      loginBtn.onclick=async()=>{ await window.NareSession.logout(); toast("Logged out"); setTimeout(()=>location.reload(), 500); };
       regBtn.textContent="Dashboard →";
       regBtn.onclick=()=>location.href="/dashboard";
       if(navDash) navDash.style.display="inline-flex";
@@ -779,9 +781,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const r=await fetch(`${API}/api/2fa/login-verify`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({temp_token:window._temp2FA, code})});
       const j=await r.json();
       if(!r.ok) throw new Error(j.error);
-      localStorage.setItem('nare_token', j.token);
+      window.NareSession.storeSession(j);
       // fetch user
-      const me=await fetch(`${API}/api/me`,{headers:{Authorization:`Bearer ${j.token}`}});
+      const me=await fetch(`${API}/api/me`,{headers:{Authorization:`Bearer ${localStorage.getItem('nare_token')}`}});
       const u=await me.json();
       localStorage.setItem('nare_user', JSON.stringify(u));
       closeModal('twofaModal');
