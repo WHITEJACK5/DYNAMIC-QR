@@ -29,7 +29,11 @@ app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="/static")
 app.config["SECRET_KEY"] = SECRET_KEY
 app.config["UPLOAD_FOLDER"] = UPLOAD_DIR
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
-CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
+# Bearer tokens are not ambient credentials, so the browser never needs to
+# attach anything cross-origin. Phase 4e: with cookie auth removed there is
+# nothing for CSRF to ride on, and credentials support is switched off so a
+# future cookie cannot silently reintroduce one.
+CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=False)
 
 
 @app.after_request
@@ -49,7 +53,6 @@ def version_headers(resp):
 def security_headers(resp):
     """Phase 4b: CSP, nosniff, DENY framing, HSTS over HTTPS, no-referrer."""
     return _security.apply_security_headers(resp)
-
 
 # Rate limiting (Phase 2f): Flask-Limiter, Redis-backed when REDIS_URL is set
 # and in-memory otherwise. Limits are attached per view via rate_limit().
@@ -84,10 +87,16 @@ def rate_limit(limit=5, window=60, key_func=None):
 def token_required(f):
     """Bearer-token guard for authenticated routes.
 
-    Tokens are read from the Authorization header, or from the `token`
-    cookie for browser use. They are deliberately NOT read from the query
-    string: URLs end up in access logs, proxy logs, browser history and
-    Referer headers, so a token in one is a token that leaks. Phase 4a.
+    The token comes from the Authorization header and nowhere else. Phase 4a
+    removed query-string tokens (they leak into access logs, history and
+    Referer headers); Phase 4e removed cookie tokens.
+
+    Cookie auth is gone because nothing ever set that cookie — no server
+    code, no JavaScript — so it was an unused credential that a browser
+    would have attached automatically to any cross-site request. That is
+    precisely the CSRF exposure, and with no cookie-authenticated route
+    there is nothing left for a CSRF token to protect. A Bearer token is
+    never sent ambiently, so cross-site requests arrive unauthenticated.
     """
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -96,8 +105,7 @@ def token_required(f):
         if auth.startswith("Bearer "):
             token = auth.split(" ", 1)[1]
         if not token:
-            token = request.cookies.get("token")
-        if not token:
+            # A cookie is deliberately not consulted: see the docstring.
             return jsonify({"error": "Missing token"}), 401
         try:
             data = _tokens.decode(token, JWT_SECRET, JWT_ALGO)
