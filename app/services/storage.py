@@ -1,17 +1,24 @@
 """Object storage for logos (Phase 3d).
 
-Local disk is no longer the system of record once S3 is configured: with
-S3_BUCKET set, bytes go to any S3-compatible service (AWS S3, Cloudflare
-R2, Backblaze B2 via S3_ENDPOINT_URL) and the DB stores an "s3://" URI.
-Without S3_BUCKET the store is the local uploads/ dir, so a fresh clone
-still works with zero infrastructure.
+The directive is explicit: "Local disk storage must not survive this
+refactor." So S3-compatible object storage is the system of record and
+there is no silent local fallback:
 
-Safety properties:
-  * References are self-describing ("s3://bucket/key" vs an absolute
-    path), so rows written before the switch keep working.
-  * S3 errors never 500 a request: they log and fall back to local, which
-    is the only place disk is still written.
-  * load() returns bytes so the renderer never needs a filesystem path.
+  * S3_BUCKET unset  -> StorageNotConfigured, and the caller gets a clear
+    503 telling the operator to configure object storage. Logos are never
+    quietly written to a container's ephemeral disk.
+  * S3 call fails    -> StorageUnavailable, also a 503. Losing a logo is
+    visible; silently keeping it on local disk is how multi-instance
+    deployments end up with images that only exist on one box.
+  * ALLOW_LOCAL_STORAGE=1 is an explicit, opt-in dev/test escape hatch
+    that keeps a single-process developer loop working. It is off by
+    default and never used implicitly.
+
+S3-compatible: AWS S3, Cloudflare R2, and Backblaze B2 all work via
+S3_ENDPOINT_URL. The DB stores an "s3://bucket/key" URI.
+
+References are self-describing, so a row written while local mode was
+explicitly enabled is still readable in that mode.
 """
 import io
 import logging
@@ -26,8 +33,21 @@ S3_PREFIX = "s3://"
 _store = None
 
 
+class StorageNotConfigured(RuntimeError):
+    """No S3 bucket configured and local storage not explicitly allowed."""
+
+
+class StorageUnavailable(RuntimeError):
+    """Object storage is configured but the call failed."""
+
+
 def s3_configured() -> bool:
     return bool(os.getenv("S3_BUCKET", "").strip())
+
+
+def local_allowed() -> bool:
+    """Local disk is opt-in only, for dev/test. Never the default."""
+    return os.getenv("ALLOW_LOCAL_STORAGE", "").strip().lower() in ("1", "true", "yes", "on")
 
 
 def _local_path(key: str) -> str:
@@ -37,6 +57,8 @@ def _local_path(key: str) -> str:
 
 
 class LocalLogoStore:
+    """Dev/test only. Requires ALLOW_LOCAL_STORAGE=1 to be selected."""
+
     name = "local"
 
     def save(self, key: str, data: bytes) -> str:
@@ -82,27 +104,27 @@ class S3LogoStore:
             self.client.put_object(Bucket=self.bucket, Key=key, Body=data)
             return f"{S3_PREFIX}{self.bucket}/{key}"
         except Exception as e:
-            # Never fail the request: degrade to local, keep the reference valid
-            logger.warning(f"S3 put_object failed ({e}); storing locally instead")
-            return LocalLogoStore().save(key, data)
+            logger.error(f"S3 put_object failed for bucket {self.bucket}: {e}")
+            raise StorageUnavailable(f"object storage write failed: {e}") from e
 
     def load(self, ref: str) -> bytes:
         try:
             obj = self.client.get_object(Bucket=self.bucket, Key=self._key(ref))
             return obj["Body"].read()
         except Exception as e:
-            logger.warning(f"S3 get_object failed ({e}); trying local copy")
-            return LocalLogoStore().load(ref)
+            logger.error(f"S3 get_object failed for {ref}: {e}")
+            raise StorageUnavailable(f"object storage read failed: {e}") from e
 
     def delete(self, ref: str) -> None:
         try:
             self.client.delete_object(Bucket=self.bucket, Key=self._key(ref))
         except Exception as e:
-            logger.warning(f"S3 delete_object failed: {e}")
+            logger.error(f"S3 delete_object failed for {ref}: {e}")
+            raise StorageUnavailable(f"object storage delete failed: {e}") from e
 
 
 def get_store():
-    """Configured store (S3 when S3_BUCKET is set, else local). Cached."""
+    """The configured store. S3 unless local was explicitly allowed."""
     global _store
     if _store is not None:
         return _store
@@ -116,9 +138,22 @@ def get_store():
             logger.info("Logo storage: S3 bucket %s", _store.bucket)
             return _store
         except Exception as e:
-            logger.warning(f"S3 unavailable ({e}); falling back to local disk")
-    _store = LocalLogoStore()
-    return _store
+            raise StorageNotConfigured(
+                f"S3_BUCKET is set but the client could not be created ({e}); "
+                "check AWS credentials and S3_ENDPOINT_URL"
+            ) from e
+    if local_allowed():
+        logger.warning(
+            "Logo storage: LOCAL DISK (ALLOW_LOCAL_STORAGE=1). Not for "
+            "production — containers have ephemeral filesystems."
+        )
+        _store = LocalLogoStore()
+        return _store
+    raise StorageNotConfigured(
+        "object storage is not configured: set S3_BUCKET (plus "
+        "S3_ENDPOINT_URL for R2/B2), or set ALLOW_LOCAL_STORAGE=1 to run a "
+        "single-process dev environment"
+    )
 
 
 def reset_state():
@@ -138,6 +173,12 @@ def load_logo(ref: str) -> bytes:
     """Read a stored logo. Understands both s3:// refs and local paths."""
     if ref.startswith(S3_PREFIX):
         return get_store().load(ref)
+    # A non-s3 ref is a legacy/local path: only readable in explicit local mode.
+    if not local_allowed():
+        raise StorageNotConfigured(
+            f"stored logo {ref!r} predates object storage and needs "
+            "ALLOW_LOCAL_STORAGE=1 to be migrated"
+        )
     return LocalLogoStore().load(ref)
 
 
@@ -148,5 +189,5 @@ def load_logo_image(ref: str):
     try:
         return Image.open(io.BytesIO(load_logo(ref))).convert("RGBA")
     except Exception as e:
-        logger.warning(f"Logo load failed for {ref}: {e}")
+        logger.warning(f"logo image decode failed for {ref}: {e}")
         return None

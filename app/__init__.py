@@ -12,7 +12,7 @@
       cache.py       read-through cache (Redis, in-memory fallback)
       ratelimit.py   rate limiting (Redis, in-memory fallback)
       jobs.py        background jobs (RQ, thread fallback)
-      storage.py     logo storage (S3-compatible, local fallback)
+      storage.py     logo storage (S3-compatible object storage)
       pagination.py  shared limit/offset parsing
 
 `server.py` at the repository root is the executable entrypoint

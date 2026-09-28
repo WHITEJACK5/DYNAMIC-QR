@@ -1,5 +1,11 @@
-"""Phase 3d: logo object storage — local fallback and S3 semantics tested
-with a fake client (no network, no credentials).
+"""Phase 3d: logo object storage.
+
+The directive requires that local disk storage NOT survive the refactor, so
+S3 is the system of record and there is no silent fallback:
+
+  * unconfigured  -> StorageNotConfigured (503 on upload)
+  * call failure  -> StorageUnavailable (503, nothing written locally)
+  * ALLOW_LOCAL_STORAGE=1 -> local, explicitly opted in, dev/test only
 """
 import io
 import os
@@ -15,14 +21,16 @@ from PIL import Image
 
 from app.services import storage
 
+STORAGE_ENV = ("S3_BUCKET", "S3_ENDPOINT_URL", "AWS_REGION", "ALLOW_LOCAL_STORAGE")
+
 
 @pytest.fixture(autouse=True)
 def _clean():
-    for k in ("S3_BUCKET", "S3_ENDPOINT_URL", "AWS_REGION"):
+    for k in STORAGE_ENV:
         os.environ.pop(k, None)
     storage.reset_state()
     yield
-    for k in ("S3_BUCKET", "S3_ENDPOINT_URL", "AWS_REGION"):
+    for k in STORAGE_ENV:
         os.environ.pop(k, None)
     storage.reset_state()
 
@@ -33,14 +41,48 @@ def _png(color=(255, 0, 0)):
     return buf.getvalue()
 
 
-def test_default_is_local_disk():
+def test_unconfigured_storage_refuses_instead_of_using_disk():
+    """The headline requirement: no implicit local disk."""
     assert storage.s3_configured() is False
+    assert storage.local_allowed() is False
+    with pytest.raises(storage.StorageNotConfigured) as e:
+        storage.get_store()
+    msg = str(e.value)
+    assert "S3_BUCKET" in msg and "ALLOW_LOCAL_STORAGE" in msg, msg
+
+
+def test_save_and_load_refuse_when_unconfigured():
+    with pytest.raises(storage.StorageNotConfigured):
+        storage.save_logo(_png())
+    with pytest.raises(storage.StorageNotConfigured):
+        storage.load_logo("/some/legacy/path/logo.png")
+
+
+def test_local_disk_requires_explicit_opt_in(monkeypatch, tmp_path):
+    monkeypatch.setattr(storage, "LOCAL_DIR", str(tmp_path))
+    with pytest.raises(storage.StorageNotConfigured):
+        storage.get_store()          # not yet enabled
+    os.environ["ALLOW_LOCAL_STORAGE"] = "1"
+    storage.reset_state()
+    assert storage.local_allowed() is True
     assert isinstance(storage.get_store(), storage.LocalLogoStore)
     ref = storage.save_logo(_png())
     assert os.path.exists(ref)
     assert storage.load_logo(ref) == _png()
     storage.get_store().delete(ref)
     assert not os.path.exists(ref)
+
+
+@pytest.mark.parametrize("value", ["1", "true", "TRUE", "yes", "on"])
+def test_local_opt_in_spellings(value):
+    os.environ["ALLOW_LOCAL_STORAGE"] = value
+    assert storage.local_allowed() is True
+
+
+@pytest.mark.parametrize("value", ["0", "false", "no", "off", "", "  "])
+def test_local_is_off_unless_explicitly_enabled(value):
+    os.environ["ALLOW_LOCAL_STORAGE"] = value
+    assert storage.local_allowed() is False
 
 
 def test_s3_store_roundtrip_with_fake_client(monkeypatch):
@@ -74,7 +116,8 @@ def test_s3_store_roundtrip_with_fake_client(monkeypatch):
     assert ref.split("my-bucket/")[1] not in objects
 
 
-def test_s3_failure_degrades_to_local(monkeypatch, tmp_path):
+def test_s3_failure_raises_and_writes_nothing_locally(monkeypatch, tmp_path):
+    """A failed S3 write must be visible, never quietly kept on disk."""
     class BoomClient:
         def put_object(self, **kw):
             raise RuntimeError("network down")
@@ -85,9 +128,25 @@ def test_s3_failure_degrades_to_local(monkeypatch, tmp_path):
     storage.reset_state()
     monkeypatch.setattr(storage, "S3LogoStore", lambda bucket, endpoint=None, region=None: store)
     monkeypatch.setattr(storage, "LOCAL_DIR", str(tmp_path))
-    ref = storage.save_logo(_png())
-    assert not ref.startswith("s3://")               # fell back, no request 500
-    assert os.path.exists(ref)
+
+    with pytest.raises(storage.StorageUnavailable):
+        storage.save_logo(_png())
+    # the crucial part: nothing was written to local disk as a "safety net"
+    assert not os.path.exists(tmp_path) or not list(tmp_path.iterdir())
+
+
+def test_unusable_s3_credentials_do_not_fall_back(monkeypatch):
+    """A bad bucket/client must surface, not silently degrade to disk."""
+    monkeypatch.setenv("S3_BUCKET", "nare-logos")
+
+    def boom(**kwargs):
+        raise RuntimeError("no credentials")
+
+    monkeypatch.setattr(storage, "S3LogoStore", boom)
+    storage.reset_state()
+    with pytest.raises(storage.StorageNotConfigured) as e:
+        storage.get_store()
+    assert "credentials" in str(e.value)
 
 
 def test_new_key_is_unpredictable_and_sanitized():
@@ -102,8 +161,10 @@ def test_renderer_accepts_logo_bytes_and_storage_ref(monkeypatch, tmp_path):
     img = nare.create_qr_image("https://example.com", logo_bytes=_png(), size=300)
     assert img.size == (300, 300)
 
-    # and via a stored local ref
+    # and via a stored reference (opt-in local mode for this dev loop)
+    monkeypatch.setenv("ALLOW_LOCAL_STORAGE", "1")
     monkeypatch.setattr(storage, "LOCAL_DIR", str(tmp_path))
+    storage.reset_state()
     ref = storage.save_logo(_png())
     img2 = nare.create_qr_image("https://example.com", logo_path=ref, size=300)
     assert img2.size == (300, 300)
