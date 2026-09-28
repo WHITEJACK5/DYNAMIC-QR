@@ -44,6 +44,8 @@ def client():
 def _token(client, email="u@x.com"):
     r = client.post("/api/register", json={"email": email, "password": "StrongPass123!", "name": "U"})
     assert r.status_code == 200
+    from conftest import mark_verified
+    mark_verified(email)  # Phase 4d: dynamic QRs need a verified address
     return r.json["token"]
 
 

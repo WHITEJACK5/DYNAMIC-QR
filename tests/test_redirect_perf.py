@@ -55,6 +55,8 @@ def _register_and_dynamic_qr(client, email, qr_type="url", data=None):
     r = client.post("/api/register", json={
         "email": email, "password": "StrongPass123!", "name": "Perf"})
     assert r.status_code == 200, r.get_json()
+    from conftest import mark_verified
+    mark_verified(email)  # Phase 4d: dynamic QRs need a verified address
     tok = r.get_json()["token"]
     r = client.post("/api/generate", json={
         "type": qr_type, "data": data or {"url": "https://example.com/x"},

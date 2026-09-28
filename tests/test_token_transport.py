@@ -51,6 +51,8 @@ def client():
 def authed(client):
     client.post("/api/register", json={
         "email": "leak@example.com", "password": "StrongPass123!", "name": "Leak"})
+    from conftest import mark_verified
+    mark_verified("leak@example.com")  # Phase 4d: dynamic QRs need a verified address
     r = client.post("/api/login", json={
         "email": "leak@example.com", "password": "StrongPass123!"})
     assert r.status_code == 200, r.get_json()
