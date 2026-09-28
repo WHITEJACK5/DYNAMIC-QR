@@ -11,7 +11,8 @@ from app.extensions import get_session, rate_limit, token_required
 from app.repositories import folders_repo, users_repo
 from app.schemas import (
     Disable2FARequest, ForgotRequest, Login2FARequest, LoginRequest,
-    RegisterRequest, ResetRequest, TwoFACodeRequest, first_error,
+    LogoutRequest, RefreshRequest, RegisterRequest, ResetRequest,
+    TwoFACodeRequest, first_error,
 )
 from app.services import tokens as _tokens
 from app.services.render import create_qr_image, image_to_base64
@@ -38,10 +39,14 @@ def register():
         pwd_hash = generate_password_hash(password)
         uid = users_repo.create_user(s, email, pwd_hash, name)
         folders_repo.create_for_user(s, uid, "My QR Codes")
-        token = _tokens.mint_user_token(uid, email, JWT_SECRET, JWT_ALGO)
+        token, refresh = _tokens.mint_pair(uid, email, JWT_SECRET, JWT_ALGO)
         s.close()
         logger.info(f"New user registered: {email}")
-        return jsonify({"token":token,"user":{"id":uid,"email":email,"name":name}})
+        # "token" kept alongside the explicit names so existing clients and
+        # the frontend keep working; it is the 15-minute access token.
+        return jsonify({"token":token,"access_token":token,"refresh_token":refresh,
+                        "expires_in":_tokens.ACCESS_MINUTES * 60,
+                        "user":{"id":uid,"email":email,"name":name}})
     except Exception as e:
         logger.exception(f"Register error for {email}: {e}")
         try:
@@ -71,9 +76,77 @@ def login():
         # Don't issue token yet — require 2FA step
         temp_token = _tokens.mint_temp_token(row["id"], email, JWT_SECRET, JWT_ALGO)
         return jsonify({"need_2fa": True, "temp_token": temp_token, "message": "2FA required"})
-    token = _tokens.mint_user_token(row["id"], email, JWT_SECRET, JWT_ALGO)
+    token, refresh = _tokens.mint_pair(row["id"], email, JWT_SECRET, JWT_ALGO)
     logger.info(f"User login: {email}")
-    return jsonify({"token":token,"user":{"id":row["id"],"email":email,"name":row["name"]}})
+    return jsonify({"token":token,"access_token":token,"refresh_token":refresh,
+                    "expires_in":_tokens.ACCESS_MINUTES * 60,
+                    "user":{"id":row["id"],"email":email,"name":row["name"]}})
+
+
+@auth.route("/api/refresh", methods=["POST"])
+@auth.route("/api/v1/refresh", methods=["POST"])
+@rate_limit(limit=30, window=60, key_func=lambda: request.remote_addr or "unknown")
+def refresh_tokens():
+    """Phase 4c: trade a refresh token for a new pair.
+
+    The presented refresh token is revoked as the new one is issued
+    (rotation), so a captured refresh token works at most once.
+    """
+    try:
+        req = RefreshRequest.model_validate(request.get_json(silent=True) or {})
+    except ValidationError as e:
+        return jsonify({"error": first_error(e)}), 400
+    try:
+        data = _tokens.decode(req.refresh_token, JWT_SECRET, JWT_ALGO)
+    except Exception as e:
+        if e.__class__.__name__ == "ExpiredSignatureError":
+            return jsonify({"error": "Refresh token expired"}), 401
+        logger.warning(f"Invalid refresh token: {e}")
+        return jsonify({"error": "Invalid refresh token"}), 401
+    # An access token must not work here: that would let a 15-minute token
+    # mint itself a 30-day refresh token.
+    if data.get("typ") != _tokens.REFRESH:
+        return jsonify({"error": "Not a refresh token"}), 401
+    if _tokens.is_revoked(data.get("jti")):
+        logger.warning("Refresh token reuse detected (already rotated or revoked)")
+        return jsonify({"error": "Refresh token revoked"}), 401
+
+    _tokens.revoke(data)
+    token, new_refresh = _tokens.mint_pair(data["user_id"], data["email"],
+                                          JWT_SECRET, JWT_ALGO)
+    return jsonify({"token":token,"access_token":token,"refresh_token":new_refresh,
+                    "expires_in":_tokens.ACCESS_MINUTES * 60})
+
+
+@auth.route("/api/logout", methods=["POST"])
+@auth.route("/api/v1/logout", methods=["POST"])
+def logout():
+    """Phase 4c: revoke the presented access token (and refresh token).
+
+    The access token is read directly rather than via @token_required so a
+    revoked or expired one can still be logged out idempotently.
+    """
+    revoked = 0
+    header = request.headers.get("Authorization", "")
+    if header.startswith("Bearer "):
+        try:
+            data = _tokens.decode(header.split(" ", 1)[1], JWT_SECRET, JWT_ALGO)
+            if data.get("typ") != _tokens.REFRESH and _tokens.revoke(data):
+                revoked += 1
+        except Exception:
+            pass  # already invalid: nothing to revoke
+    try:
+        body = LogoutRequest.model_validate(request.get_json(silent=True) or {})
+    except ValidationError:
+        body = None
+    if body and body.refresh_token:
+        try:
+            data = _tokens.decode(body.refresh_token, JWT_SECRET, JWT_ALGO)
+            if data.get("typ") == _tokens.REFRESH and _tokens.revoke(data):
+                revoked += 1
+        except Exception:
+            pass
+    return jsonify({"status": "logged out", "revoked": revoked})
 
 
 @auth.route("/api/forgot-password", methods=["POST"])
@@ -238,8 +311,11 @@ def login_2fa_verify():
         import pyotp
         totp = pyotp.TOTP(row["twofa_secret"])
         if totp.verify(code, valid_window=1):
-            token = _tokens.mint_user_token(uid, email, JWT_SECRET, JWT_ALGO)
-            return jsonify({"token": token, "user": {"id": uid, "email": email}})
+            token, refresh = _tokens.mint_pair(uid, email, JWT_SECRET, JWT_ALGO)
+            return jsonify({"token": token, "access_token": token,
+                            "refresh_token": refresh,
+                            "expires_in": _tokens.ACCESS_MINUTES * 60,
+                            "user": {"id": uid, "email": email}})
         return jsonify({"error":"Invalid 2FA code"}), 401
     except jwt.ExpiredSignatureError:
         return jsonify({"error":"Temp token expired"}), 401
