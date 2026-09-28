@@ -172,6 +172,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="/static/js/session.js"></script>
 <script>
 const API = location.origin;
 function toast(m,err=false){ const t=document.getElementById('toast'); t.textContent=(err?'⚠ ':'✔ ')+m; t.classList.add('show'); t.style.background=err?'#DC2626':'var(--black)'; setTimeout(()=>t.classList.remove('show'),3000); }
@@ -199,7 +200,7 @@ async function load(){
     document.getElementById('sDynamic').textContent=dyn;
     document.getElementById('sStatic').textContent=sta;
     document.getElementById('countBadge').textContent=allQrs.length;
-  }catch(e){ toast(e.message,true); if(e.message.includes('Missing token')||e.message.includes('Invalid')){ localStorage.removeItem('nare_token'); location.href='/?needAuth=1'; } }
+  }catch(e){ toast(e.message,true); if(e.message.includes('Missing token')||e.message.includes('Invalid')||e.message.includes('revoked')||e.message.includes('expired')){ window.NareSession.clearSession(); location.href='/?needAuth=1'; } }
   try{
     const r=await fetch(`${API}/api/analytics/overview`,{headers:{Authorization:`Bearer ${token}`}});
     const j=await r.json();
@@ -389,7 +390,7 @@ document.getElementById('editSave').onclick=async()=>{
   }
 };
 
-document.getElementById('logout').onclick=()=>{ localStorage.removeItem('nare_token'); localStorage.removeItem('nare_user'); toast('Logged out'); setTimeout(()=>location.href='/', 400); };
+document.getElementById('logout').onclick=async()=>{ await window.NareSession.logout(); toast('Logged out'); setTimeout(()=>location.href='/', 400); };
 document.querySelectorAll('.sidebar a').forEach(a=>{
   a.onclick=e=>{
     e.preventDefault();
