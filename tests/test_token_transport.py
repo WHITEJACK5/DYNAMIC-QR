@@ -96,11 +96,14 @@ def test_download_still_works_with_bearer_header(client, authed):
     assert r.data[:4] == b"\x89PNG", "download did not return a PNG"
 
 
-# ------------------------------------------------------ cookie path deliberately kept
-def test_cookie_token_still_accepted_pending_csrf_work(client, authed):
+# ------------------------------------------------------ cookie path removed (4e)
+def test_cookie_token_is_rejected(client, authed):
+    """Phase 4e: cookie auth removed, so a browser cannot attach credentials
+    to a cross-site request automatically."""
     client.set_cookie("token", authed)
     r = client.get("/api/qrcodes")
-    assert r.status_code == 200, "cookie auth removed before the CSRF decision"
+    assert r.status_code == 401
+    assert r.get_json()["error"] == "Missing token"
 
 
 # ------------------------------------------------------------------------- guards
