@@ -26,12 +26,20 @@ STORAGE_ENV = ("S3_BUCKET", "S3_ENDPOINT_URL", "AWS_REGION", "ALLOW_LOCAL_STORAG
 
 @pytest.fixture(autouse=True)
 def _clean():
-    for k in STORAGE_ENV:
-        os.environ.pop(k, None)
+    """Snapshot and restore, never just pop.
+
+    Popping without restoring deletes a variable the developer supplied to
+    the whole run, which silently broke every later test that depends on
+    S3 being configured (test_storage_real_s3.py) whenever the suite was
+    executed with S3_ENDPOINT_URL set.
+    """
+    saved = {k: os.environ.pop(k, None) for k in STORAGE_ENV}
     storage.reset_state()
     yield
-    for k in STORAGE_ENV:
+    for k, v in saved.items():
         os.environ.pop(k, None)
+        if v is not None:
+            os.environ[k] = v
     storage.reset_state()
 
 

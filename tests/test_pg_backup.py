@@ -26,12 +26,16 @@ def _have_clients():
     return all(which(b) for b in ("pg_dump", "pg_restore", "psql"))
 
 
-def _sql(url, statements):
-    """Run SQL against the target using the containerized psql."""
+def _sql(url, statements, dbname="nare"):
+    """Run SQL against the target using the containerized psql.
+
+    `url` is kept for the caller's context; the container is addressed by
+    dbname because these tests drive a local container, not a network host.
+    """
     container = os.getenv("TEST_PG_CONTAINER", "nare-pg")
     script = "; ".join(statements)
     return subprocess.run(
-        ["docker", "exec", "-i", container, "psql", "-U", "nare", "-d", "nare", "-tAc", script],
+        ["docker", "exec", "-i", container, "psql", "-U", "nare", "-d", dbname, "-tAc", script],
         check=True, capture_output=True, text=True,
     ).stdout.strip()
 
@@ -54,7 +58,14 @@ def _seed_statements():
 @requires_pg
 @pytest.mark.skipif(not os.getenv("TEST_PG_CONTAINER"), reason="TEST_PG_CONTAINER not set")
 def test_dump_restore_roundtrip_in_container(tmp_path):
-    """pg_dump -Fc -> drop -> pg_restore, then assert the data survived."""
+    """pg_dump -Fc -> restore into a clean database -> assert the data survived.
+
+    Restores into a scratch database rather than back into `nare`. Restoring
+    over the source database only works while nothing else in the schema
+    exists, so it broke whenever an earlier test in the same session had
+    created tables the dump also contains. Restoring into a fresh database
+    is also what disaster recovery actually looks like.
+    """
     _sql(PG_URL, _seed_statements())
     assert _sql(PG_URL, ["SELECT count(*) FROM qrcodes"]) == "1"
 
@@ -70,22 +81,32 @@ def test_dump_restore_roundtrip_in_container(tmp_path):
     ).stdout.strip()
     assert int(size) > 0, "dump file is empty"
 
-    # Wipe the data, keeping the schema-less state the restore will rebuild
-    _sql(PG_URL, ["DROP TABLE IF EXISTS qrcodes CASCADE", "DROP TABLE IF EXISTS users CASCADE"])
-    assert _sql(PG_URL, [
-        "SELECT count(*) FROM information_schema.tables"
-        " WHERE table_schema='public' AND table_name IN ('users','qrcodes')"
-    ]) == "0"
+    restore_db = "nare_backup_probe"
+    # separate statements: CREATE DATABASE cannot run in a transaction block
+    _sql(PG_URL, [f"DROP DATABASE IF EXISTS {restore_db}"], dbname="postgres")
+    _sql(PG_URL, [f"CREATE DATABASE {restore_db}"], dbname="postgres")
 
-    subprocess.run(
-        ["docker", "exec", "nare-pg", "pg_restore", "-U", "nare", "-d", "nare",
+    r = subprocess.run(
+        ["docker", "exec", "nare-pg", "pg_restore", "-U", "nare", "-d", restore_db,
          "--no-owner", "--no-privileges", dump_in_container],
-        check=True, capture_output=True, text=True,
+        capture_output=True, text=True,
     )
-    assert _sql(PG_URL, ["SELECT count(*) FROM users"]) == "1"
-    row = _sql(PG_URL, ["SELECT name || '|' || content || '|' || scan_count FROM qrcodes"])
+    assert r.returncode == 0, f"pg_restore failed: {r.stderr}"
+    assert _sql(_url_for(restore_db), ["SELECT count(*) FROM users"]) == "1"
+    row = _sql(_url_for(restore_db),
+               ["SELECT name || '|' || content || '|' || scan_count FROM qrcodes"])
     assert row == "survivor|https://example.com/keep-me|7"
+
+    _sql(PG_URL, [f"DROP DATABASE IF EXISTS {restore_db}"], dbname="postgres")
     subprocess.run(["docker", "exec", "nare-pg", "rm", "-f", dump_in_container], check=False)
+
+
+def _url_for(dbname):
+    """Same server/credentials as PG_URL, different database."""
+    from urllib.parse import urlsplit, urlunsplit
+
+    parts = urlsplit(PG_URL)
+    return urlunsplit((parts.scheme, parts.netloc, f"/{dbname}", "", ""))
 
 
 @requires_pg

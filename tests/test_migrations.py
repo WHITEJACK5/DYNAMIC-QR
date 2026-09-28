@@ -66,22 +66,60 @@ def test_downgrade_is_reversible(tmp_path):
 
 @requires_pg
 def test_postgres_migration_cycle():
-    from sqlalchemy import create_engine, inspect
+    """
+    Runs against a dedicated scratch database, not the shared one.
 
-    eng = create_engine(PG_URL)
-    insp = inspect(eng)
-    for t in EXPECTED:
-        insp.get_table_names()
-    # clean slate then migrate for real
-    mig.downgrade_to_base(PG_URL)
-    assert mig.user_tables(PG_URL) == set()
-    mig.upgrade_to_head(PG_URL)
-    assert mig.user_tables(PG_URL) == EXPECTED
-    assert mig.current_revision(PG_URL) == mig.head_revision()
-    insp = inspect(create_engine(PG_URL))
-    for table, idx in EXPECTED_INDEXES.items():
-        assert idx.issubset({i["name"] for i in insp.get_indexes(table)}), table
-    eng.dispose()
+    downgrade_to_base() is asserted to leave an empty schema, which is only
+    true if this test owns its database — otherwise a table created by an
+    earlier test in the same session (e.g. a backup round-trip probe) makes
+    the assertion fail for reasons that have nothing to do with migrations.
+    """
+    from sqlalchemy import create_engine, inspect, text
+    from urllib.parse import urlsplit, urlunsplit
+
+    parts = urlsplit(PG_URL)
+    admin = urlunsplit((parts.scheme, parts.netloc, "/postgres", "", ""))
+    scratch = "nare_migration_probe"
+    opened = []
+
+    def _admin_engine():
+        e = create_engine(admin, isolation_level="AUTOCOMMIT")
+        opened.append(e)
+        return e
+
+    def _drop():
+        # Alembic and inspect() each leave connections behind, and
+        # DROP DATABASE refuses while any session is attached.
+        for e in opened:
+            e.dispose()
+        opened.clear()
+        e = create_engine(admin, isolation_level="AUTOCOMMIT")
+        try:
+            with e.connect() as c:
+                c.execute(text(
+                    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                    f"WHERE datname = '{scratch}' AND pid <> pg_backend_pid()"))
+                c.execute(text(f"DROP DATABASE IF EXISTS {scratch}"))
+        finally:
+            e.dispose()
+
+    _drop()
+    with _admin_engine().connect() as c:
+        c.execute(text(f"CREATE DATABASE {scratch}"))
+    url = urlunsplit((parts.scheme, parts.netloc, f"/{scratch}", "", ""))
+    try:
+        assert mig.user_tables(url) == set()
+        mig.upgrade_to_head(url)
+        assert mig.user_tables(url) == EXPECTED
+        assert mig.current_revision(url) == mig.head_revision()
+        insp = inspect(create_engine(url))
+        for table, idx in EXPECTED_INDEXES.items():
+            assert idx.issubset({i["name"] for i in insp.get_indexes(table)}), table
+        # reversible
+        mig.downgrade_to_base(url)
+        assert mig.user_tables(url) == set()
+    finally:
+        _drop()
 
 
 def test_no_drift_between_models_and_migration(tmp_path):
