@@ -75,7 +75,13 @@ def rate_limit(limit=5, window=60, key_func=None):
 
 
 def token_required(f):
-    """Bearer-token guard for authenticated routes."""
+    """Bearer-token guard for authenticated routes.
+
+    Tokens are read from the Authorization header, or from the `token`
+    cookie for browser use. They are deliberately NOT read from the query
+    string: URLs end up in access logs, proxy logs, browser history and
+    Referer headers, so a token in one is a token that leaks. Phase 4a.
+    """
     @wraps(f)
     def decorated(*args, **kwargs):
         token = None
@@ -83,7 +89,7 @@ def token_required(f):
         if auth.startswith("Bearer "):
             token = auth.split(" ", 1)[1]
         if not token:
-            token = request.cookies.get("token") or request.args.get("token")
+            token = request.cookies.get("token")
         if not token:
             return jsonify({"error": "Missing token"}), 401
         try:

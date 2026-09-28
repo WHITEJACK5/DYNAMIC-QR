@@ -693,7 +693,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(state.lastId){
         const token=localStorage.getItem('nare_token');
         if(token){
-          window.location=`${API}/api/download/${state.lastId}?format=${fmt}&token=${token}`;
+          // Header, not URL: a token in the query string leaks into access
+          // logs, browser history and Referer headers. Phase 4a.
+          fetch(`${API}/api/download/${state.lastId}?format=${fmt}`,{headers:{Authorization:`Bearer ${token}`}})
+            .then(r=>{ if(!r.ok) throw new Error('Download failed'); return r.blob(); })
+            .then(blob=>download(URL.createObjectURL(blob), `NARE-CO-${fmt}-${Date.now()}.${fmt==='pdf'?'pdf':'png'}`))
+            .catch(()=>toast("Download failed", true));
           return;
         }
       }

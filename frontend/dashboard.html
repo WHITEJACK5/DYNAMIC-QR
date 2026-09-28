@@ -309,9 +309,23 @@ async function duplicateQr(id){
   const r=await fetch(`${API}/api/qrcodes/${id}/duplicate`,{method:"POST",headers:{Authorization:`Bearer ${token}`}});
   if(r.ok){ toast('Duplicated'); load(); } else toast('Failed',true);
 }
-function downloadQr(id, fmt='png'){
+async function downloadQr(id, fmt='png'){
   const token=auth(); if(!token) return;
-  window.location=`${API}/api/download/${id}?format=${fmt}&token=${token}`;
+  // Fetch with the Authorization header and save via an object URL. The old
+  // approach put the JWT in the query string, where it lands in access logs,
+  // browser history and Referer headers. Phase 4a.
+  const r=await fetch(`${API}/api/download/${id}?format=${fmt}`,{headers:{Authorization:`Bearer ${token}`}});
+  if(!r.ok){ const j=await r.json().catch(()=>({})); toast(j.error||'Download failed',true); return; }
+  const blob=await r.blob();
+  let name=`qr-${id}.${fmt}`;
+  const cd=r.headers.get('Content-Disposition')||'';
+  const m=/filename\*?=(?:UTF-8'')?"?([^";\n]+)"?/i.exec(cd);
+  if(m) name=decodeURIComponent(m[1]);
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
 }
 async function editQr(id){
   const token=auth(); if(!token) return;
