@@ -1,0 +1,44 @@
+# Dependabot for the NARE & CO. directive (Phase 4f).
+# Directive: "Add dependency + secret scanning to CI: Dependabot (or
+# Renovate) for dependency updates, gitleaks or truffleHog for secret
+# scanning, and a basic SAST pass (bandit for Python)."
+
+version: 2
+updates:
+  # Runtime + test dependencies (requirements.txt, pinned)
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - security
+    commit-message:
+      prefix: "deps"
+    groups:
+      # One PR for patch/minor churn instead of twenty.
+      python-patches:
+        update-types:
+          - patch
+          - minor
+      python-majors:
+        update-types:
+          - major
+
+  # GitHub Actions workflow pinning, so actions/checkout@v4 etc. stay current
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: "ci"
