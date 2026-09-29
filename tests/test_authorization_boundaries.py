@@ -283,7 +283,7 @@ def test_anonymous_cannot_read_someone_elses_qr(client, alice_qr):
 
 def test_a_forged_token_is_rejected(client, alice_qr):
     import jwt as _jwt
-    from app.config import JWT_SECRET, JWT_ALGO
+    from app.config import JWT_ALGO
 
     forged = _jwt.encode({"user_id": 1, "email": A["email"], "typ": "access",
                           "jti": "forged", "exp": 9_999_999_999},
