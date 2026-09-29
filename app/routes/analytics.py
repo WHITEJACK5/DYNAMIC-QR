@@ -2,9 +2,10 @@
 
 import json
 
-from flask import Blueprint, g, jsonify
+from flask import Blueprint, g, jsonify, request
 
 from app import cache as _qr_cache
+from app import pagination
 from app.extensions import get_session, token_required
 from app.repositories import qr_repo, scans_repo
 
@@ -40,6 +41,15 @@ def qr_analytics(qr_id):
     if not qr:
         s.close()
         return jsonify({"error":"Not found"}),404
-    detail = scans_repo.detail_for_qr(s, qr_id)
+    # Phase 2d: the scan list is a list endpoint, so it takes the same
+    # limit/offset window as every other collection. It used to be capped at
+    # a hardcoded 100, which silently hid anything past that.
+    paginated, limit, offset, err = pagination.parse_pagination(request.args)
+    if err:
+        s.close()
+        return jsonify({"error": err}), 400
+    detail = scans_repo.detail_for_qr(
+        s, qr_id, limit=(limit if paginated else None),
+        offset=(offset if paginated else 0))
     s.close()
     return jsonify({"qr": qr_repo.to_public(qr), **detail})

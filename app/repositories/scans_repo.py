@@ -108,15 +108,27 @@ def overview_for_user(s, user_id):
     }
 
 
-def detail_for_qr(s, qr_id):
+def detail_for_qr(s, qr_id, limit=None, offset=0):
+    """Per-QR analytics: a paginated scan list plus the aggregates.
+
+    The scan list used to be a hardcoded `.limit(100)`, which is truncation
+    rather than pagination: scans 101+ were unreachable with no `total` to
+    say so. The directive asks for limit/offset on any list endpoint, so the
+    window is now the caller's and the true count is always returned.
+    """
+    base = s.query(Scan).filter(Scan.qr_id == qr_id)
+    total = base.count()
+    if limit is not None:
+        base = base.order_by(Scan.timestamp.desc()).limit(limit).offset(offset)
+    else:
+        base = base.order_by(Scan.timestamp.desc())
     scans = [
         {
             "id": x.id, "qr_id": x.qr_id, "timestamp": x.timestamp, "ip": x.ip,
             "user_agent": x.user_agent, "device": x.device, "browser": x.browser,
             "os": x.os, "country": x.country, "city": x.city,
         }
-        for x in s.query(Scan).filter(Scan.qr_id == qr_id)
-        .order_by(Scan.timestamp.desc()).limit(100).all()
+        for x in base.all()
     ]
     devices = [
         {"device": d, "c": c}
@@ -136,4 +148,6 @@ def detail_for_qr(s, qr_id):
         .group_by(day)
         .order_by(day).all()
     ]
-    return {"scans": scans, "devices": devices, "countries": countries, "timeline": timeline}
+    return {"scans": scans, "devices": devices, "countries": countries,
+            "timeline": timeline, "total": total, "total_scans": total,
+            "limit": limit, "offset": offset}
