@@ -143,6 +143,52 @@ jobs:
           fi
           echo "OK: .env.example values are all empty"
 
+  coverage:
+    # Phase 5e: "Add coverage reporting to CI with a minimum threshold that
+    # fails the build if not met."
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: nare
+          POSTGRES_PASSWORD: nare_ci_pw
+          POSTGRES_DB: nare
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov redis boto3
+      - name: Coverage with an enforced threshold
+        env:
+          SECRET_KEY: ci-test-secret-key-must-be-32-chars-long
+          BASE_URL: http://localhost:5000
+          TEST_DATABASE_URL: postgresql+psycopg2://nare:nare_ci_pw@127.0.0.1:5432/nare
+        # The browser and load tests are excluded here on purpose: they run
+        # their own jobs, they need extra tooling, and coverage tracing
+        # slows them enough to make them time-sensitive. They are still run
+        # by the test job above.
+        run: |
+          pytest -q --cov --cov-report=term --cov-report=xml \
+            --ignore=tests/test_e2e_playwright.py \
+            --ignore=tests/test_load_redirect.py
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
+
   dependencies:
     # Dependabot opens these as separate PRs (see .github/dependabot.yml);
     # this job is the signal that the dependency set is actually installable

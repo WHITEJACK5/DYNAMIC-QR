@@ -1,0 +1,45 @@
+[tool.pytest.ini_options]
+# Keep test discovery and output stable. Deliberately minimal: the suite
+# relies on tests/ being importable by module name (helpers in conftest.py
+# are imported directly), so testpaths and rootdir behaviour matter.
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra"
+markers = [
+    "e2e: browser-driven end-to-end tests (Playwright, needs a browser)",
+    "load: load tests (needs k6)",
+]
+filterwarnings = [
+    # Playwright and the Flask dev server emit a few noisy but harmless
+    # warnings; failing CI on them would train people to ignore CI.
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+]
+
+[tool.coverage.run]
+# Measure the code that ships. Tests, migrations and the k6 script are not
+# application code and would dilute the number into meaninglessness.
+source = ["app", "server", "wsgi"]
+branch = true
+omit = [
+    "*/__pycache__/*",
+    "*/migrations/versions/*",
+    "app/uploads/*",
+]
+
+[tool.coverage.report]
+# Phase 5e: "a minimum threshold that fails the build if not met".
+#
+# 70 is set BELOW the measured value on purpose. Actual coverage at the time
+# of writing is ~76%; a threshold pinned to the current number would fail the
+# build the first time a line was legitimately added, which trains a team to
+# raise the floor instead of writing tests. This is a ratchet, not a goal.
+fail_under = 70
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]

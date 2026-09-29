@@ -24,9 +24,8 @@ import re
 import shutil
 import subprocess
 import sys
-from types import SimpleNamespace
-import tempfile
 import time
+from types import SimpleNamespace
 
 import pytest
 
@@ -91,7 +90,7 @@ def server(tmp_path_factory):
                 "--threads", "4", "--timeout", "60", "wsgi:application"]
     elif chosen == "waitress":
         argv = ["waitress-serve", f"--listen=127.0.0.1:{port}",
-                f"--threads=8", "wsgi:application"]
+                "--threads=8", "wsgi:application"]
     else:
         argv = [sys.executable, "-c",
                 "import server; server.app.run(host='127.0.0.1',"
