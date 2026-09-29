@@ -14,16 +14,30 @@ logger = logging.getLogger("nare")
 
 
 def record_scan(s, qr_id, timestamp, ip, user_agent, device, browser, os_name):
-    """Insert a Pending scan + bump scan_count. Returns scan id or None."""
+    """Insert a Pending scan and bump scan_count in one transaction.
+
+    The increment is a single SQL UPDATE ... SET scan_count = scan_count + 1,
+    not an ORM read-modify-write. The previous form loaded the row, added one
+    in Python and wrote it back, so two concurrent scans of the same code
+    both read 5 and both wrote 6, losing an increment — the count silently
+    under-reports, which is the one number the product is sold on. The
+    database evaluates the addition inside the statement, so concurrent
+    writers serialise instead of overwriting. tests/test_concurrency.py
+    proves this with real threads against PostgreSQL.
+    """
     try:
         scan = Scan(qr_id=qr_id, timestamp=timestamp, ip=ip, user_agent=user_agent,
                     device=device, browser=browser, os=os_name,
                     country="Pending", city="Pending")
         s.add(scan)
-        qr = s.get(QRCode, qr_id)
-        if qr is not None:
-            qr.scan_count = (qr.scan_count or 0) + 1
-            qr.updated_at = timestamp
+        s.flush()
+        s.query(QRCode).filter(QRCode.id == qr_id).update(
+            {
+                QRCode.scan_count: func.coalesce(QRCode.scan_count, 0) + 1,
+                QRCode.updated_at: timestamp,
+            },
+            synchronize_session=False,
+        )
         s.commit()
         return scan.id
     except Exception as e:
