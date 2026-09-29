@@ -135,7 +135,7 @@ nare-and-co/
   static/
     css/style.css     # Grid white / black / neon green
     js/app.js         # 25 types, preview, logo, auth
-  tests/              # 169 tests; PostgreSQL legs run when TEST_DATABASE_URL is set
+  tests/              # unit + integration; PostgreSQL legs run when TEST_DATABASE_URL is set
 ```
 
 ## Security headers
@@ -299,6 +299,42 @@ usable is explicit:
 
 `ALLOW_LOCAL_STORAGE` is opt-in and never inferred. Rows written while it was
 enabled keep rendering while it stays enabled. Preview logos are never persisted.
+
+## Tests and coverage
+
+```bash
+pytest -q                                    # SQLite
+TEST_DATABASE_URL=postgresql://… pytest -q   # + PostgreSQL legs
+pytest -q --cov                              # + coverage, enforced threshold
+```
+
+**Coverage: 74.40%** (branch coverage over `app/`, `server.py`, `wsgi.py`)
+against a **70% floor** that fails the build. Reproduce the number with the
+command above; CI runs the same command and uploads `coverage.xml`.
+
+The floor is deliberately below the measured value. Pinning it to the current
+number would fail the build the first time a line was legitimately added,
+which teaches a team to lower the floor rather than write tests. It is a
+ratchet, not a target — raise it as coverage genuinely improves.
+
+There is **no coverage badge**. A shields.io badge needs a coverage service
+(coveralls/Codecov) or a scheduled job publishing the figure, and neither is
+set up, so a badge would display a number nothing keeps current. The number
+above is measured, not decorated.
+
+Heavy suites, each with extra tooling and each run by its own CI step:
+
+| Suite | Needs | What it covers |
+|---|---|---|
+| `tests/test_e2e_playwright.py` | `pip install playwright && playwright install chromium` | Real browser: register → verify from a real email → login → dynamic QR → scan → analytics |
+| `tests/test_load_redirect.py` | k6 on PATH | The `/r/<code>` redirect under sustained load, against the thresholds in `loadtests/redirect.js` |
+
+Run the load profile directly:
+
+```bash
+BASE_URL=http://127.0.0.1:8000 CODE=abc12345 k6 run loadtests/redirect.js
+QUICK=1 … k6 run loadtests/redirect.js   # light profile for CI
+```
 
 ## Design System
 
