@@ -53,7 +53,10 @@ if IS_PRODUCTION:
 else:
     load_dotenv()
 
-DB_PATH = os.path.join(APP_DIR, "data", "nare.db")
+# Data location. Overridable so a container can mount a volume and so the
+# end-to-end tests can run against a throwaway database instead of the
+# developer's data/nare.db.
+DB_PATH = os.getenv("NARE_DB_PATH") or os.path.join(APP_DIR, "data", "nare.db")
 UPLOAD_DIR = os.path.join(APP_DIR, "uploads")
 STATIC_DIR = os.path.join(APP_DIR, "static")
 FRONTEND_DIR = os.path.join(APP_DIR, "frontend")
