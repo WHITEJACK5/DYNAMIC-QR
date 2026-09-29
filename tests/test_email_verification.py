@@ -147,10 +147,35 @@ def test_valid_token_verifies_the_account(client, registered):
 
 
 def test_verification_link_works_as_a_get_navigation(client, registered):
-    """The link in the email is a plain URL a browser follows."""
+    """
+    The link in the email is a plain URL a browser follows, so it is a GET.
+
+    This test previously asserted only the status code, and passed against
+    index.html: the catch-all page route answers unmatched /api/* paths with
+    the SPA and status 200, so the route was POST-only in practice and the
+    emailed link did nothing. Asserting the body is what catches that class
+    of false pass.
+    """
     _set_verify_token(CREDS["email"], "raw-token-get")
     r = client.get("/api/verify-email?token=raw-token-get")
-    assert r.status_code == 200, r.get_json()
+    assert r.status_code == 200, r.get_data(as_text=True)[:300]
+    body = r.get_json()
+    assert body["status"] == "verified", \
+        f"GET did not verify; got {body} (HTML means the catch-all shadowed it)"
+    # and the account is genuinely verified now
+    assert _dynamic(client, registered["token"]).status_code == 200
+
+
+def test_unknown_api_paths_return_json_404_not_the_spa(client):
+    """A mistyped API URL must be a 404, not index.html with status 200."""
+    r = client.get("/api/definitely-not-a-route")
+    assert r.status_code == 404, f"got {r.status_code} for an unknown API path"
+    assert r.is_json, "an unknown /api/ path returned the SPA instead of JSON"
+    assert r.get_json()["error"] == "Not found"
+    # the browser-facing catch-all still serves the SPA
+    page = client.get("/some/spa/route")
+    assert page.status_code == 200
+    assert not page.is_json, "the SPA catch-all stopped working for non-API paths"
 
 
 def test_token_is_single_use(client, registered):

@@ -113,11 +113,18 @@ def _issue_verification(session, email, base_url):
     return _mailer.send_verification(email, url, VERIFY_TOKEN_TTL_HOURS), raw
 
 
-@auth.route("/api/verify-email", methods=["POST"])
-@auth.route("/api/v1/verify-email", methods=["POST"])
+@auth.route("/api/verify-email", methods=["GET", "POST"])
+@auth.route("/api/v1/verify-email", methods=["GET", "POST"])
 def verify_email():
-    """Phase 4d: confirm an address. The token may arrive in the body (API
-    client) or as ?token= so the emailed link works as a GET navigation."""
+    """Phase 4d: confirm an address.
+
+    GET is required, not optional: the emailed link is a plain URL that a
+    browser follows, so it arrives as a GET navigation. This route was
+    POST-only, and because app/routes/pages.py serves the SPA for unmatched
+    paths, a GET here quietly returned index.html with status 200 — so the
+    link in every verification email did nothing, and a test that only
+    asserted the status code passed against that HTML.
+    """
     body = request.get_json(silent=True) or {}
     raw = body.get("token") or request.args.get("token")
     try:

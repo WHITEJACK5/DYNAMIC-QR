@@ -58,6 +58,15 @@ def frontend_static(path):
 
 @pages.route("/<path:path>")
 def catch_all(path):
+    # An unmatched /api/* path must not be answered with the SPA. Returning
+    # index.html with status 200 for a mistyped API URL is worse than a
+    # 404: a client sees "success" and then fails to parse HTML as JSON, and
+    # a status-only test passes against it. Phase 5c.
+    if path.startswith("api/") or path == "api":
+        from flask import jsonify
+
+        return jsonify({"error": "Not found",
+                        "path": f"/{path}"}), 404
     # Safe join: ensure path stays within frontend
     try:
         frontend_abs = os.path.abspath(os.path.join(APP_DIR, "frontend"))
