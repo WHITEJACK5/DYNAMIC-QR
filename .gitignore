@@ -3,9 +3,19 @@
 *.pyo
 *.db
 *.sqlite
+# SQLite sidecar files. `*.db` does not cover these, so a stray WAL from a
+# debug script got committed once already.
+*.db-wal
+*.db-shm
+*.db-journal
 !data/.gitkeep
 !uploads/.gitkeep
 data/nare.db
+# E2E/load-test scratch data
+data/e2e_*.db
+data/e2e_*.log
+data/loadtest*.db
+benchmarks/*.csv
 uploads/*.png
 uploads/*.jpg
 uploads/*.jpeg
