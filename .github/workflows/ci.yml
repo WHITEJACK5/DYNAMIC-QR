@@ -105,7 +105,7 @@ jobs:
         run: bandit -r app/ server.py wsgi.py scripts/ -f json -o bandit-report.json || true
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bandit-report
           path: bandit-report.json
@@ -184,7 +184,7 @@ jobs:
             --ignore=tests/test_load_redirect.py
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: coverage.xml
