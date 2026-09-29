@@ -41,17 +41,26 @@ def client():
 
 
 def _reset_schema():
-    from sqlalchemy import create_engine
+    """
+    Drop everything and migrate to head, explicitly.
 
+    Deliberately not init_db(): importing server already runs init_db() at
+    module scope, so the two race and the version row could survive the
+    reset, leaving init_db() convinced the database was migrated. Doing it
+    explicitly here makes the test self-contained regardless of import-time
+    side effects — which is the right property for a database test.
+    """
+    from app import migrations as mig
+    from app.db import get_engine
     from app.models import Base
 
-    eng = create_engine(DB_URL)
+    eng = get_engine()
     Base.metadata.drop_all(eng)
-    with eng.connect() as conn:
+    with eng.begin() as conn:
         conn.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
-        conn.commit()
-    eng.dispose()
-    nare.init_db()
+    mig.upgrade_to_head()
+    assert mig.current_revision() == mig.head_revision()
+    assert mig.user_tables(), "reset left the database without tables"
 
 
 def test_full_stack_on_postgres(client):
@@ -62,6 +71,7 @@ def test_full_stack_on_postgres(client):
 
     r = client.post("/api/register", json={"email": "pg@x.com", "password": "StrongPass123!", "name": "PG"})
     assert r.status_code == 200, r.get_data(as_text=True)
+    _verify("pg@x.com")   # Phase 4d: dynamic QRs need a verified address
     tok = r.json["token"]
     h = {"Authorization": f"Bearer {tok}"}
 
@@ -105,10 +115,30 @@ def test_full_stack_on_postgres(client):
     assert r.status_code == 200 and "token" in r.json
 
 
+def _verify(email):
+    """
+    Confirm an address for a test that is not about verification.
+
+    Phase 4d gates dynamic QR creation behind a verified email, and this
+    suite predates it — it was silently returning 403 and only surfaced when
+    the PostgreSQL legs were run.     The verification flow itself is covered in
+    test_email_verification.py (in-process) and test_e2e_playwright.py
+    (through real SMTP).
+    """
+    from sqlalchemy import text
+
+    from app.db import get_engine
+    eng = get_engine()
+    with eng.begin() as conn:
+        conn.execute(text("UPDATE users SET email_verified = 1 WHERE email = :e"),
+                     {"e": email})
+
+
 def test_cross_user_isolation_on_postgres(client):
     _reset_schema()
     a = client.post("/api/register", json={"email": "a@x.com", "password": "StrongPass123!", "name": "A"}).json
     b = client.post("/api/register", json={"email": "b@x.com", "password": "StrongPass123!", "name": "B"}).json
+    _verify("a@x.com")
     ha, hb = {"Authorization": f"Bearer {a['token']}"}, {"Authorization": f"Bearer {b['token']}"}
     qid = client.post("/api/generate", json={
         "type": "url", "data": {"url": "https://example.com/a"}, "is_dynamic": True, "name": "AQR"},

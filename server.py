@@ -1,7 +1,11 @@
-import os
+"""Composition root and development entrypoint for NARE & CO.
 
-
-# Phase 2a: pure helpers live in app/utils.py (zero Flask/DB imports).
+Phase 2a keeps `import server as nare; nare.<helper>` working for the many
+call sites and tests that use it; the helpers themselves live in
+app/utils/. Phase 2g made this a thin composition root — the production
+entrypoint is wsgi.py, served by gunicorn behind nginx.
+"""
+# Phase 2a: pure helpers live in app/utils/ (zero Flask/DB imports).
 # app.py re-exports them so `import app as nare; nare.hex_to_rgb` keeps working.
 from app.utils import (
     build_gs1_content,  # noqa: F401 — re-exported for backwards compat
@@ -35,10 +39,19 @@ _rate_store = rate_store
 def init_db():
     """Schema comes from Alembic migrations (Phase 3b2) — no inline DDL.
 
-    Fresh clone: no tables and no alembic_version -> upgrade head.
-    Legacy DB (created by the old inline DDL): tables already exist but
-    unversioned -> stamp head, so no data is destroyed.
-    Already migrated: nothing to do.
+    Three cases, all decided against ONE database:
+
+    * fresh (no tables, no alembic_version)  -> upgrade to head
+    * pre-Alembic (tables exist, unversioned) -> stamp head, keeping the data
+    * already migrated                       -> nothing to do
+
+    Deciding and acting must target the same database. This previously
+    decided using DB_PATH (the SQLite file) while Alembic acted on whatever
+    DATABASE_URL pointed at, so with PostgreSQL configured a database whose
+    tables had been dropped was *stamped* as migrated without ever being
+    created — and every request then failed. Stamping is also only ever
+    correct for a database that already has tables, so that is now required
+    explicitly.
     """
     from app import migrations as _migrations
     from app import db as _cdb
@@ -46,23 +59,40 @@ def init_db():
     # Keep ORM/migrations pointed at the same file get_db() uses.
     _cdb.set_default_sqlite(DB_PATH)
     _cdb.dispose()  # rebuild the engine if DB_PATH changed (tests, CLI)
-    is_fresh = not os.path.exists(DB_PATH) or os.path.getsize(DB_PATH) == 0
+
+    # One target for the whole decision. When DATABASE_URL is set this is
+    # PostgreSQL; otherwise the SQLite file.
+    target = _cdb.database_url() if hasattr(_cdb, "database_url") else None
+    if target is None:
+        from app.db import database_url as _db_url
+        target = _db_url()
+
     try:
-        if _migrations.current_revision() is None:
-            if _migrations.user_tables():
-                # Pre-Alembic database with the same schema: adopt it.
-                _migrations.stamp_head()
-                logger.info("Existing database stamped at Alembic head")
-            else:
-                _migrations.upgrade_to_head()
-                print(f"[NARE & CO.] Fresh DB created at {DB_PATH} — tables: "
-                      "users, qrcodes, scans, folders, templates (Alembic head)")
-                print("[NARE & CO.] Local DB ready for personal use — login + QR "
-                      "managing + analytics (SQLite)")
-                logger.info(f"Fresh DB created at {DB_PATH}")
+        revision = _migrations.current_revision(target)
+        tables = _migrations.user_tables(target)
     except Exception as e:
-        logger.exception(f"DB migration failed: {e}")
+        # A database that cannot be reached is a deployment problem, not a
+        # reason to stamp a schema that may not exist.
+        logger.error(f"Could not inspect the database ({target}): {e}")
         raise
+
+    if revision is not None:
+        logger.info(f"Database already at revision {revision}")
+        return
+
+    if tables:
+        # Pre-Alembic database with the same schema: adopt it without
+        # destroying data.
+        _migrations.stamp_head(target)
+        logger.info("Existing database stamped at Alembic head")
+    else:
+        _migrations.upgrade_to_head(target)
+        logger.info(f"Fresh database migrated to head at {target}")
+        if not str(target).startswith("postgresql"):
+            print(f"[NARE & CO.] Fresh DB created at {DB_PATH} — tables: "
+                  "users, qrcodes, scans, folders, templates (Alembic head)")
+            print("[NARE & CO.] Local DB ready for personal use — login + QR "
+                  "managing + analytics (SQLite)")
     try:
         _s = get_session()
         from app.models import QRCode, User
@@ -70,8 +100,9 @@ def init_db():
         _u = _s.query(User).count()
         _q = _s.query(QRCode).count()
         _s.close()
-        if not is_fresh or _u:
-            print(f"[NARE & CO.] DB loaded — {DB_PATH} — users:{_u} qrs:{_q}")
+        # Report against whichever database this process actually uses.
+        if _u or not str(target).startswith("postgresql"):
+            print(f"[NARE & CO.] DB loaded — {target} — users:{_u} qrs:{_q}")
     except Exception as e:
         logger.warning(f"DB status check failed: {e}")
 
