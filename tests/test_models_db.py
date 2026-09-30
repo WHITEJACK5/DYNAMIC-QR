@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-32chars")
 
 import server as nare
+from app import migrations as mig
 from app import db as cdb
 from app.models import Base, QRCode, Scan, User
 
@@ -27,12 +28,20 @@ EXPECTED_TABLES = {"users", "folders", "qrcodes", "scans", "templates"}
 
 
 def _legacy_db():
+    """A freshly migrated SQLite database, independent of DATABASE_URL.
+
+    This used to call nare.init_db(), which resolved its target from the
+    ambient database URL. That was fine while init_db() ignored
+    DATABASE_URL — but init_db() deciding on the SQLite path while acting on
+    PostgreSQL was the Phase 3b bug, so the test was relying on a bug. With
+    DATABASE_URL=postgres it migrated Postgres and never created the temp
+    file, failing on an empty schema. The target is now explicit.
+    """
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
     tmp.close()
-    old = nare.DB_PATH
-    nare.DB_PATH = tmp.name
-    nare.init_db()
-    return tmp.name, old
+    url = "sqlite:///" + tmp.name.replace(os.sep, "/")
+    mig.upgrade_to_head(url)
+    return tmp.name, url
 
 
 def _teardown(path, old):
@@ -53,21 +62,25 @@ def test_models_create_all_sqlite(tmp_path):
 
 
 def test_columns_match_legacy_init_db():
-    """Columns AND nullability must equal app.py:init_db (no drift).
+    """Columns AND nullability must match the schema the app creates.
 
-    Nullability matters: the repositories INSERT via raw SQL and rely on
-    "DEFAULT 0" columns staying nullable (an ORM-side NOT NULL would 500).
+    Nullability matters: the repositories INSERT and rely on "DEFAULT 0"
+    columns staying nullable (an ORM-side NOT NULL would 500). The reference
+    is a real Alembic-migrated SQLite database, so this asserts migrations
+    and ORM models have not drifted — on either engine, since the target
+    database is explicit rather than taken from the environment.
     """
-    legacy_path, old = _legacy_db()
+    path, url = _legacy_db()
     try:
-        con = sqlite3.connect(legacy_path)
+        con = sqlite3.connect(path)
         legacy = {
             t: {r[1]: {"notnull": bool(r[3]), "default": r[4]} for r in con.execute(f"PRAGMA table_info({t})")}
             for t in EXPECTED_TABLES
         }
         con.close()
+        assert legacy["qrcodes"], "the reference database has no qrcodes table"
     finally:
-        _teardown(legacy_path, old)
+        _teardown(path, url)
     orm = {
         t.name: {c.name: {"notnull": not c.nullable, "default": c.server_default} for c in t.columns}
         for t in Base.metadata.tables.values()

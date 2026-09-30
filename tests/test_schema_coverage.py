@@ -47,10 +47,24 @@ def test_generate_schema_covers_access_control():
         {"password": "S3cret!", "scan_limit": "25", "expiry_date": "2030-01-01T00:00:00"}
     )
     assert (r.password, r.scan_limit, r.expiry_date) == ("S3cret!", 25, "2030-01-01T00:00:00")
-    # legacy rule preserved: junk / non-positive -> no limit, never a 500
-    assert GenerateRequest.model_validate({"scan_limit": "abc"}).scan_limit is None
-    assert GenerateRequest.model_validate({"scan_limit": -3}).scan_limit is None
-    assert GenerateRequest.model_validate({"scan_limit": 0}).scan_limit is None
+    # Rejected rather than coerced to "no limit" (Phase 5 audit).
+    #
+    # This previously asserted the opposite: junk and non-positive became
+    # None, on the reasoning "never a 500". A merchant whose scan_limit
+    # arrived mangled silently got an UNLIMITED QR — invisible, and the
+    # opposite of what a limit is for. Pydantic turns the bad value into a
+    # clean 400, so the no-500 justification did not hold.
+    # The JSON and multipart paths now share this rule, so neither can be
+    # the looser one.
+    from pydantic import ValidationError
+
+    for junk in ("abc", -3, 0, "99999999999999999999"):
+        with pytest.raises(ValidationError):
+            GenerateRequest.model_validate({"scan_limit": junk})
+    # absent is still absent, not an error
+    assert GenerateRequest.model_validate({}).scan_limit is None
+    assert GenerateRequest.model_validate({"scan_limit": ""}).scan_limit is None
+    assert GenerateRequest.model_validate({"scan_limit": 25}).scan_limit == 25
     assert GenerateRequest.model_validate({}).password is None
 
 

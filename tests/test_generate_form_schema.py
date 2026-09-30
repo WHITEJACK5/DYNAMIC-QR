@@ -71,30 +71,42 @@ def test_multipart_rejects_bad_colours_like_json_does(client, field, value):
     ("scan_limit", "abc"),
     ("scan_limit", "0"),
     ("scan_limit", "-5"),
+    ("scan_limit", "99999999999999999999"),
 ])
-def test_multipart_matches_json_on_junk_scan_limits(client, field, value):
+def test_multipart_rejects_bad_scan_limits_like_json_does(client, field, value):
     """
-    Both paths coerce junk to "no limit" rather than erroring. That is a
-    pre-existing deliberate rule (see GenerateRequest._scan_limit) so a
-    malformed request can never become a 500 — and it has a real downside
-    worth a product decision: a mangled limit silently becomes unlimited.
-    What matters here is that JSON and multipart agree.
+    Both paths now reject a scan_limit that cannot mean what was intended.
+
+    They used to coerce it to "no limit", so a merchant who mistyped 100
+    silently got an unlimited QR — invisible, and the opposite of what a
+    limit is for. Pydantic turns the bad value into a clean 400, so the
+    old "never a 500" justification for leniency did not hold.
     """
     r = _form(client, type="url", data='{"url":"https://example.com"}',
               **{field: value})
-    assert r.status_code == 200, (
-        f"multipart rejected scan_limit={value!r} that JSON accepts")
-    assert r.get_json()["image_base64"]
+    assert r.status_code == 400, (
+        f"multipart accepted scan_limit={value!r} with {r.status_code}")
+    assert "scan_limit" in r.get_json()["error"]
 
 
 def test_scan_limit_coercion_is_identical_on_both_paths():
+    """One rule, one outcome, whichever way the request arrives."""
     from app.schemas import GenerateRequest
 
     for value in ("abc", "0", "-5", "", None, "25", 25):
-        json_val = GenerateRequest.model_validate({"scan_limit": value}).scan_limit
-        form_val = GenerateFormRequest.model_validate({"scan_limit": value}).scan_limit
+        json_val = _coerce(GenerateRequest, value)
+        form_val = _coerce(GenerateFormRequest, value)
         assert json_val == form_val, (
             f"scan_limit={value!r}: json={json_val!r} form={form_val!r}")
+
+
+def _coerce(model, value):
+    from pydantic import ValidationError
+
+    try:
+        return model.model_validate({"scan_limit": value}).scan_limit
+    except ValidationError:
+        return "rejected"
 
 
 def test_a_valid_multipart_request_still_works(client):
@@ -167,7 +179,8 @@ def test_json_and_multipart_agree_on_the_same_bad_input(client):
     """The property, stated once: identical verdicts on both paths."""
     cases = [("fg_color", "not-a-colour"),   # both must 400
              ("bg_color", "#GGGGGG"),        # both must 400
-             ("scan_limit", "abc")]          # both accept (documented rule)
+             ("scan_limit", "abc"),          # both must 400
+             ("scan_limit", "0")]            # both must 400
     for field, value in cases:
         a = _json(client, type="url", data={"url": "https://example.com"},
                   **{field: value})

@@ -329,18 +329,17 @@ Two behaviours worth knowing:
 
 ## Known limitations
 
-- **`scan_limit` coerces rather than rejects.** A `scan_limit` that cannot be
-  parsed, or is zero/negative, becomes "no limit" instead of an error, on
-  both the JSON and multipart paths. This is deliberate and long-standing —
-  the rule exists so a malformed request can never produce a 500 — but it
-  means a mangled limit silently yields an *unlimited* QR. Tightening it is a
-  product decision because it changes the JSON API, so it is flagged here
-  rather than changed unilaterally. See `GenerateRequest._scan_limit`.
 - **Token revocation depends on Redis not being flushed.** Outstanding
   revocations live in Redis; a flush un-revokes them. That keyspace needs a
   persistent Redis with an eviction policy that does not target it.
 - **The CSP needs `script-src 'unsafe-inline'`** until Phase 8 replaces the
   raw-HTML frontend.
+- **A malformed `scan_limit` is rejected, not coerced** (400). This is a
+  deliberate behaviour change: it used to become "no limit", so a merchant
+  whose value arrived mangled silently got an unlimited QR. Both the JSON and
+  multipart paths share the rule, so neither is looser than the other.
+- **Load-test figures come from one machine**, not a production host. CI runs
+  on Linux with gunicorn; local runs on Windows fall back to waitress.
 
 ## Tests and coverage
 

@@ -256,22 +256,31 @@ class GenerateRequest(QRStyle):
     @field_validator("scan_limit", mode="before")
     @classmethod
     def _scan_limit(cls, v):
-        # Matches GenerateRequest exactly: junk or non-positive becomes None
-        # ("no limit") rather than an error, so a malformed form can never
-        # turn into a 500. The two paths must agree.
-        #
-        # NOTE: this is a deliberate existing rule, not an oversight, and it
-        # has a real downside — a merchant whose scan_limit arrives mangled
-        # silently gets an unlimited QR. Tightening it is a product decision
-        # affecting the JSON API too, so it is not changed unilaterally here;
-        # see the README "Known limitations".
+        """Reject a scan_limit that cannot mean what the caller intended.
+
+        This used to coerce junk to None, i.e. "no limit". A merchant who
+        types 100, flicks a comma or a stray character, and gets a QR with no
+        limit at all is the opposite of what a limit is for, and the failure
+        is invisible — the QR keeps working forever. The old comment called
+        it "never a 500", which was protecting against an exception that Pydantic
+        raises cleanly as a 400 anyway.
+
+        Both the JSON and multipart paths use this, so neither can be the
+        looser one. Behaviour change for the JSON API is deliberate: a client
+        sending scan_limit="abc" now gets 400 where it previously got a
+        silently unlimited QR.
+        """
         if v is None or v == "":
             return None
         try:
             n = int(v)
         except (TypeError, ValueError):
-            return None
-        return n if n > 0 else None
+            raise ValueError("scan_limit must be a whole number")
+        if n <= 0:
+            raise ValueError("scan_limit must be greater than zero")
+        if n > 1_000_000:
+            raise ValueError("scan_limit is unreasonably large")
+        return n
 
     @field_validator("data", mode="before")
     @classmethod
@@ -362,21 +371,23 @@ class GenerateFormRequest(BaseModel):
     @field_validator("scan_limit", mode="before")
     @classmethod
     def _limit(cls, v):
-        """Identical to GenerateRequest._scan_limit, on purpose.
+        """Same rule as GenerateRequest, deliberately.
 
-        Junk or non-positive becomes None ("no limit") rather than an error,
-        so a malformed form can never turn into a 500. Deliberately the
-        pre-existing rule rather than a stricter one: changing it would
-        alter the JSON API too, which is a product decision, not an audit
-        fix. What this commit guarantees is that the two paths AGREE.
+        A mangled scan_limit must not silently become an unlimited QR, so both
+        paths reject it rather than coercing. Sharing one rule is the point:
+        one endpoint cannot have a looser contract than its other.
         """
         if v is None or v == "":
             return None
         try:
             n = int(v)
         except (TypeError, ValueError):
-            return None
-        return n if n > 0 else None
+            raise ValueError("scan_limit must be a whole number")
+        if n <= 0:
+            raise ValueError("scan_limit must be greater than zero")
+        if n > 1_000_000:
+            raise ValueError("scan_limit is unreasonably large")
+        return n
 
 
 class BulkFormRequest(BaseModel):
