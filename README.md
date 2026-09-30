@@ -300,6 +300,48 @@ usable is explicit:
 `ALLOW_LOCAL_STORAGE` is opt-in and never inferred. Rows written while it was
 enabled keep rendering while it stays enabled. Preview logos are never persisted.
 
+## Pagination
+
+List endpoints use **`limit` / `offset`** (offset pagination):
+
+```bash
+GET /api/v1/qrcodes?limit=50&offset=0
+GET /api/v1/folders?limit=20&offset=40
+GET /api/v1/templates?limit=20&offset=0
+GET /api/v1/qrcodes/<id>/analytics?limit=100&offset=0   # the scan list
+```
+
+Paginated responses are an envelope:
+
+```json
+{ "items": [ ... ], "total": 128, "limit": 50, "offset": 0 }
+```
+
+Two behaviours worth knowing:
+
+- **Defaults are backwards compatible.** With no `limit`/`offset`, the
+  collection endpoints return a bare array (the legacy shape older clients
+  depend on). Supply either parameter and you get the envelope. This is a
+  real inconsistency in the API rather than something to hide — it is
+  recorded in `app/api_contract.py` under `LEGACY_BARE_LIST`.
+- **Bad input is a 400**, not a silently clamped page: a non-numeric or
+  out-of-range `limit` is rejected.
+
+## Known limitations
+
+- **`scan_limit` coerces rather than rejects.** A `scan_limit` that cannot be
+  parsed, or is zero/negative, becomes "no limit" instead of an error, on
+  both the JSON and multipart paths. This is deliberate and long-standing —
+  the rule exists so a malformed request can never produce a 500 — but it
+  means a mangled limit silently yields an *unlimited* QR. Tightening it is a
+  product decision because it changes the JSON API, so it is flagged here
+  rather than changed unilaterally. See `GenerateRequest._scan_limit`.
+- **Token revocation depends on Redis not being flushed.** Outstanding
+  revocations live in Redis; a flush un-revokes them. That keyspace needs a
+  persistent Redis with an eviction policy that does not target it.
+- **The CSP needs `script-src 'unsafe-inline'`** until Phase 8 replaces the
+  raw-HTML frontend.
+
 ## Tests and coverage
 
 ```bash

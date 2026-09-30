@@ -194,6 +194,15 @@ def _check_color(v, field_name: str) -> str:
     return v
 
 
+def _form_str(v, default: str = "") -> str:
+    """Form values arrive as strings; an absent field means its default."""
+    if v is None:
+        return default
+    if isinstance(v, str):
+        return v if v != "" else default
+    return str(v)
+
+
 class QRStyle(BaseModel):
     """Shared style rules for generate/preview (colors strict like PUT)."""
 
@@ -247,7 +256,15 @@ class GenerateRequest(QRStyle):
     @field_validator("scan_limit", mode="before")
     @classmethod
     def _scan_limit(cls, v):
-        # Legacy rule: non-positive or unparsable -> treated as "no limit".
+        # Matches GenerateRequest exactly: junk or non-positive becomes None
+        # ("no limit") rather than an error, so a malformed form can never
+        # turn into a 500. The two paths must agree.
+        #
+        # NOTE: this is a deliberate existing rule, not an oversight, and it
+        # has a real downside — a merchant whose scan_limit arrives mangled
+        # silently gets an unlimited QR. Tightening it is a product decision
+        # affecting the JSON API too, so it is not changed unilaterally here;
+        # see the README "Known limitations".
         if v is None or v == "":
             return None
         try:
@@ -277,6 +294,89 @@ class PreviewRequest(QRStyle):
     @classmethod
     def _data(cls, v):
         return _norm_qr_data(v)
+
+
+class GenerateFormRequest(BaseModel):
+    """Input schema for the multipart branch of /api/generate (Phase 2b).
+
+    The multipart path previously read request.form directly and applied no
+    validation at all, so it accepted input the JSON path rejects: a form with
+    fg_color="not-a-colour" returned 200 while the same value over JSON
+    returned 400. One endpoint, two different contracts, and the looser one
+    was the one a browser hits.
+
+    Form values arrive as strings, so this coerces the same way a browser
+    sends them while reusing QRStyle's colour rules rather than duplicating
+    them. Unknown fields are ignored, matching the JSON schema.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    type: str = "url"
+    data: str = "{}"
+    is_dynamic: bool = False
+    fg_color: str = "#0A0A0A"
+    bg_color: str = "#FFFFFF"
+    frame_color: str = "#00FF88"
+    pattern: str = "square"
+    eye_style: str = "square"
+    gradient: str = "solid"
+    frame_text: str = ""
+    name: str | None = None
+    password: str | None = None
+    scan_limit: int | None = None
+    expiry_date: str | None = None
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def _type(cls, v):
+        # an empty form field means "not supplied", not "empty string"
+        return _form_str(v, "url")
+
+    @field_validator("data", mode="before")
+    @classmethod
+    def _data(cls, v):
+        return _form_str(v, "{}")
+
+    @field_validator("fg_color", mode="before")
+    @classmethod
+    def _fg(cls, v):
+        return _check_color(_form_str(v, "#0A0A0A"), "fg_color")
+
+    @field_validator("bg_color", mode="before")
+    @classmethod
+    def _bg(cls, v):
+        return _check_color(_form_str(v, "#FFFFFF"), "bg_color")
+
+    @field_validator("frame_color", mode="before")
+    @classmethod
+    def _fc(cls, v):
+        return _check_color(_form_str(v, "#00FF88"), "frame_color")
+
+    @field_validator("is_dynamic", mode="before")
+    @classmethod
+    def _dyn(cls, v):
+        # a browser sends the literal string "true"/"false"
+        return str(v).strip().lower() in ("1", "true", "yes", "on")
+
+    @field_validator("scan_limit", mode="before")
+    @classmethod
+    def _limit(cls, v):
+        """Identical to GenerateRequest._scan_limit, on purpose.
+
+        Junk or non-positive becomes None ("no limit") rather than an error,
+        so a malformed form can never turn into a 500. Deliberately the
+        pre-existing rule rather than a stricter one: changing it would
+        alter the JSON API too, which is a product decision, not an audit
+        fix. What this commit guarantees is that the two paths AGREE.
+        """
+        if v is None or v == "":
+            return None
+        try:
+            n = int(v)
+        except (TypeError, ValueError):
+            return None
+        return n if n > 0 else None
 
 
 class BulkFormRequest(BaseModel):

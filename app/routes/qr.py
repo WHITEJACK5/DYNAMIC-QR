@@ -26,7 +26,8 @@ from app import jobs
 from app.jobs import get_queue  # noqa: F401 — kept for callers that import from here
 from app.repositories import qr_repo, users_repo
 from app.schemas import (
-    BulkFormRequest, GenerateRequest, PreviewRequest, QRUpdateRequest, first_error,
+    BulkFormRequest, GenerateFormRequest, GenerateRequest, PreviewRequest,
+    QRUpdateRequest, first_error,
 )
 from app.services import storage as _storage
 from app.services.render import create_qr_image, create_qr_svg, image_to_base64
@@ -40,21 +41,31 @@ qr = Blueprint("qr", __name__)
 @rate_limit(limit=20, window=60)
 def generate():
     if request.content_type and "multipart/form-data" in request.content_type:
-        qr_type = request.form.get("type","url")
-        data_json = request.form.get("data","{}")
+        # Phase 2b: the multipart branch is validated by an explicit schema
+        # too. It used to read request.form raw, which meant it accepted
+        # input the JSON path rejects — fg_color="not-a-colour" returned 200
+        # here and 400 over JSON. One endpoint must not have two contracts,
+        # least of all where the looser one is what a browser sends.
+        try:
+            freq = GenerateFormRequest.model_validate(
+                {k: v for k, v in request.form.items()})
+        except ValidationError as e:
+            return jsonify({"error": first_error(e)}), 400
+        qr_type = freq.type
+        data_json = freq.data
         try:
             data = json.loads(data_json)
         except Exception:
             data = {"url": data_json}
-        is_dynamic = request.form.get("is_dynamic")=="true"
-        fg_color = request.form.get("fg_color","#0A0A0A")
-        bg_color = request.form.get("bg_color","#FFFFFF")
-        pattern = request.form.get("pattern","square")
-        eye_style = request.form.get("eye_style","square")
-        frame_text = request.form.get("frame_text","")
-        frame_color = request.form.get("frame_color","#00FF88")
-        gradient = request.form.get("gradient","solid")
-        name = request.form.get("name","My QR")
+        is_dynamic = freq.is_dynamic
+        fg_color = freq.fg_color
+        bg_color = freq.bg_color
+        pattern = freq.pattern
+        eye_style = freq.eye_style
+        frame_text = freq.frame_text
+        frame_color = freq.frame_color
+        gradient = freq.gradient
+        name = freq.name or "My QR"
         logo_file = request.files.get("logo")
     else:
         try:
@@ -146,22 +157,18 @@ def generate():
         s_tmp.close()
         final_content = f"{get_base_url(request)}/r/{short_code}"
 
-    # Access-control options: validated by GenerateRequest on the JSON path,
-    # read from form fields on the multipart path (same legacy semantics).
+    # Access-control options: validated by GenerateRequest on the JSON path
+    # and by GenerateFormRequest on the multipart path. Both reject bad
+    # values now; the old multipart branch swallowed a non-numeric
+    # scan_limit and turned it into "no limit".
     if request.is_json:
         password = getattr(req, "password", None)
         scan_limit = getattr(req, "scan_limit", None)
         expiry_date = getattr(req, "expiry_date", None)
     else:
-        password = request.form.get("password")
-        raw_limit = request.form.get("scan_limit")
-        try:
-            scan_limit = int(raw_limit) if raw_limit else None
-        except (TypeError, ValueError):
-            scan_limit = None
-        if scan_limit is not None and scan_limit <= 0:
-            scan_limit = None
-        expiry_date = request.form.get("expiry_date")
+        password = freq.password
+        scan_limit = freq.scan_limit
+        expiry_date = freq.expiry_date
 
     pwd_hash = generate_password_hash(password) if password else None
 
