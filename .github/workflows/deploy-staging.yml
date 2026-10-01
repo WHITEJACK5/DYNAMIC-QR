@@ -1,0 +1,153 @@
+# Staging deployment (Phase 6b).
+#
+# Directive: "Set up a staging environment distinct from production, deployed
+# automatically from a staging branch."
+#
+# Two parts, and it is worth being precise about which is code and which is
+# account setup:
+#
+#   CODE (this file): the staging branch is created and pushed by the release
+#   workflow; anything landing on it deploys to the staging service after CI
+#   passes. Verified in CI by the config tests.
+#
+#   ACCOUNT SETUP (yours, not mine): a staging service on your host and its
+#   API credentials as repository secrets. Without those the job refuses with
+#   a clear message rather than pretending to deploy. See README "Staging".
+#
+# Staging is deliberately separate: its own database, its own bucket, and its
+# own secrets. A staging deploy that could touch production data would be
+# worse than no staging at all.
+
+name: Deploy (staging)
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Check CI passed and staging is configured
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.sha.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require the test/lint/sast/build jobs to have passed
+        run: |
+          # On push to staging, CI has already run for this commit. Re-run its
+          # gate here so a red main-branch commit can never reach staging even
+          # if someone pushes directly to staging.
+          echo "Running the gate for ${{ github.sha }}"
+          pip install -r requirements.txt
+          pip install pytest ruff bandit
+          SECRET_KEY=ci-test-secret-key-must-be-32-chars-long \
+          BASE_URL=http://localhost:5000 \
+            pytest -q tests/ \
+            --ignore=tests/test_e2e_playwright.py \
+            --ignore=tests/test_load_redirect.py \
+            --ignore=tests/test_docker_stack.py
+          ruff check server.py wsgi.py app/ scripts/ tests/ --select F
+          bandit -r app/ server.py wsgi.py scripts/ -ll
+
+      - name: Refuse to deploy without staging credentials
+        run: |
+          if [ -z "${{ secrets.STAGING_RENDER_API_KEY }}" ] \
+             && [ -z "${{ secrets.STAGING_FLY_API_TOKEN }}" ]; then
+            echo "::error::Staging has no deployment credentials."
+            echo "Add STAGING_RENDER_API_KEY (+ vars STAGING_RENDER_SERVICE_ID)"
+            echo "or STAGING_FLY_API_TOKEN (+ vars STAGING_FLY_APP)."
+            exit 1
+          fi
+          echo "staging credentials present"
+
+      - name: Confirm staging is pointed at its own resources
+        run: |
+          url="${{ vars.STAGING_URL }}"
+          if [ -z "$url" ]; then
+            echo "::error::STAGING_URL variable is not set"; exit 1
+          fi
+          case "$url" in
+            *"${{ vars.PRODUCTION_URL }}")
+              echo "::error::STAGING_URL equals PRODUCTION_URL. Staging must be a"
+              echo "distinct environment; refuse to deploy."
+              exit 1 ;;
+          esac
+          echo "staging URL is distinct from production: $url"
+
+      - name: Resolve commit
+        id: sha
+        run: echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy to staging
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: staging
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify.outputs.sha }}
+
+      - name: Deploy to Render (staging)
+        if: ${{ secrets.STAGING_RENDER_API_KEY != '' }}
+        env:
+          KEY: ${{ secrets.STAGING_RENDER_API_KEY }}
+          SERVICE: ${{ vars.STAGING_RENDER_SERVICE_ID }}
+        run: |
+          [ -n "$SERVICE" ] || { echo "::error::STAGING_RENDER_SERVICE_ID missing"; exit 1; }
+          deploy_id=$(curl -sS -X POST \
+            "https://api.render.com/v1/services/$SERVICE/deploys" \
+            -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+            -d '{"clearCache":"clear"}' \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin).get("id",""))')
+          [ -n "$deploy_id" ] || { echo "::error::no deploy id returned"; exit 1; }
+          for i in $(seq 1 40); do
+            status=$(curl -sS -H "Authorization: Bearer $KEY" \
+              "https://api.render.com/v1/services/$SERVICE/deploys/$deploy_id" \
+              | python3 -c 'import json,sys; print(json.load(sys.stdin).get("deploy",{}).get("status",""))')
+            [ "$status" = "live" ] && break
+            [ "$status" = "build_failed" ] && { echo "::error::staging build failed"; exit 1; }
+            sleep 20
+          done
+
+      - name: Deploy to Fly.io (staging)
+        if: ${{ secrets.STAGING_FLY_API_TOKEN != '' }}
+        env:
+          TOKEN: ${{ secrets.STAGING_FLY_API_TOKEN }}
+          APP: ${{ vars.STAGING_FLY_APP }}
+        run: |
+          [ -n "$APP" ] || { echo "::error::STAGING_FLY_APP missing"; exit 1; }
+          curl -fsSL https://fly.io/install.sh | sh
+          fly auth token --access-token "$TOKEN"
+          fly deploy --app "$APP" --wait-timeout 600
+
+      - name: Smoke test staging
+        env:
+          URL: ${{ vars.STAGING_URL }}
+        run: |
+          [ -n "$URL" ] || { echo "::error::STAGING_URL not set"; exit 1; }
+          for i in $(seq 1 30); do
+            if [ "$(curl -s -o /dev/null -w '%{http_code}' "$URL/api/health")" = "200" ]; then
+              echo "staging healthy: $URL"; exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::staging never became healthy"; exit 1
+
+      - name: Record the deployed commit
+        if: always()
+        run: |
+          echo "Staging now runs ${{ needs.verify.outputs.sha }}" \
+            >> "$GITHUB_STEP_SUMMARY"

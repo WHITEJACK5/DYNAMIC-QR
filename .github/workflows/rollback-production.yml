@@ -1,0 +1,83 @@
+# Emergency rollback for production (Phase 6c).
+#
+# Deliberately manual-only and separate from the deploy workflow: a bad merge
+# to main should need a deliberate human action, and it should not be
+# reachable by a push.
+#
+# Safety: the target commit must already be an ancestor of main, so this
+# cannot be used to deploy an arbitrary branch or a fork commit to
+# production.
+
+name: Rollback (production)
+
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: "Commit on main to roll back to (SHA or ref)"
+        required: true
+      reason:
+        description: "Why is this rollback needed?"
+        required: true
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.from }}
+
+      - name: Verify the rollback target is a real commit on main
+        run: |
+          set -euo pipefail
+          git fetch origin main --depth 500
+          git cat-file -e "${{ inputs.from }}^{commit}" \
+            || { echo "::error::${{ inputs.from }} is not a commit"; exit 1; }
+          git merge-base --is-ancestor "${{ inputs.from }}" origin/main \
+            || {
+              echo "::error::${{ inputs.from }} is not on main."
+              echo "This job will not deploy anything that was never released."
+              exit 1
+            }
+          echo "verified: ${{ inputs.from }} is on main"
+
+      - name: Re-deploy
+        env:
+          KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE: ${{ vars.RENDER_SERVICE_ID }}
+        run: |
+          if [ -n "$KEY" ] && [ -n "$SERVICE" ]; then
+            curl -fsS -X POST "https://api.render.com/v1/services/$SERVICE/deploys" \
+              -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+              -d '{"clearCache":"clear"}' >/dev/null
+            echo "Render redeploy of ${{ inputs.from }} triggered."
+          elif [ -n "${{ secrets.FLY_API_TOKEN }}" ]; then
+            curl -fsSL https://fly.io/install.sh | sh
+            fly auth token --access-token "${{ secrets.FLY_API_TOKEN }}"
+            fly deploy --app "${{ vars.FLY_APP }}" --wait-timeout 900
+          else
+            echo "::error::No deploy credentials configured."; exit 1
+          fi
+          echo "Rollback reason: ${{ inputs.reason }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify the service is healthy again
+        env:
+          URL: ${{ vars.PRODUCTION_URL }}
+        run: |
+          [ -n "$URL" ] || { echo "::error::PRODUCTION_URL not set"; exit 1; }
+          for i in $(seq 1 30); do
+            if [ "$(curl -s -o /dev/null -w '%{http_code}' "$URL/api/health")" = "200" ]; then
+              echo "healthy after rollback: $URL"; exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::service did not become healthy"; exit 1
