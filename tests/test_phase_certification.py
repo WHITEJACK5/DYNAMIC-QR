@@ -25,7 +25,6 @@ import subprocess
 import sys
 
 import pytest
-import yaml
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP = os.path.join(HERE, "app")

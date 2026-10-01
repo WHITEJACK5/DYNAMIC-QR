@@ -130,7 +130,7 @@ def test_dump_restore_roundtrip_in_container(tmp_path):
     assert row == "survivor|https://example.com/keep-me|7"
 
     _admin()(f"DROP DATABASE IF EXISTS {restore_db}")
-    _admin()(f"DROP DATABASE IF EXISTS nare_backup_src")
+    _admin()(f"DROP DATABASE IF EXISTS nare_backup_src")  # noqa: F841
     subprocess.run(["docker", "exec", "nare-pg", "rm", "-f", dump_in_container], check=False)
 
 
