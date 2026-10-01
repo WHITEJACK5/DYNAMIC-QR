@@ -40,10 +40,41 @@ def _sql(url, statements, dbname="nare"):
     ).stdout.strip()
 
 
+def _admin():
+    """A connection to the 'postgres' maintenance database.
+
+    Needed to create and drop scratch databases. Separate statements, because
+    CREATE/DROP DATABASE cannot run inside a transaction block and psql -c
+    wraps multiple statements in one.
+    """
+    container = os.getenv("TEST_PG_CONTAINER", "nare-pg")
+
+    def run(statement):
+        return subprocess.run(
+            ["docker", "exec", "-i", container, "psql", "-U", "nare",
+             "-d", "postgres", "-tAc", statement],
+            check=True, capture_output=True, text=True,
+        ).stdout.strip()
+
+    return run
+
+
+def _scratch(name):
+    """Create an isolated database and return its URL.
+
+    The round trip used to seed the shared `nare` database, which only works
+    while nothing else is using it. With the compose stack running, the app
+    holds connections there and the DROP fails. Owning a scratch database
+    makes the test independent of whatever else is attached to the server.
+    """
+    run = _admin()
+    run(f"DROP DATABASE IF EXISTS {name}")
+    run(f"CREATE DATABASE {name}")
+    return _url_for(name)
+
+
 def _seed_statements():
     return [
-        "DROP TABLE IF EXISTS scans, qrcodes, folders, templates, users CASCADE",
-        "DROP TABLE IF EXISTS alembic_version",
         "CREATE TABLE users (id serial PRIMARY KEY, email text UNIQUE NOT NULL,"
         " password_hash text NOT NULL, name text, created_at text)",
         "CREATE TABLE qrcodes (id serial PRIMARY KEY, user_id integer REFERENCES users(id),"
@@ -66,12 +97,13 @@ def test_dump_restore_roundtrip_in_container(tmp_path):
     created tables the dump also contains. Restoring into a fresh database
     is also what disaster recovery actually looks like.
     """
-    _sql(PG_URL, _seed_statements())
-    assert _sql(PG_URL, ["SELECT count(*) FROM qrcodes"]) == "1"
+    source = _scratch("nare_backup_src")
+    _sql(source, _seed_statements())
+    assert _sql(source, ["SELECT count(*) FROM qrcodes"]) == "1"
 
     dump_in_container = "/tmp/nare-test.dump"
     subprocess.run(
-        ["docker", "exec", "nare-pg", "pg_dump", "-U", "nare", "-d", "nare", "-Fc",
+        ["docker", "exec", "nare-pg", "pg_dump", "-U", "nare", "-d", "nare_backup_src", "-Fc",
          "-f", dump_in_container],
         check=True, capture_output=True, text=True,
     )
@@ -83,8 +115,8 @@ def test_dump_restore_roundtrip_in_container(tmp_path):
 
     restore_db = "nare_backup_probe"
     # separate statements: CREATE DATABASE cannot run in a transaction block
-    _sql(PG_URL, [f"DROP DATABASE IF EXISTS {restore_db}"], dbname="postgres")
-    _sql(PG_URL, [f"CREATE DATABASE {restore_db}"], dbname="postgres")
+    _admin()(f"DROP DATABASE IF EXISTS {restore_db}")
+    _admin()(f"CREATE DATABASE {restore_db}")
 
     r = subprocess.run(
         ["docker", "exec", "nare-pg", "pg_restore", "-U", "nare", "-d", restore_db,
@@ -97,7 +129,8 @@ def test_dump_restore_roundtrip_in_container(tmp_path):
                ["SELECT name || '|' || content || '|' || scan_count FROM qrcodes"])
     assert row == "survivor|https://example.com/keep-me|7"
 
-    _sql(PG_URL, [f"DROP DATABASE IF EXISTS {restore_db}"], dbname="postgres")
+    _admin()(f"DROP DATABASE IF EXISTS {restore_db}")
+    _admin()(f"DROP DATABASE IF EXISTS nare_backup_src")
     subprocess.run(["docker", "exec", "nare-pg", "rm", "-f", dump_in_container], check=False)
 
 
