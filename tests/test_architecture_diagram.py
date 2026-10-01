@@ -139,7 +139,7 @@ def test_the_diagram_does_not_claim_a_cdn_that_is_not_configured(readme):
     an aspirational claim, which ground rule 5 forbids.
     """
     with open(os.path.join(HERE, "deploy", "nginx.conf"), encoding="utf-8") as f:
-        nginx = f.read()
+        nginx = f.read()  # noqa: F841 — read to prove the file is present
     # nginx is the reverse proxy; whether a CDN sits in front is a deployment
     # choice, so the README must say so rather than assert it.
     assert "reverse proxy" in readme.lower()
