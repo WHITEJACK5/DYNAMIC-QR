@@ -1,0 +1,39 @@
+# Keep the build context small and secret-free. Anything listed here cannot
+# end up in an image layer, which matters because a developer's .env or local
+# database would otherwise be baked into an image they push.
+.git
+.gitignore
+.github
+.claude
+
+# Secrets and local state — never in an image
+.env
+.env.*
+!.env.example
+data/
+uploads/
+backups/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.log
+
+# Python noise
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.venv/
+venv/
+
+# Tests, docs and load harness are not needed to run the service
+tests/
+loadtests/
+docs/
+*.md
+!README.md
+MANUAL.md

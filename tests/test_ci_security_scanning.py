@@ -116,19 +116,61 @@ def test_ground_rule_two_jobs_all_present(jobs):
         assert job in jobs, f"missing CI job: {job}"
 
 
-def test_build_job_is_labelled_as_a_placeholder(jobs):
+def test_ci_builds_the_docker_image(jobs):
     """
-    Ground rule 5: a compile check must not be presented as a build.
+    Ground rule 2 asks for a build/Docker build step.
 
-    Checked against the executed commands, not the prose: the workflow
-    explains in a comment that Phase 6a will add `docker build`, and
-    matching that comment would assert nothing.
+    This test previously asserted the OPPOSITE — that the build job was
+    still a placeholder — because the Dockerfile did not exist. Phase 6a
+    added it, so the assertion is inverted: the image must now be built, and
+    the compile check is no longer a substitute for it.
     """
+    assert "build" in jobs, "no build job"
+    uses = [s.get("uses", "") for s in jobs["build"]["steps"]]
     runs = "\n".join(s.get("run", "") for s in jobs["build"]["steps"])
-    assert "docker build" not in runs, \
-        "a Dockerfile exists after all, so the build job should run it"
-    assert "compileall" in runs, "the placeholder compile check is missing"
-    assert "Phase 6a replaces this" in _read(CI)
+    assert any("docker/build-push-action" in u for u in uses), \
+        "the build job does not build an image"
+    assert "wsgi" in runs, "the image's production entrypoint is not verified"
+    assert "/app/.env" in runs, \
+        "the image is not checked for a baked-in .env"
+    assert "compileall" not in runs, \
+        "a compile check is not a build; remove the placeholder"
+
+
+def test_ci_brings_up_the_compose_stack(jobs):
+    """
+    The directive's definition of done: a fresh clone comes up with
+    `docker compose up` and no manual steps beyond copying .env.example.
+    That is only proven if CI does it.
+    """
+    assert "docker-compose" in jobs, "no job brings up the compose stack"
+    runs = "\n".join(s.get("run", "") for s in jobs["docker-compose"]["steps"])
+    assert "cp .env.example .env" in runs, "CI does not start from a fresh clone"
+    assert "docker compose up" in runs
+    assert "/api/health" in runs, "the stack is not verified as serving"
+    assert "docker compose logs" in runs, "no logs on failure"
+    assert "docker compose down -v" in runs, "the stack is never torn down"
+
+
+def test_the_stack_is_proven_locally_not_just_in_ci():
+    """
+    tests/test_docker_stack.py drives the real journey against a running
+    stack. It has to exist, or 'docker compose up works' is a claim.
+    """
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "tests", "test_docker_stack.py")
+    assert os.path.isfile(path), "no test drives the containerised stack"
+    with open(path, encoding="utf-8") as f:
+        src = f.read()
+    assert "full_journey" in src, "the stack test has no end-to-end journey"
+
+
+def test_dockerfile_and_compose_exist():
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    assert os.path.isfile(os.path.join(root, "Dockerfile"))
+    assert os.path.isfile(os.path.join(root, "docker-compose.yml"))
+    assert os.path.isfile(os.path.join(root, ".dockerignore")), \
+        "without .dockerignore a developer's .env can be baked into an image"
 
 
 def test_postgres_legs_actually_run_in_ci(jobs):
