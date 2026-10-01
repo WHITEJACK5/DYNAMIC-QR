@@ -184,6 +184,8 @@ jobs:
       - name: Summarise
         if: always()
         run: |
-          echo "### Deployment ${{ needs.verify.outputs.sha }}"
-          echo "Target: ${{ needs.verify.outputs.target }}"
-          echo "URL: ${{ vars.PRODUCTION_URL }}"
+          {
+            echo "### Deployment ${{ needs.verify.outputs.sha }}"
+            echo "- Target: ${{ needs.verify.outputs.target }}"
+            echo "- URL: ${{ vars.PRODUCTION_URL }}"
+          } >> "$GITHUB_STEP_SUMMARY"

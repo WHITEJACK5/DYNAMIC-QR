@@ -1,0 +1,57 @@
+%% NARE & CO. — deployment architecture (Phase 6d)
+%%
+%% Rendered by GitHub directly from this file (Mermaid), so the diagram
+%% cannot drift from the text: it is the text. The directive asks for "an
+%% actual diagram (even a simple draw.io/Excalidraw export)" showing
+%% client -> CDN/reverse proxy -> app servers -> Postgres/Redis.
+%%
+%% Read it as: a request enters at the edge, is terminated at TLS, and only
+%% then reaches an app worker. Nothing talks to the database except the app
+%% and the worker. Secrets never appear in this diagram because they never
+%% appear in the repository.
+
+flowchart LR
+    subgraph client["Client"]
+        B["Browser / phone camera"]
+    end
+
+    subgraph edge["Edge"]
+        CDN["CDN<br/>static assets + TLS termination"]
+        LB["Reverse proxy<br/>nginx"]
+    end
+
+    subgraph app["App tier — containerised, horizontally scalable"]
+        W1["gunicorn worker<br/>wsgi:application"]
+        W2["gunicorn worker<br/>wsgi:application"]
+        J["RQ worker<br/>geo enrichment, bulk CSV"]
+    end
+
+    subgraph data["Data tier"]
+        PG[("PostgreSQL 16<br/>users · qrcodes · scans<br/>folders · templates")]
+        RD[("Redis 7<br/>rate limits · revocation<br/>job queue · cache")]
+        S3[("S3-compatible object storage<br/>logos")]
+    end
+
+    B -->|"HTTPS"| CDN
+    CDN -->|"proxy_pass"| LB
+    LB -->|"gunicorn"| W1
+    LB -->|"gunicorn"| W2
+
+    W1 -->|"SQLAlchemy"| PG
+    W2 -->|"SQLAlchemy"| PG
+    W1 -->|"cache / rate limit"| RD
+    W2 -->|"cache / rate limit"| RD
+    W1 -->|"put_object"| S3
+
+    J -->|"SQLAlchemy"| PG
+    J -->|"enqueue / dequeue"| RD
+
+    classDef client fill:#0A0A0A,stroke:#00FF88,color:#fff
+    classDef edge fill:#111,stroke:#555,color:#eee
+    classDef app fill:#1a1a2e,stroke:#00FF88,color:#eee
+    classDef data fill:#0d1b2a,stroke:#4a9eff,color:#eee
+
+    class B client
+    class CDN,LB edge
+    class W1,W2,J app
+    class PG,RD,S3 data

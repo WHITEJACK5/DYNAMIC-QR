@@ -377,6 +377,81 @@ BASE_URL=http://127.0.0.1:8000 CODE=abc12345 k6 run loadtests/redirect.js
 QUICK=1 … k6 run loadtests/redirect.js   # light profile for CI
 ```
 
+## Deployment architecture
+
+```mermaid
+%% Rendered by GitHub from docs/architecture.mmd. The diagram is the text,
+%% so it cannot drift from what the code actually does.
+flowchart LR
+    subgraph client["Client"]
+        B["Browser / phone camera"]
+    end
+    subgraph edge["Edge"]
+        CDN["CDN<br/>static assets + TLS termination"]
+        LB["Reverse proxy<br/>nginx"]
+    end
+    subgraph app["App tier — containerised, horizontally scalable"]
+        W1["gunicorn worker<br/>wsgi:application"]
+        W2["gunicorn worker<br/>wsgi:application"]
+        J["RQ worker<br/>geo enrichment, bulk CSV"]
+    end
+    subgraph data["Data tier"]
+        PG[("PostgreSQL 16<br/>users · qrcodes · scans<br/>folders · templates")]
+        RD[("Redis 7<br/>rate limits · revocation<br/>job queue · cache")]
+        S3[("S3-compatible object storage<br/>logos")]
+    end
+    B -->|"HTTPS"| CDN
+    CDN -->|"proxy_pass"| LB
+    LB -->|"gunicorn"| W1
+    LB -->|"gunicorn"| W2
+    W1 -->|"SQLAlchemy"| PG
+    W2 -->|"SQLAlchemy"| PG
+    W1 -->|"cache / rate limit"| RD
+    W2 -->|"cache / rate limit"| RD
+    W1 -->|"put_object"| S3
+    J -->|"SQLAlchemy"| PG
+    J -->|"enqueue / dequeue"| RD
+    classDef client fill:#0A0A0A,stroke:#00FF88,color:#fff
+    classDef edge fill:#111,stroke:#555,color:#eee
+    classDef app fill:#1a1a2e,stroke:#00FF88,color:#eee
+    classDef data fill:#0d1b2a,stroke:#4a9eff,color:#eee
+    class B client
+    class CDN,LB edge
+    class W1,W2,J app
+    class PG,RD,S3 data
+```
+
+The source of truth is [`docs/architecture.mmd`](docs/architecture.mmd) —
+GitHub renders it from there, so the diagram is reviewable text and cannot
+silently drift from the code.
+
+**What each hop is for, and what it is not:**
+
+| Hop | Why it exists |
+|---|---|
+| Client → CDN | TLS termination and static asset caching at the edge, so the app tier never serves a static file or negotiates TLS |
+| CDN → nginx | `deploy/nginx.conf` is the only thing that talks to gunicorn. It sets `X-Forwarded-Proto`, which `app/security.py` reads to decide whether to send HSTS |
+| nginx → gunicorn | `wsgi:application` is the production entrypoint. `app.run()` is dev-only and is never the container CMD |
+| app → PostgreSQL | SQLAlchemy with a bounded pool (`pool_pre_ping`, dialect-specific sizing) |
+| app → Redis | Rate limiting, token revocation, the job queue and the read-through cache — one store, shared across workers |
+| app → S3 | Logos only. Local disk is not the system of record (Phase 3d) |
+| RQ worker → Postgres/Redis | Background jobs (geo-IP enrichment, bulk CSV) run outside the request path so they cannot delay a redirect |
+
+**Secrets are deliberately absent from this diagram.** They are not in the
+repository, not in the image, and not in compose — they arrive from the
+host's secret store as environment variables. See [Secrets](#secrets).
+
+**Local development** uses the same topology with one command:
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+which brings up app + PostgreSQL + Redis + the RQ worker. See
+[Tests and coverage](#tests-and-coverage) for the suite that drives the
+running stack end to end.
+
 ## Design System
 
 - Grid White: `#F8F9FA` + `#E9ECEF` 32px
