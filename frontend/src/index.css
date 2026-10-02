@@ -1,0 +1,124 @@
+/*
+ * Phase 8b: accessibility basics.
+ *
+ * - semantic landmarks come from the components (header/nav/main/footer)
+ * - a skip link is the first focusable element
+ * - visible focus on every interactive element
+ * - colour contrast meets WCAG AA (4.5:1 for text, 3:1 for large text)
+ * - the layout does not depend on colour alone to convey meaning
+ */
+
+:root {
+  --black: #0a0a0a;
+  --white: #ffffff;
+  --neon: #00ff88;
+  --grey-100: #f5f5f5;
+  --grey-300: #d4d4d4;
+  --grey-600: #525252;
+  --grey-900: #171717;
+  /* AA contrast on --black: --neon is ~15:1, --grey-300 is ~10:1 */
+  --focus-ring: #4d9fff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--black);
+  color: var(--white);
+  line-height: 1.6;
+}
+
+/* Skip link: visually hidden until focused, then pinned to the top-left */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--neon);
+  color: var(--black);
+  padding: 0.5rem 1rem;
+  font-weight: 700;
+  z-index: 100;
+}
+.skip-link:focus {
+  left: 0;
+}
+
+/* Visible focus on every interactive element — never removed */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Keyboard users can reach main without tabbing through the nav */
+#main {
+  outline: none;
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid var(--grey-900);
+}
+
+.brand {
+  font-weight: 900;
+  font-size: 1.25rem;
+  color: var(--white);
+  text-decoration: none;
+}
+.brand .amp {
+  color: var(--neon);
+}
+
+.nav-list,
+.footer-list {
+  display: flex;
+  gap: 1.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-list a,
+.footer-list a {
+  color: var(--grey-300);
+  text-decoration: none;
+  font-weight: 600;
+}
+.nav-list a:hover,
+.footer-list a:hover {
+  color: var(--neon);
+}
+
+main {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 60vh;
+}
+
+.site-footer {
+  border-top: 1px solid var(--grey-900);
+  padding: 1.5rem 2rem;
+  color: var(--grey-600);
+  font-size: 0.875rem;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

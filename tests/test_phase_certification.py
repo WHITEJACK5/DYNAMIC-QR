@@ -438,6 +438,80 @@ class TestPhase6:
             assert hop in readme, f"the README does not explain {hop}"
 
 
+# ==================================================================== PHASE 8
+# "Frontend"
+class TestPhase8:
+    def test_8_1_react_typescript_rebuild(self):
+        """'Rebuild the frontend in React + TypeScript'"""
+        assert _exists("frontend/package.json")
+        pkg = _read(os.path.join("frontend", "package.json"))
+        assert '"react"' in pkg and '"typescript"' in pkg and '"vite"' in pkg
+        # the old raw HTML/JS is gone
+        assert not _exists(os.path.join("frontend", "static", "js", "app.js"))
+        assert not _exists(os.path.join("frontend", "static", "js", "session.js"))
+
+    def test_8_1_shared_chrome_is_componentized(self):
+        """'Component-ize the shared header/nav/footer'"""
+        chrome = _read(os.path.join("frontend", "src", "components", "chrome.tsx"))
+        for c in ("Header", "Nav", "Footer"):
+            assert f"export function {c}" in chrome
+        app = _read(os.path.join("frontend", "src", "App.tsx"))
+        assert "<Header" in app and "<Footer" in app
+
+    def test_8_2_accessibility_basics(self):
+        """'semantic HTML, ARIA labels, keyboard navigation, WCAG AA'"""
+        chrome = _read(os.path.join("frontend", "src", "components", "chrome.tsx"))
+        for landmark in ("<header", "<nav", "<footer"):
+            assert landmark in chrome
+        assert re.search(r'<nav\s+aria-label', chrome)
+        assert "skip-link" in chrome
+        css = _read(os.path.join("frontend", "src", "index.css"))
+        assert ":focus-visible" in css
+        assert "prefers-reduced-motion" in css
+
+    def test_8_3_build_pipeline_with_lint_and_format(self):
+        """'a build pipeline (Vite) with linting (ESLint) and formatting (Prettier)
+        enforced in CI'"""
+        assert _exists(os.path.join("frontend", "vite.config.ts"))
+        assert _exists(os.path.join("frontend", ".eslintrc.cjs"))
+        assert _exists(os.path.join("frontend", ".prettierrc"))
+        ci = _read(os.path.join(WF, "frontend.yml"))
+        assert "npm run lint" in ci
+        assert "format:check" in ci
+        assert "tsc" in ci
+
+    def test_8_4_lighthouse_ci_with_a_threshold(self):
+        """'Lighthouse CI in the pipeline with a score threshold that fails the
+        build if regressed'"""
+        assert _exists(os.path.join("frontend", "lighthouserc.json"))
+        cfg = _read(os.path.join("frontend", "lighthouserc.json"))
+        assert "categories:accessibility" in cfg
+        assert '"error"' in cfg
+        ci = _read(os.path.join(WF, "frontend.yml"))
+        assert "lhci" in ci
+
+    def test_8_the_frontend_actually_builds(self):
+        """
+        The one end-to-end check. Skipped without node/npm, and reported as a
+        skip rather than a pass.
+        """
+        frontend = os.path.join(HERE, "frontend")
+        try:
+            node = subprocess.run(["node", "--version"], capture_output=True,
+                                  text=True, timeout=30)
+        except FileNotFoundError:
+            pytest.skip("node is not installed")
+        if node.returncode != 0:
+            pytest.skip("node is not installed")
+        try:
+            r = subprocess.run(["npm", "run", "build"], cwd=frontend,
+                               capture_output=True, text=True, timeout=900)
+        except FileNotFoundError:
+            pytest.skip("npm is not installed")
+        assert r.returncode == 0, f"the frontend does not build:\n{r.stdout[-1500:]}"
+        assert os.path.isfile(os.path.join(frontend, "dist", "index.html"))
+
+
 # ============================================================ cross-cutting rules
 class TestGroundRules:
     def test_ground_rule_2_ci_runs_a_docker_build(self):
