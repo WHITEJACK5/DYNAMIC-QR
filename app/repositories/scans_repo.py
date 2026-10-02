@@ -41,7 +41,7 @@ def record_scan(s, qr_id, timestamp, ip, user_agent, device, browser, os_name):
         s.commit()
         return scan.id
     except Exception as e:
-        logger.exception(f"Scan track failed: {e}")
+        logger.exception("Scan track failed: %s", e)
         try:
             s.rollback()
         except Exception:  # nosec B110
@@ -58,7 +58,7 @@ def update_geo(s, scan_id, country, city):
             scan.city = city
             s.commit()
     except Exception as e:
-        logger.warning(f"Geo update failed for scan {scan_id}: {e}")
+        logger.warning("Geo update failed for scan %s: %s", scan_id, e)
 
 
 def _owned_scan_ids(s, user_id):

@@ -73,13 +73,13 @@ def catch_all(path):
         requested = os.path.abspath(os.path.join(frontend_abs, path))
         # Block traversal
         if not requested.startswith(frontend_abs + os.sep) and requested != frontend_abs:
-            logger.warning(f"Blocked traversal attempt: {path}")
+            logger.warning("Blocked traversal attempt: %s", path)
             abort(404)
         if os.path.isfile(requested):
             # Use send_from_directory which handles safe serving
             return send_from_directory(frontend_abs, os.path.relpath(requested, frontend_abs))
     except Exception as e:
-        logger.warning(f"Catch-all error for {path}: {e}")
+        logger.warning("Catch-all error for %s: %s", path, e)
     # fallback to index for SPA
     idx = os.path.join(APP_DIR, "frontend", "index.html")
     if os.path.exists(idx):

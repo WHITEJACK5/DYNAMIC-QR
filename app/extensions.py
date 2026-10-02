@@ -7,6 +7,7 @@ app.routes.* and re-exported by server.py, which stays the composition root.
 Deliberately does NOT own DB_PATH or init_db(): those stay in server.py so the
 runtime DB location is chosen in exactly one place.
 """
+import time
 from functools import wraps
 
 from flask import Flask, g, jsonify, request
@@ -54,6 +55,30 @@ def security_headers(resp):
     """Phase 4b: CSP, nosniff, DENY framing, HSTS over HTTPS, no-referrer."""
     return _security.apply_security_headers(resp)
 
+
+@app.before_request
+def _start_timer():
+    """Phase 7d: record when the request began, for the latency histogram."""
+    g._nare_started = time.time()
+
+
+@app.after_request
+def record_metrics(resp):
+    """Phase 7d: request count, latency and error rate per route."""
+    try:
+        from flask import request as _req
+        from app import metrics
+
+        # the route template, not the raw path — a raw path would create a
+        # label per QR id and grow without bound
+        rule = _req.url_rule.rule if _req.url_rule else "unmatched"
+        started = getattr(g, "_nare_started", None)
+        duration = (time.time() - started) if started else 0.0
+        metrics.observe(rule, _req.method, str(resp.status_code), duration)
+    except Exception:
+        pass  # metrics must never take a request down
+    return resp
+
 # Rate limiting (Phase 2f): Flask-Limiter, Redis-backed when REDIS_URL is set
 # and in-memory otherwise. Limits are attached per view via rate_limit().
 limiter = build_limiter(app)
@@ -67,7 +92,7 @@ class LimiterReset:
         try:
             limiter.reset()
         except Exception as e:  # pragma: no cover - defensive
-            logger.warning(f"limiter reset failed: {e}")
+            logger.warning("limiter reset failed: %s", e)
 
 
 rate_store = LimiterReset()
@@ -112,7 +137,7 @@ def token_required(f):
         except Exception as e:  # expired and invalid share one path
             if e.__class__.__name__ == "ExpiredSignatureError":
                 return jsonify({"error": "Token expired"}), 401
-            logger.warning(f"Invalid token: {e}")
+            logger.warning("Invalid token: %s", e)
             return jsonify({"error": "Invalid token"}), 401
         # Phase 4c: a valid signature is not enough — a revoked token must
         # stop working before its natural expiry.

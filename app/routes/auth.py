@@ -46,11 +46,12 @@ def register():
         # static QRs but not dynamic ones.
         sent, _raw = _issue_verification(s, email, get_base_url(request))
         s.close()
-        logger.info(f"New user registered: {email}")
+        logger.info("New user registered: %s", email)
         if not sent:
             logger.warning(
                 "Registration succeeded but the verification email was not "
-                f"delivered for {email}; account is unverified until it is sent"
+                "delivered for %s; account is unverified until it is sent",
+                email,
             )
         # "token" kept alongside the explicit names so existing clients and
         # the frontend keep working; it is the 15-minute access token.
@@ -60,7 +61,7 @@ def register():
                         "verification_email_sent": sent,
                         "user":{"id":uid,"email":email,"name":name}})
     except Exception as e:
-        logger.exception(f"Register error for {email}: {e}")
+        logger.exception("Register error for %s: %s", email, e)
         try:
             s.close()
         except Exception:
@@ -81,7 +82,7 @@ def login():
     row = users_repo.find_by_email(s, email)
     s.close()
     if not row or not check_password_hash(row["password_hash"], password):
-        logger.warning(f"Failed login attempt for {email} from {request.remote_addr}")
+        logger.warning("Failed login attempt for %s from %s", email, request.remote_addr)
         return jsonify({"error":"Invalid credentials"}), 401
     # Check 2FA
     if row["twofa_enabled"]:
@@ -89,7 +90,7 @@ def login():
         temp_token = _tokens.mint_temp_token(row["id"], email, JWT_SECRET, JWT_ALGO)
         return jsonify({"need_2fa": True, "temp_token": temp_token, "message": "2FA required"})
     token, refresh = _tokens.mint_pair(row["id"], email, JWT_SECRET, JWT_ALGO)
-    logger.info(f"User login: {email}")
+    logger.info("User login: %s", email)
     return jsonify({"token":token,"access_token":token,"refresh_token":refresh,
                     "expires_in":_tokens.ACCESS_MINUTES * 60,
                     "user":{"id":row["id"],"email":email,"name":row["name"]}})
@@ -147,7 +148,7 @@ def verify_email():
         users_repo.mark_email_verified(s, email)
     finally:
         s.close()
-    logger.info(f"Email verified: {email}")
+    logger.info("Email verified: %s", email)
     return jsonify({"status": "verified", "email": email})
 
 
@@ -182,7 +183,7 @@ def resend_verification():
             "unverified until SMTP is configured or the user retries", req.email
         )
     else:
-        logger.info(f"Verification email re-sent to {req.email}")
+        logger.info("Verification email re-sent to %s", req.email)
     return jsonify(neutral), 202
 
 
@@ -204,7 +205,7 @@ def refresh_tokens():
     except Exception as e:
         if e.__class__.__name__ == "ExpiredSignatureError":
             return jsonify({"error": "Refresh token expired"}), 401
-        logger.warning(f"Invalid refresh token: {e}")
+        logger.warning("Invalid refresh token: %s", e)
         return jsonify({"error": "Invalid refresh token"}), 401
     # An access token must not work here: that would let a 15-minute token
     # mint itself a 30-day refresh token.
@@ -272,8 +273,8 @@ def forgot_password():
     users_repo.set_reset_token(s, email, generate_password_hash(reset_token), expires)
     s.close()
     # For personal use, log token (in real app, email it)
-    logger.info(f"Password reset token for {email}: {reset_token} (expires {expires})")
-    print(f"[NARE & CO.] Password reset for {email}: token={reset_token} expires {expires}")
+    logger.info("Password reset token for %s: %s (expires %s)", email, reset_token, expires)
+    logger.info("[NARE & CO.] Password reset for %s: token=%s expires %s", email, reset_token, expires)
     # Return token directly for personal local use (so user can see it)
     return jsonify({"message":"Reset token generated (see server logs).","reset_token": reset_token, "expires": expires}), 200
 
@@ -303,7 +304,7 @@ def reset_password():
         return jsonify({"error":"Invalid token"}), 400
     users_repo.complete_reset(s, email, generate_password_hash(new_pwd))
     s.close()
-    logger.info(f"Password reset successful for {email}")
+    logger.info("Password reset successful for %s", email)
     return jsonify({"message":"Password updated"}), 200
 
 # 2FA endpoints
@@ -332,7 +333,7 @@ def setup_2fa():
     except ImportError:
         return jsonify({"error":"2FA not available (pyotp not installed)"}), 500
     except Exception as e:
-        logger.exception(f"2FA setup failed: {e}")
+        logger.exception("2FA setup failed: %s", e)
         return jsonify({"error":"2FA setup failed"}), 500
 
 
@@ -356,12 +357,12 @@ def verify_2fa_setup():
         if totp.verify(code, valid_window=1):
             users_repo.set_2fa_enabled(s, g.user_id, True)
             s.close()
-            logger.info(f"2FA enabled for user {g.user_id}")
+            logger.info("2FA enabled for user %s", g.user_id)
             return jsonify({"message":"2FA enabled"})
         s.close()
         return jsonify({"error":"Invalid code"}), 400
     except Exception as e:
-        logger.exception(f"2FA verify failed: {e}")
+        logger.exception("2FA verify failed: %s", e)
         return jsonify({"error":"Verify failed"}), 500
 
 
@@ -384,7 +385,7 @@ def disable_2fa():
                 s.close()
                 return jsonify({"error":"Invalid code"}), 400
         except Exception as e:
-            logger.warning(f"2FA disable verify failed: {e}")
+            logger.warning("2FA disable verify failed: %s", e)
             s.close()
             return jsonify({"error":"Invalid code"}), 400
     users_repo.clear_2fa(s, g.user_id)
@@ -423,7 +424,7 @@ def login_2fa_verify():
     except jwt.ExpiredSignatureError:
         return jsonify({"error":"Temp token expired"}), 401
     except Exception as e:
-        logger.warning(f"2FA login verify failed: {e}")
+        logger.warning("2FA login verify failed: %s", e)
         return jsonify({"error":"Verify failed"}), 401
 
 

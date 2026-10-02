@@ -27,7 +27,7 @@ def build_gs1_content(data):
                 path = "/".join([f"{ai}/{val.strip()}" for ai, val in parts])
                 return f"https://id.gs1.org/{path}"
         except Exception as e:
-            logger.warning(f"GS1 parse failed: {e}")
+            logger.warning("GS1 parse failed: %s", e)
         return gtin
     # if gtin is plain 8/12/13/14 digits
     gtin_digits = re.sub(r"\D", "", gtin)
@@ -123,5 +123,5 @@ def build_qr_content(qr_type, data):
         else:
             return d.get("url") or d.get("content") or d.get("text") or json.dumps(d)
     except Exception as e:
-        logger.warning(f"build_qr_content error for {qr_type}: {e}")
+        logger.warning("build_qr_content error for %s: %s", qr_type, e)
         return str(data)

@@ -77,11 +77,11 @@ def send(to, subject, body):
             if user and password:
                 s.login(user, password)
             s.send_message(msg)
-        logger.info(f"Email sent to {to}: {subject}")
+        logger.info("Email sent to %s: %s", to, subject)
         return True
     except Exception as e:
         # Never log the password or the body; the body carries a live token.
-        logger.error(f"Email delivery to {to} failed: {e}")
+        logger.error("Email delivery to %s failed: %s", to, e)
         return False
 
 

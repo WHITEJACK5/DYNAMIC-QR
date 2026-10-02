@@ -59,15 +59,13 @@ def _live_rules():
     return rules
 
 
-#: Rules that are not part of the JSON API contract, and why. Listing them
+#: Rules that are not part of the JSON API contract, and why. Listed
 #: explicitly is better than a prefix filter that silently skips something.
-#: `/`  /dashboard /pricing /api-docs /manual /MANUAL.md  — HTML pages
-#: /frontend/<path>  and /<path>                          — static assets
-#: /r/<code>                                             — a 30x, not JSON
-NON_API_PREFIXES = ("/dashboard", "/pricing", "/api-docs", "/manual",
-                    "/MANUAL.md", "/frontend/", "/r/")
-NON_API_EXACT = {"/", "/MANUAL.md", "/api-docs", "/manual", "/r/<code>",
-                 "/<path:path>"}
+#: These are in NORMALISED form (no leading slash), matching normalise().
+NON_API_PREFIXES = ("dashboard", "pricing", "api-docs", "manual",
+                    "MANUAL.md", "frontend/", "r/")
+NON_API_EXACT = {"", "MANUAL.md", "api-docs", "manual", "r/<code>",
+                 "<path:path>"}
 
 
 def _is_api_rule(rule: str) -> bool:

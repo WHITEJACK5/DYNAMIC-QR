@@ -104,7 +104,7 @@ class S3LogoStore:
             self.client.put_object(Bucket=self.bucket, Key=key, Body=data)
             return f"{S3_PREFIX}{self.bucket}/{key}"
         except Exception as e:
-            logger.error(f"S3 put_object failed for bucket {self.bucket}: {e}")
+            logger.error("S3 put_object failed for bucket %s: %s", self.bucket, e)
             raise StorageUnavailable(f"object storage write failed: {e}") from e
 
     def load(self, ref: str) -> bytes:
@@ -112,14 +112,14 @@ class S3LogoStore:
             obj = self.client.get_object(Bucket=self.bucket, Key=self._key(ref))
             return obj["Body"].read()
         except Exception as e:
-            logger.error(f"S3 get_object failed for {ref}: {e}")
+            logger.error("S3 get_object failed for %s: %s", ref, e)
             raise StorageUnavailable(f"object storage read failed: {e}") from e
 
     def delete(self, ref: str) -> None:
         try:
             self.client.delete_object(Bucket=self.bucket, Key=self._key(ref))
         except Exception as e:
-            logger.error(f"S3 delete_object failed for {ref}: {e}")
+            logger.error("S3 delete_object failed for %s: %s", ref, e)
             raise StorageUnavailable(f"object storage delete failed: {e}") from e
 
 
@@ -189,5 +189,5 @@ def load_logo_image(ref: str):
     try:
         return Image.open(io.BytesIO(load_logo(ref))).convert("RGBA")
     except Exception as e:
-        logger.warning(f"logo image decode failed for {ref}: {e}")
+        logger.warning("logo image decode failed for %s: %s", ref, e)
         return None

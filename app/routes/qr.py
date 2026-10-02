@@ -88,18 +88,18 @@ def generate():
                     im = Image.open(io.BytesIO(img_data))
                     im.verify()
                     if im.format not in ("PNG","JPEG","JPG","WEBP","SVG"):
-                        logger.warning(f"Logo format not allowed: {im.format}")
+                        logger.warning("Logo format not allowed: %s", im.format)
                 except Exception as e:
-                    logger.warning(f"Logo validation failed: {e}")
+                    logger.warning("Logo validation failed: %s", e)
                     raise
                 logo_ref_tmp = _storage.save_logo(img_data)
             except (_storage.StorageNotConfigured, _storage.StorageUnavailable) as e:
                 # Object storage is unavailable: say so instead of 500 or,
                 # worse, quietly writing the logo to ephemeral local disk.
-                logger.error(f"Logo storage unavailable: {e}")
+                logger.error("Logo storage unavailable: %s", e)
                 return jsonify({"error": str(e)}), 503
             except Exception as e:
-                logger.warning(f"Logo b64 processing failed: {e}")
+                logger.warning("Logo b64 processing failed: %s", e)
                 logo_ref_tmp = None
         else:
             logo_ref_tmp = None
@@ -117,12 +117,12 @@ def generate():
             im = Image.open(io.BytesIO(logo_bytes))
             im.verify()
         except Exception as e:
-            logger.warning(f"Logo file validation failed: {e}")
+            logger.warning("Logo file validation failed: %s", e)
             return jsonify({"error":"Invalid image file"}), 400
         try:
             logo_path = _storage.save_logo(logo_bytes, ext)
         except _storage.StorageNotConfigured as e:
-            logger.error(f"Logo storage not configured: {e}")
+            logger.error("Logo storage not configured: %s", e)
             return jsonify({"error": str(e)}), 503
         except _storage.StorageUnavailable:
             logger.error("Logo storage unavailable")
@@ -201,7 +201,7 @@ def generate():
                     expiry_date=expiry_date, scan_limit=scan_limit)
             except sqlalchemy.exc.IntegrityError as e:
                 s.rollback()
-                logger.warning(f"Short code collision, retry: {e}")
+                logger.warning("Short code collision, retry: %s", e)
                 # Retry once with new code if dynamic
                 if is_dynamic:
                     short_code = generate_short_code(8)
@@ -232,7 +232,7 @@ def generate():
             "type": qr_type
         })
     except Exception as e:
-        logger.exception(f"Generate failed: {e}")
+        logger.exception("Generate failed: %s", e)
         return jsonify({"error": "Generation failed"}), 500
 
 
@@ -272,12 +272,12 @@ def preview():
                 im = Image.open(io.BytesIO(img_data))
                 im.verify()
             except Exception as e:
-                logger.warning(f"Preview logo invalid: {e}")
+                logger.warning("Preview logo invalid: %s", e)
                 return jsonify({"error":"Invalid logo image"}), 400
             # Preview logos are never persisted — bytes go straight to the renderer
             logo_bytes = img_data
         except Exception as e:
-            logger.warning(f"Preview logo decode failed: {e}")
+            logger.warning("Preview logo decode failed: %s", e)
             return jsonify({"error":"Invalid logo"}), 400
     try:
         img = create_qr_image(content, fg, bg, pat, eye, grad, logo_path, frame, fcol, size=800, logo_bytes=logo_bytes)
@@ -288,7 +288,7 @@ def preview():
         _resp.headers["X-Cache"] = "MISS"
         return _resp
     except Exception as e:
-        logger.exception(f"Preview failed: {e}")
+        logger.exception("Preview failed: %s", e)
         return jsonify({"error":"Preview failed"}), 500
 
 
@@ -360,7 +360,7 @@ def update_qrcode(qr_id):
     try:
         updated = qr_repo.apply_update(s, qr_id, g.user_id, body)
     except Exception as e:
-        logger.exception(f"Update failed for {qr_id}: {e}")
+        logger.exception("Update failed for %s: %s", qr_id, e)
         s.close()
         return jsonify({"error":"Update failed"}), 500
     s.close()
@@ -375,13 +375,13 @@ def delete_qrcode(qr_id):
     try:
         found = qr_repo.delete_owned(s, qr_id, g.user_id)
     except Exception as e:
-        logger.exception(f"Delete failed: {e}")
+        logger.exception("Delete failed: %s", e)
         s.close()
         return jsonify({"error":"Delete failed"}), 500
     s.close()
     if not found:
         return jsonify({"error":"Not found"}),404
-    logger.info(f"QR {qr_id} deleted by user {g.user_id}")
+    logger.info("QR %s deleted by user %s", qr_id, g.user_id)
     return jsonify({"success":True})
 
 
@@ -400,7 +400,7 @@ def bulk_generate():
     try:
         data=file.read().decode('utf-8')
     except Exception as e:
-        logger.exception(f"Bulk failed: {e}")
+        logger.exception("Bulk failed: %s", e)
         return jsonify({"error":"Bulk failed"}),500
     lines=[l.strip() for l in data.splitlines() if l.strip()]
     header=lines[0].lower() if lines else ""
@@ -428,17 +428,17 @@ def bulk_generate():
             )
             return jsonify({"job_id": job.id, "status_url": f"/api/v1/qrcodes/bulk/{job.id}"}), 202
         except Exception as e:
-            logger.warning(f"Bulk enqueue failed, inline fallback: {e}")
+            logger.warning("Bulk enqueue failed, inline fallback: %s", e)
     try:
         s=get_session()
         try:
             created = _bulk_insert_rows(s, g.user_id, rows, typ, fg, bg, get_base_url(request))
         finally:
             s.close()
-        logger.info(f"Bulk generated {len(created)} for user {g.user_id}")
+        logger.info("Bulk generated %s for user %s", len(created), g.user_id)
         return jsonify({"created":created, "count":len(created)})
     except Exception as e:
-        logger.exception(f"Bulk failed: {e}")
+        logger.exception("Bulk failed: %s", e)
         return jsonify({"error":"Bulk failed"}),500
 
 
@@ -457,11 +457,11 @@ def _bulk_insert_rows(s, user_id, rows, typ, fg, bg, base_url):
             created.append({"name":name,"url":url,"short_code":short,"qr_url":f"{base_url}/r/{short}"})
         except sqlalchemy.exc.IntegrityError as e:
             s.rollback()
-            logger.warning(f"Bulk insert collision for {url}: {e}")
+            logger.warning("Bulk insert collision for %s: %s", url, e)
             continue
         except Exception as e:
             s.rollback()
-            logger.warning(f"Bulk insert failed for {url}: {e}")
+            logger.warning("Bulk insert failed for %s: %s", url, e)
             continue
         if len(created) >= 3000:
             break
@@ -474,7 +474,7 @@ def _bulk_job(user_id, rows, typ, fg, bg, base_url):
     s = get_session()
     try:
         created = _bulk_insert_rows(s, user_id, rows, typ, fg, bg, base_url)
-        logger.info(f"Bulk job generated {len(created)} for user {user_id}")
+        logger.info("Bulk job generated %s for user %s", len(created), user_id)
         return {"created": created, "count": len(created)}
     finally:
         s.close()
@@ -537,7 +537,7 @@ def download_qr(qr_id):
             buf = BytesIO(svg_text.encode())
             return send_file(buf, mimetype="image/svg+xml", as_attachment=True, download_name=f"nare-co-{qr_id}.svg")
         except Exception as e:
-            logger.exception(f"SVG download failed: {e}")
+            logger.exception("SVG download failed: %s", e)
             return jsonify({"error":"SVG generation failed"}), 500
     elif fmt=="pdf":
         # Use top-level imported reportlab
@@ -565,7 +565,7 @@ def download_qr(qr_id):
             pdf_buf.seek(0)
             return send_file(pdf_buf, mimetype="application/pdf", as_attachment=True, download_name=f"nare-co-{qr_id}.pdf")
         except Exception as e:
-            logger.exception(f"PDF generation failed: {e}")
+            logger.exception("PDF generation failed: %s", e)
             return jsonify({"error":"PDF failed"}), 500
     else:
         try:
@@ -575,7 +575,7 @@ def download_qr(qr_id):
             buf.seek(0)
             return send_file(buf, mimetype="image/png", as_attachment=True, download_name=f"nare-co-{qr_id}.png")
         except Exception as e:
-            logger.exception(f"PNG download failed: {e}")
+            logger.exception("PNG download failed: %s", e)
             return jsonify({"error":"PNG failed"}), 500
 
 
@@ -587,7 +587,7 @@ def duplicate(qr_id):
     try:
         nid = qr_repo.duplicate_owned(s, qr_id, g.user_id)
     except Exception as e:
-        logger.exception(f"Duplicate failed: {e}")
+        logger.exception("Duplicate failed: %s", e)
         s.close()
         return jsonify({"error":"Duplicate failed"}), 500
     s.close()

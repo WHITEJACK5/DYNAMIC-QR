@@ -38,7 +38,7 @@ def get_redis():
         _redis_client = client
         return client
     except Exception as e:
-        logger.warning(f"Cache Redis unavailable, memory fallback: {e}")
+        logger.warning("Cache Redis unavailable, memory fallback: %s", e)
         return None
 
 
@@ -54,7 +54,7 @@ def cache_get(key):
             val = client.get(key)
             return val.decode() if isinstance(val, bytes) else val
         except Exception as e:
-            logger.warning(f"Cache Redis get failed: {e}")
+            logger.warning("Cache Redis get failed: %s", e)
     item = _mem.get(key)
     if item is None:
         return None
@@ -71,7 +71,7 @@ def cache_set(key, value, ttl):
         try:
             client.setex(key, int(ttl), value)
         except Exception as e:
-            logger.warning(f"Cache Redis set failed: {e}")
+            logger.warning("Cache Redis set failed: %s", e)
     _mem[key] = (value, time.time() + ttl)
 
 
@@ -81,5 +81,5 @@ def cache_delete(key):
         try:
             client.delete(key)
         except Exception as e:
-            logger.warning(f"Cache Redis delete failed: {e}")
+            logger.warning("Cache Redis delete failed: %s", e)
     _mem.pop(key, None)

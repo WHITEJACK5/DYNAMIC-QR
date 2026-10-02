@@ -105,7 +105,7 @@ def decide(row, password_attempt, user_agent="", accept_language="", now=None):
             if now > datetime.datetime.fromisoformat(row["expiry_date"]):
                 return {"action": "gone", "message": "This QR has expired"}
         except Exception as e:
-            logger.warning(f"Expiry parse failed: {e}")
+            logger.warning("Expiry parse failed: %s", e)
     if row.get("scan_limit") and (row.get("scan_count") or 0) >= row["scan_limit"]:
         return {"action": "gone", "message": "Scan limit reached"}
     if row.get("has_password"):
@@ -118,5 +118,5 @@ def decide(row, password_attempt, user_agent="", accept_language="", now=None):
             if resolved and resolved != target:
                 target, smart = resolved, True
         except Exception as e:
-            logger.warning(f"Smart resolve failed: {e}")
+            logger.warning("Smart resolve failed: %s", e)
     return {"action": "ok", "target": target, "smart": smart}

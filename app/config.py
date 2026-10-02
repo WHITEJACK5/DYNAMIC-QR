@@ -13,11 +13,6 @@ from dotenv import load_dotenv
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Logging first (Phase 1c): the production .env check and the SECRET_KEY
-# bootstrap below both log, so this must come before either of them.
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("nare")
-
 
 def _looks_like_production() -> bool:
     """True when running on a hosting platform, or declared explicitly.
@@ -34,6 +29,25 @@ def _looks_like_production() -> bool:
                         "DYNO", "HEROKU_APP_NAME", "KUBERNETES_SERVICE_HOST")
     return any(os.getenv(m, "").strip() for m in platform_markers)
 
+
+# Logging first (Phase 1c): the production .env check and the SECRET_KEY
+# bootstrap below both log, so this must come before either of them.
+# Phase 7b: JSON structured logging, installed here because every module
+# imports this file first.
+from app.logging_config import install_json_logging
+
+install_json_logging(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    service="nare",
+    env="production" if _looks_like_production() else "development",
+)
+logger = logging.getLogger("nare")
+
+# Phase 7a: Sentry. Initialised here, before any route can raise, and
+# fail-safe — without SENTRY_DSN this is a no-op.
+from app import sentry as _sentry  # noqa: E402
+
+_sentry.init()
 
 IS_PRODUCTION = _looks_like_production()
 
@@ -70,7 +84,7 @@ for _d in [os.path.join(APP_DIR, "data"), UPLOAD_DIR]:
         try:
             open(_keep, "a").close()
         except Exception as e:
-            logging.warning(f"Could not create .gitkeep in {_d}: {e}")
+            logging.warning("Could not create .gitkeep in %s: %s", _d, e)
 
 # --- Security: SECRET_KEY must not be hardcoded ---
 #
@@ -109,18 +123,18 @@ if not SECRET_KEY:
         if not os.path.exists(_env_path):
             with open(_env_path, "w") as f:
                 f.write(f"SECRET_KEY={generated}\nBASE_URL=http://localhost:5000\nHOST=127.0.0.1\nPORT=5000\nFLASK_DEBUG=false\nALLOWED_ORIGINS=http://localhost:5000,http://127.0.0.1:5000\n")
-            print(f"[NARE & CO.] Created .env with fresh SECRET_KEY at {_env_path}")
+            logger.info("[NARE & CO.] Created .env with fresh SECRET_KEY at %s", _env_path)
         else:
             # append if .env exists but no key
             with open(_env_path, "a") as f:
                 f.write(f"\nSECRET_KEY={generated}\n")
-            print(f"[NARE & CO.] Appended SECRET_KEY to {_env_path}")
+            logger.info("[NARE & CO.] Appended SECRET_KEY to %s", _env_path)
     except Exception as e:
-        logger.warning(f"Could not write .env: {e}")
+        logger.warning("Could not write .env: %s", e)
     SECRET_KEY = generated
     JWT_SECRET = SECRET_KEY
     logging.warning("[NARE & CO.] SECRET_KEY was not set — generated and persisted to .env (development only)")
-    print("[INFO] SECRET_KEY generated and saved to .env — restart to use persistent key (or set manually)")
+    logger.info("SECRET_KEY generated and saved to .env - restart to use persistent key (or set manually)")
 else:
     if len(SECRET_KEY) < 32:
         if IS_PRODUCTION:
@@ -129,7 +143,7 @@ else:
                 "are required. A short key is a guessable key."
             )
         logging.warning("[NARE & CO.] SECRET_KEY is short (<32 chars) — use a long random string.")
-        print("[WARN] SECRET_KEY too short — generate: python -c \"import secrets; print(secrets.token_hex(32))\"")
+        logger.warning("SECRET_KEY too short - generate: python -c \"import secrets; print(secrets.token_hex(32))\"")
 
 # In production the secret store must be the only source. Warn if a .env is
 # also present so a stale file baked into the image cannot shadow an

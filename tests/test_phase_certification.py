@@ -102,14 +102,18 @@ class TestPhase1:
             assert "analytics.html" not in _read(path), os.path.basename(path)
 
     def test_1_3_logger_configured_before_first_use(self):
-        """'Reorder initialization so logging is configured before first use'"""
+        """'Reorder initialization so logging is configured before first use'
+
+        Phase 7b replaced logging.basicConfig with install_json_logging, so
+        the check is for that call — and it must still precede the first use.
+        """
         src = _read(os.path.join(APP, "config.py"))
-        assert "logging.basicConfig" in src
+        assert "install_json_logging" in src
         assert 'logger = logging.getLogger("nare")' in src
         # the .env decision and the key bootstrap both log, so both must come
-        # after the logger exists
-        assert src.index("logging.basicConfig") < src.index("IS_PRODUCTION")
-        assert src.index("logging.basicConfig") < src.index("SECRET_KEY = os.getenv")
+        # after logging is installed
+        assert src.index("install_json_logging") < src.index("IS_PRODUCTION")
+        assert src.index("install_json_logging") < src.index("SECRET_KEY = os.getenv")
 
     def test_1_3_cold_start_without_secret_key_is_tested(self):
         """'add a test that exercises the "no SECRET_KEY set" cold-start path'"""

@@ -144,7 +144,7 @@ def revoke(payload):
             client.setex(_key(jti), ttl, "1")
             return True
         except Exception as e:
-            logger.warning(f"Revocation Redis write failed, memory fallback: {e}")
+            logger.warning("Revocation Redis write failed, memory fallback: %s", e)
     _revoked[jti] = time.time() + ttl
     return True
 
@@ -157,7 +157,7 @@ def is_revoked(jti):
         try:
             return bool(client.exists(_key(jti)))
         except Exception as e:
-            logger.warning(f"Revocation Redis read failed, memory fallback: {e}")
+            logger.warning("Revocation Redis read failed, memory fallback: %s", e)
     exp = _revoked.get(jti)
     if exp is None:
         return False

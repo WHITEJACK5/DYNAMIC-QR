@@ -452,6 +452,67 @@ which brings up app + PostgreSQL + Redis + the RQ worker. See
 [Tests and coverage](#tests-and-coverage) for the suite that drives the
 running stack end to end.
 
+## Observability
+
+### Structured logging
+
+Every log line is JSON: `{"ts": "...", "level": "INFO", "logger": "nare",
+"service": "nare", "env": "production", "msg": "...", ...}`. Fields passed via
+`extra=` are promoted to the top level, so they are queryable rather than
+greppable. Messages use `%s` templates, so a filtered-out DEBUG line is never
+built. `tests/test_structured_logging.py` fails if application code goes back
+to `print()` or f-string interpolation.
+
+### Metrics
+
+`GET /metrics` serves Prometheus text: request count, latency histogram and
+error rate, all labelled by route template (never by raw path — a label per QR
+id would grow without bound). Scrape it with any Prometheus setup:
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: nare
+    static_configs:
+      - targets: ["app:8000"]
+```
+
+### Error tracking (Sentry)
+
+Backend and frontend both initialise Sentry, gated on a DSN:
+
+```bash
+# backend
+SENTRY_DSN=https://<key>@o<org>.ingest.sentry.io/<project>
+# frontend (optional; falls back to SENTRY_DSN)
+SENTRY_FRONTEND_DSN=https://<public-key>@o<org>.ingest.sentry.io/<project>
+```
+
+Without a DSN both are no-ops — no import error, no crash, no warning. The
+backend sets `send_default_pii=False` (a QR's content can be a personal link;
+Sentry must not receive request bodies). The frontend loader is an inline
+script that no-ops when the `sentry-dsn` meta tag is empty.
+
+**Not verified:** no Sentry project has been created, so no event has been
+confirmed to reach a dashboard. The integration is wired and unit-tested; the
+end-to-end delivery needs your DSN.
+
+### Uptime monitoring
+
+Point any external monitor at `GET /api/health`. It returns `200` with
+`{"status":"ok",...}` only when the app is up, so a non-200 or a timeout is a
+real alert.
+
+**UptimeRobot (free):** Add Monitor → HTTP(s) → URL `https://your-domain/api/health`
+→ interval 5 minutes. Alert contacts: email and/or webhook.
+
+**BetterStack (free):** Add Heartbeat → URL `https://your-domain/api/health`
+→ interval 1 minute.
+
+**Not verified:** no monitor has been created, because that needs your
+UptimeRobot/BetterStack account. The health endpoint it would poll is tested
+and proven.
+
 ## Design System
 
 - Grid White: `#F8F9FA` + `#E9ECEF` 32px

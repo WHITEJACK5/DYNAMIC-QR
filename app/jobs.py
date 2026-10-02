@@ -40,7 +40,7 @@ def get_queue():
         logger.info("Job queue using RQ/Redis")
         return _rq_queue
     except Exception as e:
-        logger.warning(f"RQ unavailable, jobs on thread fallback: {e}")
+        logger.warning("RQ unavailable, jobs on thread fallback: %s", e)
         return None
 
 
@@ -48,7 +48,7 @@ def _run_safe(func, args, kwargs):
     try:
         func(*args, **kwargs)
     except Exception as e:
-        logger.warning(f"Background job {getattr(func, '__name__', func)} failed: {e}")
+        logger.warning("Background job %s failed: %s", getattr(func, '__name__', func), e)
 
 
 def enqueue_call(func, *args, **kwargs):
@@ -59,7 +59,7 @@ def enqueue_call(func, *args, **kwargs):
             q.enqueue(func, *args, **kwargs)
             return "rq"
         except Exception as e:
-            logger.warning(f"RQ enqueue failed, thread fallback: {e}")
+            logger.warning("RQ enqueue failed, thread fallback: %s", e)
     t = threading.Thread(target=_run_safe, args=(func, args, kwargs), daemon=True)
     t.start()
     return "thread"

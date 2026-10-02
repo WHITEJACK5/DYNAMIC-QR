@@ -59,7 +59,7 @@ def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="sq
         fg_rgb = hex_to_rgb(fg_color) if fg_color else (10, 10, 10)
         bg_rgb = hex_to_rgb(bg_color) if bg_color else (255, 255, 255)
     except Exception as e:
-        logger.warning(f"Color parse failed {fg_color}/{bg_color}: {e}")
+        logger.warning("Color parse failed %s/%s: %s", fg_color, bg_color, e)
         fg_rgb = (10, 10, 10)
         bg_rgb = (255, 255, 255)
 
@@ -76,7 +76,7 @@ def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="sq
                 color_mask = SquareGradiantColorMask(
                     back_color=bg_rgb, center_color=fg_rgb, edge_color=hex_to_rgb("#00FF88"))
         except Exception as e:
-            logger.warning(f"Gradient mask failed: {e}")
+            logger.warning("Gradient mask failed: %s", e)
             color_mask = SolidFillColorMask(back_color=bg_rgb, front_color=fg_rgb)
     else:
         color_mask = SolidFillColorMask(back_color=bg_rgb, front_color=fg_rgb)
@@ -96,7 +96,7 @@ def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="sq
         try:
             logo = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
         except Exception as e:
-            logger.warning(f"logo bytes decode failed: {e}")
+            logger.warning("logo bytes decode failed: %s", e)
     elif logo_path and str(logo_path).startswith(_storage.S3_PREFIX):
         logo = _storage.load_logo_image(logo_path)
     elif logo_path:
@@ -105,7 +105,7 @@ def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="sq
         try:
             logo = _storage.load_logo_image(logo_path)
         except Exception as e:
-            logger.warning(f"logo load failed: {e}")
+            logger.warning("logo load failed: %s", e)
     if logo is not None:
         try:
             logo_size = int(size * 0.22)
@@ -121,7 +121,7 @@ def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="sq
             pos = ((size - logo_size) // 2, (size - logo_size) // 2)
             img.paste(logo, pos, logo)
         except Exception as e:
-            logger.warning(f"logo overlay failed: {e}")
+            logger.warning("logo overlay failed: %s", e)
 
     if frame_text:
         try:
@@ -158,7 +158,7 @@ def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="sq
             draw.text((tx, ty), text, fill=text_color, font=font)
             img = framed
         except Exception as e:
-            logger.warning(f"frame render failed: {e}")
+            logger.warning("frame render failed: %s", e)
 
     return img
 
@@ -185,10 +185,10 @@ def create_qr_svg(content, fg_color="#0A0A0A", bg_color="#FFFFFF", size=400):
                 svg_data = svg_data.replace("#FFFFFF", bg).replace("#ffffff", bg)
                 svg_data = svg_data.replace("#000000", fg).replace("#000", fg)
         except Exception as e:
-            logger.debug(f"SVG color inject failed: {e}")
+            logger.debug("SVG color inject failed: %s", e)
         return svg_data
     except Exception as e:
-        logger.warning(f"SVG generation failed, fallback: {e}")
+        logger.warning("SVG generation failed, fallback: %s", e)
         return f'<svg xmlns="http://www.w3.org/2000/svg"><text>{content}</text></svg>'
 
 

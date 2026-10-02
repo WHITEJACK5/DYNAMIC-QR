@@ -96,7 +96,7 @@ def mint_unique_short(s, tries=10):
             if s.query(QRCode.id).filter(QRCode.short_code == cand).scalar() is None:
                 return cand
         except Exception as e:
-            logger.warning(f"short_code check failed: {e}")
+            logger.warning("short_code check failed: %s", e)
             break
     return generate_short_code(8)
 

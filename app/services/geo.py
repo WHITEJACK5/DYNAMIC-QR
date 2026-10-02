@@ -33,14 +33,14 @@ def get_geo_from_ip(ip):
             if data.get("status") == "success":
                 return {"country": data.get("country", "Unknown"), "city": data.get("city", "Unknown")}
     except Exception as e:
-        logger.debug(f"Geo lookup failed for {ip}: {e}")
+        logger.debug("Geo lookup failed for %s: %s", ip, e)
     try:
         resp = requests.get(f"https://ipapi.co/{ip}/json/", timeout=2)
         if resp.status_code == 200:
             data = resp.json()
             return {"country": data.get("country_name", "Unknown"), "city": data.get("city", "Unknown")}
     except Exception as e:
-        logger.debug(f"Geo fallback failed for {ip}: {e}")
+        logger.debug("Geo fallback failed for %s: %s", ip, e)
     return {"country": "Unknown", "city": "Unknown"}
 
 
@@ -58,7 +58,7 @@ def geo_enrich_job(scan_id, ip):
         finally:
             s.close()
     except Exception as e:
-        _logger.warning(f"Async geo enrichment failed for scan {scan_id}: {e}")
+        _logger.warning("Async geo enrichment failed for scan %s: %s", scan_id, e)
 
 
 def enrich_scan_geo(scan_id, ip):

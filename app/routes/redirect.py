@@ -80,13 +80,13 @@ def redirect_dynamic(code):
     # Pending geo: enriched in background AFTER the redirect (see below).
     scan_id = scans_repo.record_scan(s, row["id"], now, ip, ua, device, browser, os_name)
     if smart:
-        logger.info(f"Smart URL resolved for {code} -> {target} (device={device})")
+        logger.info("Smart URL resolved for %s -> %s (device=%s)", code, target, device)
     s.close()
     if scan_id is not None:
         try:
             enrich_scan_geo(scan_id, ip)
         except Exception as e:
-            logger.warning(f"Failed to queue geo enrichment: {e}")
+            logger.warning("Failed to queue geo enrichment: %s", e)
     country = "Pending"
     if target.startswith("http"):
         return flask_redirect(target, code=302)

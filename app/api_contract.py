@@ -52,6 +52,8 @@ CONTRACT: dict[str, tuple[int, type]] = {
     # --- ops ------------------------------------------------------------
     "health": (200, out.HealthOut),
     "analytics/overview": (200, out.AnalyticsOverviewOut),
+    # Phase 7d: Prometheus text, not JSON — same escape hatch as download
+    "metrics": (200, dict),
 }
 
 #: Endpoints that return a non-JSON body.
@@ -68,8 +70,14 @@ def documented(path: str) -> tuple[int, type] | None:
 
 
 def normalise(rule: str) -> str:
-    """Strip the version prefix from a Flask rule so both map to one key."""
+    """Strip the version prefix and leading slash from a Flask rule.
+
+    /api/v1/qrcodes -> qrcodes
+    /api/qrcodes    -> qrcodes
+    /metrics        -> metrics      (no /api prefix: it is not JSON)
+    /r/<code>       -> r/<code>
+    """
     for prefix in ("/api/v1", "/api"):
         if rule.startswith(prefix + "/"):
             return rule[len(prefix) + 1:]
-    return rule
+    return rule.lstrip("/")

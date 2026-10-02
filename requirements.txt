@@ -18,4 +18,6 @@ alembic==1.14.0
 psycopg2-binary==2.9.10
 boto3==1.43.103
 Flask-Limiter==3.8.0
+prometheus-client==0.21.1   # Phase 7d: /metrics request count, latency, error rate
+sentry-sdk[flask]==2.41.0   # Phase 7a: error tracking, fail-safe without a DSN
 PyYAML==6.0.3   # CI config tests read .github/workflows and dependabot.yml
