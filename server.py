@@ -116,6 +116,7 @@ from app.routes.analytics import analytics
 from app.routes.auth import auth
 from app.routes.meta import meta
 from app.routes.metrics import meta as metrics_bp
+from app.routes.docs import docs
 from app.routes.pages import pages
 from app.routes.qr import qr
 from app.routes.redirect import redirect_bp
@@ -125,6 +126,7 @@ app.register_blueprint(auth)
 app.register_blueprint(qr)
 app.register_blueprint(meta)
 app.register_blueprint(metrics_bp)
+app.register_blueprint(docs)
 app.register_blueprint(analytics)
 app.register_blueprint(redirect_bp)
 
