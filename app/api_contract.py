@@ -54,6 +54,9 @@ CONTRACT: dict[str, tuple[int, type]] = {
     "analytics/overview": (200, out.AnalyticsOverviewOut),
     # Phase 7d: Prometheus text, not JSON — same escape hatch as download
     "metrics": (200, dict),
+    # Phase 9: generated docs. Swagger UI is HTML; the spec is JSON.
+    "docs": (200, dict),
+    "openapi.json": (200, dict),
 }
 
 #: Endpoints that return a non-JSON body.
