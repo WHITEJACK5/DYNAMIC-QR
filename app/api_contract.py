@@ -49,6 +49,12 @@ CONTRACT: dict[str, tuple[int, type]] = {
     "folders": (200, out.FolderOut),
     "templates": (200, out.TemplateOut),
 
+    # --- reviews (Phase 10) ---------------------------------------------
+    "reviews": (200, out.ReviewOut),
+    "reviews/summary": (200, dict),
+    "reviews/flagged": (200, dict),
+    "reviews/export": (200, dict),
+
     # --- ops ------------------------------------------------------------
     "health": (200, out.HealthOut),
     "analytics/overview": (200, out.AnalyticsOverviewOut),

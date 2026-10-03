@@ -131,6 +131,20 @@ class QRCodeListEnvelope(_Out):
     offset: int
 
 
+class ReviewOut(_Out):
+    """A captured review as the API returns it (Phase 10)."""
+
+    id: int
+    qr_id: int | None = None
+    user_id: int | None = None
+    rating: int
+    review_text: str | None = None
+    sentiment: str | None = None
+    sentiment_score: float | None = None
+    summary: str | None = None
+    created_at: str | None = None
+
+
 class FolderOut(_Out):
     id: int
     user_id: int | None = None
