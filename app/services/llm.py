@@ -45,7 +45,7 @@ def _call_llm(system, user_text, max_tokens=200):
         )
         return r.choices[0].message.content.strip()
     except Exception as e:
-        logger.error(f"LLM call failed: {e}")
+        logger.error("LLM call failed: %s", e)
         return None
 
 
