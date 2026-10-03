@@ -37,6 +37,17 @@ def redirect_dynamic(code):
     if decision["action"] == "missing":
         s.close()
         return "QR not found or expired",404
+
+    # Phase 10: a review QR serves a capture form instead of redirecting.
+    # The customer submits, the review is stored, and only then are they sent
+    # on to the configured destination.
+    if row and row["type"] == "review" and decision["action"] == "redirect":
+        s.close()
+        from flask import render_template_string
+        import os as _os
+        tpl = _os.path.join(_os.path.dirname(__file__), "..", "templates", "review_form.html")
+        with open(tpl, encoding="utf-8") as f:
+            return render_template_string(f.read(), short_code=row["short_code"])
     if decision["action"] == "gone":
         s.close()
         return decision["message"],410
@@ -91,8 +102,7 @@ def redirect_dynamic(code):
     if target.startswith("http"):
         return flask_redirect(target, code=302)
     else:
-        return f"""
-        <html style="font-family:Inter,sans-serif;background:#F8F9FA;min-height:100vh"><body style="margin:0;padding:40px;background:
+        return f"""        <html style="font-family:Inter,sans-serif;background:#F8F9FA;min-height:100vh"><body style="margin:0;padding:40px;background:
         radial-gradient(circle at 1px 1px, #e5e7eb 1px, transparent 0);background-size:22px 22px">
         <div style="max-width:640px;margin:0 auto;background:white;border:1px solid #0A0A0A;border-radius:20px;overflow:hidden;box-shadow:8px 8px 0 #0A0A0A">
         <div style="background:#0A0A0A;color:#00FF88;padding:16px 24px;display:flex;justify-content:space-between;align-items:center"><b>NARE & CO.</b><span style="font-size:12px;border:1px solid #00FF88;padding:4px 8px;border-radius:20px">SECURE QR</span></div>

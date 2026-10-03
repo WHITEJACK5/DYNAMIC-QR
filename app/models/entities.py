@@ -9,7 +9,7 @@ The directive requires a models *layer* (`app/models/`), so the declarations
 live here and `app.models` re-exports them — every existing
 `from app.models import Base, User, ...` keeps working unchanged.
 """
-from sqlalchemy import ForeignKey, Index, Integer, String, Text, text
+from sqlalchemy import Float, ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -114,6 +114,27 @@ class Scan(Base):
     __table_args__ = (Index("idx_scans_qr", "qr_id"),)
 
     qrcode: Mapped["QRCode | None"] = relationship(back_populates="scans")
+
+
+class Review(Base):
+    __tablename__ = "reviews"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    qr_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("qrcodes.id"), nullable=True
+    )
+    user_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True
+    )
+    rating: Mapped[int] = mapped_column(Integer, nullable=False)
+    review_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Phase 10b: populated asynchronously by the LLM job
+    sentiment: Mapped[str | None] = mapped_column(String, nullable=True)
+    sentiment_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    __table_args__ = (Index("idx_reviews_qr", "qr_id"),)
 
 
 class Template(Base):

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Leave a review — NARE &amp; CO.</title>
+<style>
+body{font-family:Inter,system-ui,sans-serif;background:#0A0A0A;color:#fff;
+display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+.card{background:#111;border:1px solid #222;padding:2rem;border-radius:16px;
+max-width:28rem;width:100%;text-align:center}
+h1{font-size:1.25rem;margin:0 0 .5rem}
+.stars{display:flex;justify-content:center;gap:.5rem;margin:1rem 0}
+.stars button{background:none;border:none;font-size:2rem;cursor:pointer;
+color:#555;transition:color .15s}
+.stars button.active,.stars button:hover{color:#00FF88}
+textarea{width:100%;min-height:6rem;background:#000;color:#fff;border:1px solid #333;
+border-radius:8px;padding:.75rem;font:inherit;resize:vertical;margin:.5rem 0}
+.submit{width:100%;padding:.85rem;background:#00FF88;color:#000;border:none;
+border-radius:8px;font-weight:800;cursor:pointer;font-size:1rem}
+.submit:disabled{opacity:.5;cursor:not-allowed}
+</style></head>
+<body>
+<main class="card" id="main" tabindex="-1">
+<h1>How was your experience?</h1>
+<p>Your feedback helps us improve.</p>
+<div class="stars" role="radiogroup" aria-label="Star rating">
+<button type="button" data-val="1" aria-label="1 star">★</button>
+<button type="button" data-val="2" aria-label="2 stars">★</button>
+<button type="button" data-val="3" aria-label="3 stars">★</button>
+<button type="button" data-val="4" aria-label="4 stars">★</button>
+<button type="button" data-val="5" aria-label="5 stars">★</button>
+</div>
+<textarea id="txt" placeholder="Tell us more (optional)"></textarea>
+<button class="submit" id="go" disabled>Submit review</button>
+</main>
+<script>
+var rating=0;
+document.querySelectorAll('.stars button').forEach(function(b){
+  b.onclick=function(){
+    rating=+b.dataset.val;
+    document.querySelectorAll('.stars button').forEach(function(x){
+      x.classList.toggle('active',+x.dataset.val<=rating);
+    });
+    document.getElementById('go').disabled=false;
+  };
+});
+document.getElementById('go').onclick=function(){
+  var btn=document.getElementById('go');btn.disabled=true;btn.textContent='Submitting…';
+  fetch('/api/reviews',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({short_code:'{{ short_code }}',rating:rating,
+      review_text:document.getElementById('txt').value})})
+    .then(function(r){return r.json()})
+    .then(function(j){
+      if(j.redirect&&j.redirect.startsWith('http')){window.location=j.redirect;}
+      else{document.getElementById('main').innerHTML='<h1>Thank you!</h1><p>Your review has been recorded.</p>';}
+    })
+    .catch(function(){document.getElementById('main').innerHTML='<h1>Thank you!</h1><p>Your review has been recorded.</p>';});
+};
+</script></body></html>

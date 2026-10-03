@@ -390,6 +390,35 @@ class GenerateFormRequest(BaseModel):
         return n
 
 
+class ReviewCreateRequest(BaseModel):
+    """Phase 10: a customer submits a review from the capture form."""
+
+    model_config = ConfigDict(validate_default=True)
+
+    short_code: str = ""
+    rating: int = 0
+    review_text: str = ""
+
+    @field_validator("short_code", mode="before")
+    @classmethod
+    def _code(cls, v):
+        t = (v or "").strip() if isinstance(v, str) else ""
+        if not t:
+            raise ValueError("short_code required")
+        return t
+
+    @field_validator("rating", mode="before")
+    @classmethod
+    def _rating(cls, v):
+        try:
+            n = int(v)
+        except (TypeError, ValueError):
+            raise ValueError("rating must be a whole number")
+        if n < 1 or n > 5:
+            raise ValueError("rating must be between 1 and 5")
+        return n
+
+
 class BulkFormRequest(BaseModel):
     """Validation for the multipart bulk-upload form (the last route without a
     schema). The CSV file itself is streamed, not parsed here."""
