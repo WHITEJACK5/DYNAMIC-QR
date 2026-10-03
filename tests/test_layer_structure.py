@@ -53,7 +53,7 @@ def test_utils_helpers_are_importable_from_the_package():
 def test_models_entities_are_importable_from_the_package():
     from app import models
 
-    assert set(models.__all__) == {"Base", "User", "Folder", "QRCode", "Scan", "Template"}
+    assert set(models.__all__) == {"Base", "User", "Folder", "QRCode", "Scan", "Review", "Template"}
     for name in models.__all__:
         assert hasattr(models, name), name
 
