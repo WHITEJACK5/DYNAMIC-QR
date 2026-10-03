@@ -1,7 +1,7 @@
 """Reviews repository (Phase 10)."""
 import datetime
 
-from app.models import QRCode, Review
+from app.models import Review
 
 
 def create(s, qr_id, user_id, rating, review_text):
