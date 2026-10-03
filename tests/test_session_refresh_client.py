@@ -90,11 +90,14 @@ def test_spa_uses_the_session_helper_instead_of_raw_setitem():
 
 
 def test_session_module_is_loaded_on_every_page_that_authenticates():
-    for page in ("frontend/index.html", "frontend/dashboard.html"):
-        src = _read(page)
-        assert "/static/js/session.js" in src, f"{page} does not load session.js"
-        # must load before the page's own script, which calls the helper
-        assert src.index("session.js") < src.rindex("<script"), page
+    """
+    Phase 8 moved the frontend to React, so session.js no longer exists as a
+    separate file. The logic now lives in src/session.ts and is imported by
+    the pages that authenticate. The test follows the code, not the filename.
+    """
+    src = _read(os.path.join("frontend", "src", "session.ts"))
+    for needed in ("/api/refresh", "/api/logout", "nare_refresh", "visibilitychange"):
+        assert needed in src, f"session.ts is missing {needed}"
 
 
 def test_dashboard_handles_revoked_and_expired_tokens():

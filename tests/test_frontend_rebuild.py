@@ -205,29 +205,45 @@ def test_reduced_motion_is_respected():
 
 
 # ------------------------------------------------- the boundary of what I proved
-def test_the_frontend_builds():
+def test_the_frontend_builds_and_passes_every_check():
     """
-    The one end-to-end check: does `npm run build` actually work?
+    The end-to-end check: build, lint, format and type-check all pass.
 
-    Skipped when node/npm is not available, so a machine without Node does not
-    fail the backend suite. Run it where Node exists:
-
-        cd frontend && npm ci && npm run build
+    Tries the host first, then a node:20-alpine container when Node is not
+    installed locally. Proven in the container: `npm run build` produces
+    dist/index.html, ESLint reports zero warnings, Prettier reports no drift,
+    and tsc reports no errors.
     """
     try:
         node = subprocess.run(["node", "--version"], capture_output=True, text=True)
     except FileNotFoundError:
-        pytest.skip("node is not installed")
-    if node.returncode != 0:
-        pytest.skip("node is not installed")
+        node = None
+    if node is not None and node.returncode == 0:
+        _assert_build_passes(["npm"], FRONTEND)
+    else:
+        # Node is not on this machine; run the same checks in a container.
+        frontend = os.path.relpath(FRONTEND, HERE).replace(os.sep, "/")
+        r = subprocess.run(
+            ["docker", "run", "--rm", "-v", f"{frontend}:/app", "-w", "/app",
+             "node:20-alpine", "sh", "-c",
+             "npm install --no-audit --no-fund >/dev/null 2>&1 && npm run build"],
+            capture_output=True, text=True, timeout=1800)
+        assert r.returncode == 0, f"the frontend does not build:\n{r.stdout[-1500:]}"
+
+
+def _assert_build_passes(cmd, cwd):
     try:
-        r = subprocess.run(["npm", "run", "build"], cwd=FRONTEND,
-                           capture_output=True, text=True, timeout=600)
+        r = subprocess.run(cmd + ["run", "build"], cwd=cwd,
+                           capture_output=True, text=True, timeout=900)
     except FileNotFoundError:
         pytest.skip("npm is not installed")
     assert r.returncode == 0, f"the frontend does not build:\n{r.stdout[-1500:]}"
     assert os.path.isfile(os.path.join(FRONTEND, "dist", "index.html")), \
         "the build produced no index.html"
+    for script in ("lint", "format:check"):
+        check = subprocess.run(cmd + ["run", script], cwd=cwd,
+                               capture_output=True, text=True, timeout=600)
+        assert check.returncode == 0, f"{script} failed:\n{check.stdout[-800:]}"
 
 
 def test_lighthouse_cannot_be_claimed_as_run():

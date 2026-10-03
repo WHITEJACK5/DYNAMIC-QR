@@ -1,51 +1,106 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pricing — NARE & CO.</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
-<header class="header"><div class="container header-inner">
-<a href="/" class="logo"><div class="logo-mark">N</div><div class="logo-type">NARE <span>& CO.</span></div></a>
-<nav class="nav"><a href="/">Generator</a><a href="/dashboard">Dashboard</a><a href="/pricing" class="active">Pricing</a><a href="/api-docs">API Docs</a></nav>
-<div class="header-cta"><button class="btn btn-ghost btn-sm" onclick="location.href='/'">Back →</button></div>
-</div></header>
-<section class="section"><div class="container">
-<div style="text-align:center;margin-bottom:22px"><span class="badge badge-neon">No billing</span><h1 style="font-size:40px;letter-spacing:-.05em">Free, and there is no paid tier</h1></div>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Pricing — NARE & CO.</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="container header-inner">
+        <a href="/" class="logo"
+          ><div class="logo-mark">N</div>
+          <div class="logo-type">NARE <span>& CO.</span></div></a
+        >
+        <nav class="nav">
+          <a href="/">Generator</a><a href="/dashboard">Dashboard</a
+          ><a href="/pricing" class="active">Pricing</a><a href="/api-docs">API Docs</a>
+        </nav>
+        <div class="header-cta">
+          <button class="btn btn-ghost btn-sm" onclick="location.href = '/'">
+            Back →
+          </button>
+        </div>
+      </div>
+    </header>
+    <section class="section">
+      <div class="container">
+        <div style="text-align: center; margin-bottom: 22px">
+          <span class="badge badge-neon">No billing</span>
+          <h1 style="font-size: 40px; letter-spacing: -0.05em">
+            Free, and there is no paid tier
+          </h1>
+        </div>
 
-<div class="pricing-grid">
-  <div class="price-card popular"><h3>Everything, free</h3><div class="price">$0</div><ul style="font-size:13px;line-height:2">
-    <li>✓ All 25+ QR types</li>
-    <li>✓ Static and dynamic QR codes</li>
-    <li>✓ Dynamic: editable after printing, password, expiry, scan limit</li>
-    <li>✓ PNG / SVG / PDF export</li>
-    <li>✓ Scan analytics per code</li>
-    <li>✓ Folders, templates, bulk CSV import</li>
-    <li>✓ Two-factor authentication</li>
-  </ul><button class="btn btn-primary" style="width:100%" onclick="location.href='/'">Start generating</button></div>
-</div>
+        <div class="pricing-grid">
+          <div class="price-card popular">
+            <h3>Everything, free</h3>
+            <div class="price">$0</div>
+            <ul style="font-size: 13px; line-height: 2">
+              <li>✓ All 25+ QR types</li>
+              <li>✓ Static and dynamic QR codes</li>
+              <li>✓ Dynamic: editable after printing, password, expiry, scan limit</li>
+              <li>✓ PNG / SVG / PDF export</li>
+              <li>✓ Scan analytics per code</li>
+              <li>✓ Folders, templates, bulk CSV import</li>
+              <li>✓ Two-factor authentication</li>
+            </ul>
+            <button
+              class="btn btn-primary"
+              style="width: 100%"
+              onclick="location.href = '/'"
+            >
+              Start generating
+            </button>
+          </div>
+        </div>
 
-<div class="card" style="margin-top:22px">
-  <h3>Why is there no pricing table?</h3>
-  <p style="color:#666;font-size:13px">Because none is implemented. This build has no payment
-  processor, no subscription records, and no plan-based limits — an earlier version of this page
-  advertised paid tiers that the code never enforced. Everything the software can do is available
-  to every account at no cost.</p>
-  <p style="color:#666;font-size:13px;margin-top:10px">It is a self-hosted project: run it locally,
-  or point it at your own database and storage. See the <code>README</code> for the
-  <code>DATABASE_URL</code> and <code>S3_BUCKET</code> settings, and <code>/api-docs</code> for the API.</p>
-  <div style="display:flex;gap:8px;margin-top:12px"><a class="btn btn-primary" href="/">Generator →</a><a class="btn btn-ghost" href="/api-docs">API Docs</a><a class="btn btn-ghost" href="/dashboard">Dashboard</a></div>
-</div>
+        <div class="card" style="margin-top: 22px">
+          <h3>Why is there no pricing table?</h3>
+          <p style="color: #666; font-size: 13px">
+            Because none is implemented. This build has no payment processor, no
+            subscription records, and no plan-based limits — an earlier version of this
+            page advertised paid tiers that the code never enforced. Everything the
+            software can do is available to every account at no cost.
+          </p>
+          <p style="color: #666; font-size: 13px; margin-top: 10px">
+            It is a self-hosted project: run it locally, or point it at your own database
+            and storage. See the <code>README</code> for the <code>DATABASE_URL</code> and
+            <code>S3_BUCKET</code> settings, and <code>/api-docs</code> for the API.
+          </p>
+          <div style="display: flex; gap: 8px; margin-top: 12px">
+            <a class="btn btn-primary" href="/">Generator →</a
+            ><a class="btn btn-ghost" href="/api-docs">API Docs</a
+            ><a class="btn btn-ghost" href="/dashboard">Dashboard</a>
+          </div>
+        </div>
 
-<div class="card" style="margin-top:16px">
-  <h3>What this build does not claim</h3>
-  <ul style="color:#666;font-size:13px;line-height:1.9">
-    <li>No uptime or availability guarantee — self-hosted software, no SLA.</li>
-    <li>No compliance certifications. Scan IPs are stored in the <code>scans</code> table, not anonymized; no GDPR/CCPA claim is made.</li>
-    <li>No customer counts, click volumes, or usage statistics of any kind.</li>
-  </ul>
-</div>
-</div></section>
-<footer class="footer"><div class="container" style="font-size:12px;display:flex;justify-content:space-between"><span>© 2026 NARE & CO. — personal use</span><span style="color:var(--neon)">Self-hosted • No billing</span></div></footer>
-</body></html>
+        <div class="card" style="margin-top: 16px">
+          <h3>What this build does not claim</h3>
+          <ul style="color: #666; font-size: 13px; line-height: 1.9">
+            <li>No uptime or availability guarantee — self-hosted software, no SLA.</li>
+            <li>
+              No compliance certifications. Scan IPs are stored in the
+              <code>scans</code> table, not anonymized; no GDPR/CCPA claim is made.
+            </li>
+            <li>No customer counts, click volumes, or usage statistics of any kind.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+    <footer class="footer">
+      <div
+        class="container"
+        style="font-size: 12px; display: flex; justify-content: space-between"
+      >
+        <span>© 2026 NARE & CO. — personal use</span
+        ><span style="color: var(--neon)">Self-hosted • No billing</span>
+      </div>
+    </footer>
+  </body>
+</html>
