@@ -44,7 +44,7 @@ def submit_review():
             return jsonify({"error": "Not a review QR"}), 400
         rid = reviews_repo.create(s, qr.id, qr.user_id, req.rating, req.review_text)
         # Phase 10b: LLM sentiment runs in the background, never inline
-        jobs.enqueue("app.services.llm.classify_sentiment", rid)
+        jobs.enqueue_call("app.services.llm.classify_sentiment", rid)
     finally:
         s.close()
 

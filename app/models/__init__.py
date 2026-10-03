@@ -8,6 +8,6 @@ call sites (repositories, migrations/env.py, tests) are unchanged.
 `__all__` is explicit so a typo in an import fails at once instead of
 resolving to nothing.
 """
-from app.models.entities import Base, Folder, QRCode, Scan, Template, User
+from app.models.entities import Base, Folder, QRCode, Review, Scan, Template, User
 
-__all__ = ["Base", "User", "Folder", "QRCode", "Scan", "Template"]
+__all__ = ["Base", "User", "Folder", "QRCode", "Scan", "Review", "Template"]

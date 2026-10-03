@@ -49,55 +49,66 @@ def _call_llm(system, user_text, max_tokens=200):
         return None
 
 
-def classify_sentiment(review_id):
-    """
-    Sentiment for one review. Called by an RQ worker.
-
-    Returns (sentiment, score) or (None, None) when LLM is unavailable.
-    """
+def _classify(review_id, text, client=None):
+    """Classify one review. Returns (sentiment, score) or (None, None)."""
+    if not text or not text.strip():
+        return None, None
+    llm_client = client or _call_llm
+    if llm_client is None:
+        return None, None
+    result = llm_client(SENTIMENT_SYSTEM, text, max_tokens=10)
+    if not result:
+        return None, None
+    sentiment = result.lower().strip()
+    if sentiment not in ("positive", "neutral", "negative"):
+        sentiment = "neutral"
+    score = {"positive": 1.0, "neutral": 0.0, "negative": -1.0}[sentiment]
     from app.extensions import get_session
     from app.repositories import reviews_repo
+    s = get_session()
+    try:
+        reviews_repo.set_sentiment(s, review_id, sentiment, score, None)
+    finally:
+        s.close()
+    return sentiment, score
 
+
+def _summarize(user_id, reviews, client=None):
+    """Generate a summary. Returns text or None."""
+    if not reviews:
+        return None
+    llm_client = client or _call_llm
+    if llm_client is None:
+        return None
+    combined = "\n".join(
+        f"Rating {r['rating']}/5: {r['review_text']}" for r in reviews if r["review_text"]
+    )
+    if not combined.strip():
+        return None
+    return llm_client(SUMMARY_SYSTEM, combined, max_tokens=300)
+
+
+def classify_sentiment(review_id):
+    """RQ job entrypoint. Called by a worker, never a request handler."""
+    from app.extensions import get_session
+    from app.repositories import reviews_repo
     s = get_session()
     try:
         row = s.query(reviews_repo.Review).filter_by(id=review_id).one_or_none()
         if row is None:
             return None, None
-        text = row.review_text or ""
-        if not text.strip():
-            return None, None
-        result = _call_llm(SENTIMENT_SYSTEM, text, max_tokens=10)
-        if not result:
-            return None, None
-        sentiment = result.lower().strip()
-        if sentiment not in ("positive", "neutral", "negative"):
-            sentiment = "neutral"
-        score = {"positive": 1.0, "neutral": 0.0, "negative": -1.0}[sentiment]
-        reviews_repo.set_sentiment(s, review_id, sentiment, score, None)
-        return sentiment, score
+        return _classify(review_id, row.review_text)
     finally:
         s.close()
 
 
 def summarize_reviews(user_id):
-    """
-    'What customers are saying' for the vendor dashboard. Called by an RQ worker.
-
-    Returns the summary text, or None when LLM is unavailable.
-    """
+    """RQ job entrypoint for the vendor dashboard summary."""
     from app.extensions import get_session
     from app.repositories import reviews_repo
-
     s = get_session()
     try:
         rows, _ = reviews_repo.list_for_user(s, user_id, limit=100)
-        if not rows:
-            return None
-        combined = "\n".join(
-            f"Rating {r['rating']}/5: {r['review_text']}" for r in rows if r["review_text"]
-        )
-        if not combined.strip():
-            return None
-        return _call_llm(SUMMARY_SYSTEM, combined, max_tokens=300)
+        return _summarize(user_id, rows)
     finally:
         s.close()

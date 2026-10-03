@@ -41,7 +41,7 @@ def redirect_dynamic(code):
     # Phase 10: a review QR serves a capture form instead of redirecting.
     # The customer submits, the review is stored, and only then are they sent
     # on to the configured destination.
-    if row and row["type"] == "review" and decision["action"] == "redirect":
+    if row and row["type"] == "review" and decision["action"] == "ok":
         s.close()
         from flask import render_template_string
         import os as _os
