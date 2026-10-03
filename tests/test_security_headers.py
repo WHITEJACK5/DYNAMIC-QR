@@ -124,7 +124,7 @@ def test_csp_allows_the_font_origins_the_pages_actually_use():
     assert "https://fonts.googleapis.com" in security.CSP
     assert "https://fonts.gstatic.com" in security.CSP
     for page in ("index.html", "dashboard.html", "manual.html",
-                 "api-docs.html", "pricing.html"):
+                  "pricing.html"):
         src = _read(os.path.join("frontend", page))
         if "fonts.googleapis.com" in src:
             assert "https://fonts.googleapis.com" in security.CSP, page
@@ -150,7 +150,7 @@ def test_csp_needs_no_external_script_host():
 
 # ------------------------------------------------------- does it break the app?
 def test_pages_still_render_with_the_policy_applied(client):
-    for path in ("/", "/dashboard", "/manual", "/api-docs"):
+    for path in ("/", "/dashboard", "/manual", "/api/v1/docs"):
         r = client.get(path)
         assert r.status_code == 200, f"{path} -> {r.status_code}"
         assert "Content-Security-Policy" in r.headers
