@@ -76,7 +76,7 @@ try:
             nf.first.fill("Demo User")
         pg.click("#authSubmit")
         pg.wait_for_function(
-            "() => !!localStorage.getItem('nare_token')", timeout=15000)
+            "() => !!localStorage.getItem('dr_token')", timeout=15000)
         b.close()
     print("  registered + logged in")
 
