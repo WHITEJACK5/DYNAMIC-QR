@@ -51,13 +51,20 @@ def test_no_api_key_returns_none(monkeypatch):
 
 
 def test_init_creates_a_client_when_configured(monkeypatch):
+    """Mocks the openai import so the test doesn't need the package installed."""
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
-    from app import sentry  # noqa: F401 — importing installs the JSON logger
     from app.services import llm as llm_mod
 
+    class FakeOpenAI:
+        def __init__(self, api_key=None):
+            self.api_key = api_key
+
+    monkeypatch.setitem(__import__("sys").modules, "openai",
+                        type("M", (), {"OpenAI": FakeOpenAI}))
     llm_mod._client = None
     llm_mod.init()
     assert llm_mod._client is not None
+    assert llm_mod._client.api_key == "sk-test"
 
 
 def test_sentiment_classification(monkeypatch):
