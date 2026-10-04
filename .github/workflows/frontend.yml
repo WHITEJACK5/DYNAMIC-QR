@@ -66,7 +66,7 @@ jobs:
         with:
           node-version: 20
       - name: Download the build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: frontend/dist
