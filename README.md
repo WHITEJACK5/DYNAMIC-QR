@@ -19,13 +19,23 @@
 
 <div align="center">
 
-| Generator | Dashboard | Analytics |
-|:---------:|:---------:|:--------:|
-| ![Generator](docs/screenshots/generator.png) | ![Dashboard](docs/screenshots/dashboard.png) | ![Analytics](docs/screenshots/analytics.png) |
+| Generator | API Reference | Manual |
+|:---------:|:-------------:|:------:|
+| ![Generator](docs/screenshots/generator.png) | ![API Docs](docs/screenshots/api-docs.png) | ![Manual](docs/screenshots/manual.png) |
 
 </div>
 
-> **Note:** Screenshots are stored in `docs/screenshots/`. Replace the placeholder paths above with actual image files.
+> **Note:** The React build (`frontend/dist/`) is a skeleton — only the Generator page has content. The Flask app currently serves the raw HTML files.
+
+## 🎬 Demo Video
+
+A short walkthrough of the running stack is recorded at
+[`docs/videos/demo.webm`](docs/videos/demo.webm).
+
+```bash
+# regenerate after UI changes
+python scripts/capture_screenshots.py
+```
 
 ---
 
