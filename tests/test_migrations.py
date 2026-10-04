@@ -17,7 +17,7 @@ from app.models import Base
 
 PG_URL = os.getenv("TEST_DATABASE_URL", "").strip()
 requires_pg = pytest.mark.skipif(not PG_URL, reason="TEST_DATABASE_URL not set")
-EXPECTED = {"users", "folders", "qrcodes", "scans", "templates"}
+EXPECTED = {"users", "folders", "qrcodes", "scans", "templates", "reviews"}
 EXPECTED_INDEXES = {"qrcodes": {"idx_qr_short", "idx_qr_user"}, "scans": {"idx_scans_qr"}}
 
 
@@ -29,8 +29,8 @@ def test_revision_chain_is_linear_and_head_is_latest():
     """Phase 4d added 0002. Assert the shape of the chain, not one hardcoded
     id, so the next migration does not have to edit this test."""
     head = mig.head_revision()
-    assert head == "0002_email_verification"
-    assert mig.revision_chain(head) == ["0001_initial", "0002_email_verification"]
+    assert head == "0003_reviews"
+    assert mig.revision_chain(head) == ["0001_initial", "0002_email_verification", "0003_reviews"]
 
 
 def test_upgrade_creates_exact_schema(tmp_path):

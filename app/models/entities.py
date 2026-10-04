@@ -134,7 +134,8 @@ class Review(Base):
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    __table_args__ = (Index("idx_reviews_qr", "qr_id"),)
+    __table_args__ = (Index("idx_reviews_qr", "qr_id"),
+                      Index("idx_reviews_user", "user_id"))
 
 
 class Template(Base):

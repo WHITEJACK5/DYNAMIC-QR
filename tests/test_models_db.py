@@ -24,7 +24,7 @@ from app.models import Base, QRCode, Scan, User
 PG_URL = os.getenv("TEST_DATABASE_URL", "").strip()
 requires_pg = pytest.mark.skipif(not PG_URL, reason="TEST_DATABASE_URL not set (Postgres not available)")
 
-EXPECTED_TABLES = {"users", "folders", "qrcodes", "scans", "templates"}
+EXPECTED_TABLES = {"users", "folders", "qrcodes", "scans", "templates", "reviews"}
 
 
 def _legacy_db():

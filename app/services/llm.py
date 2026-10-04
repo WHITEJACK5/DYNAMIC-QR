@@ -27,7 +27,23 @@ SUMMARY_SYSTEM = (
 
 
 def _api_key():
-    return os.getenv("OPENAI_API_KEY", "").strip() or os.getenv("ANTHROPIC_API_KEY", "").strip()
+    key = os.getenv("OPENAI_API_KEY", "").strip() or os.getenv("ANTHROPIC_API_KEY", "").strip()
+    return key or None
+
+
+def init():
+    """Create and cache the LLM client. Called from config.py."""
+    global _client
+    if _client is not None:
+        return _client
+    if not _api_key():
+        return None
+    try:
+        import openai
+        _client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    except ImportError:
+        return None
+    return _client
 
 
 def _call_llm(system, user_text, max_tokens=200):

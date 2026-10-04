@@ -21,6 +21,14 @@ os.environ["BASE_URL"] = "http://localhost:5000"
 from app.services import llm  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _reset_llm_client():
+    """Reset the cached client so tests are order-independent."""
+    llm._client = None
+    yield
+    llm._client = None
+
+
 class FakeLLM:
     """Records calls and returns canned responses."""
 
