@@ -19,18 +19,17 @@
 
 <div align="center">
 
-| Generator | API Reference | Manual |
-|:---------:|:-------------:|:------:|
-| ![Generator](docs/screenshots/generator.png) | ![API Docs](docs/screenshots/api-docs.png) | ![Manual](docs/screenshots/manual.png) |
+![Manual](docs/screenshots/manual.png)
 
 </div>
 
-> **Note:** The React build (`frontend/dist/`) is a skeleton — only the Generator page has content. The Flask app currently serves the raw HTML files.
 
 ## 🎬 Demo Video
 
-A short walkthrough of the running stack is recorded at
-[`docs/videos/demo.webm`](docs/videos/demo.webm).
+<video controls width="100%">
+  <source src="docs/videos/demo.webm" type="video/webm">
+  Your browser does not support the video tag.
+</video>
 
 ```bash
 # regenerate after UI changes
