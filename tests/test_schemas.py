@@ -44,7 +44,7 @@ def client():
 
 def test_register_schema_normalizes_and_enforces():
     r = RegisterRequest.model_validate({"email": "  YOU@DR.Local ", "password": "StrongPass123!", "name": "Y"})
-    assert r.email == "you@DR.local"
+    assert r.email == "you@dr.local"
     with pytest.raises(ValidationError) as e:
         RegisterRequest.model_validate({"email": "bad", "password": "StrongPass123!"})
     assert first_error(e.value) == "Invalid email format"
