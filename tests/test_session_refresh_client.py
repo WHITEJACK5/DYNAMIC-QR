@@ -30,7 +30,7 @@ def test_session_module_exists():
 
 def test_session_module_stores_the_refresh_token():
     src = _read(SESSION)
-    assert "nare_refresh" in src
+    assert "DR_refresh" in src
     assert "storeSession" in src
 
 
@@ -54,7 +54,7 @@ def test_renewal_calls_the_refresh_endpoint_without_a_token_in_the_url():
 
 def test_rotation_is_persisted_so_the_old_refresh_token_is_not_reused():
     src = _read(SESSION)
-    assert re.search(r"setItem\('nare_refresh',\s*j\.refresh_token", src), \
+    assert re.search(r"setItem\('DR_refresh',\s*j\.refresh_token", src), \
         "the rotated refresh token must be stored"
 
 
@@ -81,11 +81,11 @@ def test_logout_revokes_server_side():
 
 def test_spa_uses_the_session_helper_instead_of_raw_setitem():
     src = _read("static/js/app.js")
-    assert "NareSession.storeSession" in src, \
+    assert "DRSession.storeSession" in src, \
         "login must store the access/refresh pair via the session helper"
     # No raw write of the access token: a silent fallback would leave the
     # user with a 15-minute token and no way to renew it.
-    assert "localStorage.setItem('nare_token', j.token)" not in src, \
+    assert "localStorage.setItem('DR_token', j.token)" not in src, \
         "login still writes the access token without the refresh token"
 
 
@@ -96,7 +96,7 @@ def test_session_module_is_loaded_on_every_page_that_authenticates():
     the pages that authenticate. The test follows the code, not the filename.
     """
     src = _read(os.path.join("frontend", "src", "session.ts"))
-    for needed in ("/api/refresh", "/api/logout", "nare_refresh", "visibilitychange"):
+    for needed in ("/api/refresh", "/api/logout", "DR_refresh", "visibilitychange"):
         assert needed in src, f"session.ts is missing {needed}"
 
 

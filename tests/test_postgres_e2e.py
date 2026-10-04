@@ -22,15 +22,15 @@ pytestmark = pytest.mark.skipif(
 
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-32chars")
 
-import server as nare  # noqa: E402  (must come after DATABASE_URL is set)
+import server as DR  # noqa: E402  (must come after DATABASE_URL is set)
 from server import app as flask_app  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
 def _clean_rate():
-    nare._rate_store.clear()
+    DR._rate_store.clear()
     yield
-    nare._rate_store.clear()
+    DR._rate_store.clear()
 
 
 @pytest.fixture
@@ -65,7 +65,7 @@ def _reset_schema():
 
 def test_full_stack_on_postgres(client):
     _reset_schema()
-    assert nare.get_session().execute(
+    assert DR.get_session().execute(
         __import__("sqlalchemy").text("select version()")
     ).scalar().startswith("PostgreSQL")
 

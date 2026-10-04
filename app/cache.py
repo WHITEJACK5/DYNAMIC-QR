@@ -11,7 +11,7 @@ import logging
 import os
 import time
 
-logger = logging.getLogger("nare")
+logger = logging.getLogger("DR")
 
 _mem = {}  # key -> (value_str, expires_at)
 _redis_client = None

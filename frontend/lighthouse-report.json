@@ -1227,7 +1227,7 @@
                     "height": 45
                   },
                   "snippet": "<p>",
-                  "nodeLabel": "NARE & CO — self-hosted QR generation. Your data stays on your machine."
+                  "nodeLabel": "DR & CO — self-hosted QR generation. Your data stays on your machine."
                 }
               }
             ]
@@ -2148,7 +2148,7 @@
                 "height": 45
               },
               "snippet": "<p>",
-              "nodeLabel": "NARE & CO — self-hosted QR generation. Your data stays on your machine.",
+              "nodeLabel": "DR & CO — self-hosted QR generation. Your data stays on your machine.",
               "explanation": "Fix any of the following:\n  Element has insufficient color contrast of 2.53 (foreground color: #525252, background color: #0a0a0a, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
             },
             "subItems": {
@@ -2400,8 +2400,8 @@
                 "width": 56,
                 "height": 64
               },
-              "snippet": "<a href=\"/\" class=\"brand\" aria-label=\"NARE and CO home\">",
-              "nodeLabel": "NARE & CO",
+              "snippet": "<a href=\"/\" class=\"brand\" aria-label=\"DR and CO home\">",
+              "nodeLabel": "DR & CO",
               "explanation": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
             }
           }
@@ -4228,7 +4228,7 @@
               "height": 45
             },
             "snippet": "<p>",
-            "nodeLabel": "NARE & CO — self-hosted QR generation. Your data stays on your machine."
+            "nodeLabel": "DR & CO — self-hosted QR generation. Your data stays on your machine."
           }
         ]
       },

@@ -63,7 +63,7 @@ def test_the_error_explains_why_it_refuses():
 @pytest.mark.parametrize("marker", [
     "RENDER=1",
     "RAILWAY_ENVIRONMENT=production",
-    "FLY_APP_NAME=nare",
+    "FLY_APP_NAME=DR",
     "DYNO=web.1",
     "KUBERNETES_SERVICE_HOST=10.0.0.1",
 ])

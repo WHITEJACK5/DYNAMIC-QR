@@ -13,8 +13,8 @@
  */
 
 const REFRESH_BEFORE_MS = 13 * 60 * 1000
-const TOKEN_KEY = "nare_token"
-const REFRESH_KEY = "nare_refresh"
+const TOKEN_KEY = "DR_token"
+const REFRESH_KEY = "DR_refresh"
 
 let timer: ReturnType<typeof setTimeout> | null = null
 

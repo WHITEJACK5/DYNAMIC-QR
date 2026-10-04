@@ -86,7 +86,7 @@ def test_frontend_is_served():
     with urllib.request.urlopen(req, timeout=15) as r:
         html = r.read().decode("utf-8", "replace")
     assert r.status == 200
-    assert "NARE" in html.upper()
+    assert "DR" in html.upper()
 
 
 # ------------------------------------------- the directive's full journey
@@ -113,7 +113,7 @@ def test_full_journey_through_the_container():
     # container's own PostgreSQL rather than a mailbox.
     import subprocess
     subprocess.run(
-        ["docker", "compose", "exec", "-T", "db", "psql", "-U", "nare", "-d", "nare",
+        ["docker", "compose", "exec", "-T", "db", "psql", "-U", "DR", "-d", "DR",
          "-tAc",
          f"UPDATE users SET email_verified=1, verify_token=NULL WHERE email='{email}'"],
         check=True, capture_output=True, text=True, cwd=os.path.dirname(

@@ -15,7 +15,7 @@ from werkzeug.security import generate_password_hash
 from app.models import QRCode, Scan
 from app.utils import build_qr_content, generate_short_code
 
-logger = logging.getLogger("nare")
+logger = logging.getLogger("DR")
 
 #: Columns writable via PUT. Unknown keys are ignored, like the legacy loop.
 UPDATABLE = (

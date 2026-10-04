@@ -10,7 +10,7 @@
 *.db-journal
 !data/.gitkeep
 !uploads/.gitkeep
-data/nare.db
+data/DR.db
 # E2E/load-test scratch data
 data/e2e_*.db
 data/e2e_*.log

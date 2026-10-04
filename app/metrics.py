@@ -8,9 +8,9 @@ Exposed at /metrics in the Prometheus text format, so any scraper can read it.
 Three metric families, all labelled by route so a dashboard can break them
 down:
 
-  nare_requests_total{route,method,status}   counter
-  nare_request_duration_seconds{route}        histogram
-  nare_errors_total{route,status}            counter
+  DR_requests_total{route,method,status}   counter
+  DR_request_duration_seconds{route}        histogram
+  DR_errors_total{route,status}            counter
 
 Deliberately dependency-light: prometheus_client is the standard, and the
 labels are kept coarse (route, not per-user) so cardinality stays bounded.
@@ -19,18 +19,18 @@ A metric that grows without limit is a memory leak wearing a dashboard.
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
 REQUEST_COUNT = Counter(
-    "nare_requests_total",
+    "DR_requests_total",
     "Total HTTP requests served",
     ["route", "method", "status"],
 )
 REQUEST_DURATION = Histogram(
-    "nare_request_duration_seconds",
+    "DR_request_duration_seconds",
     "Request latency in seconds",
     ["route"],
     buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
 )
 ERROR_COUNT = Counter(
-    "nare_errors_total",
+    "DR_errors_total",
     "Total HTTP error responses (4xx and 5xx)",
     ["route", "status"],
 )

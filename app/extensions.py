@@ -59,7 +59,7 @@ def security_headers(resp):
 @app.before_request
 def _start_timer():
     """Phase 7d: record when the request began, for the latency histogram."""
-    g._nare_started = time.time()
+    g._DR_started = time.time()
 
 
 @app.after_request
@@ -72,7 +72,7 @@ def record_metrics(resp):
         # the route template, not the raw path — a raw path would create a
         # label per QR id and grow without bound
         rule = _req.url_rule.rule if _req.url_rule else "unmatched"
-        started = getattr(g, "_nare_started", None)
+        started = getattr(g, "_DR_started", None)
         duration = (time.time() - started) if started else 0.0
         metrics.observe(rule, _req.method, str(resp.status_code), duration)
     except Exception:
@@ -85,7 +85,7 @@ limiter = build_limiter(app)
 
 
 class LimiterReset:
-    """`nare._rate_store.clear()` compatibility shim used by the test suite:
+    """`DR._rate_store.clear()` compatibility shim used by the test suite:
     with Flask-Limiter the counters live in the limiter's storage."""
 
     def clear(self):

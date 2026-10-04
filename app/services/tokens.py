@@ -33,7 +33,7 @@ import jwt
 
 from app import cache
 
-logger = logging.getLogger("nare")
+logger = logging.getLogger("DR")
 
 ACCESS_MINUTES = 15          # directive: short-lived access tokens
 REFRESH_DAYS = 30

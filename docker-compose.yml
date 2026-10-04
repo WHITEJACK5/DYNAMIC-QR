@@ -1,4 +1,4 @@
-# NARE & CO. — full local stack: app + PostgreSQL + Redis (Phase 6a).
+# DR & CO. — full local stack: app + PostgreSQL + Redis (Phase 6a).
 #
 #   cp .env.example .env      # the only manual step
 #   docker compose up --build
@@ -17,7 +17,7 @@
 # Only the app is. In a real deployment they stay on an internal network; on a
 # laptop, uncomment the ports block if you want to inspect them.
 
-name: nare
+name: DR
 
 services:
   db:
@@ -26,14 +26,14 @@ services:
     environment:
       # Dev-only credentials. A real deployment injects these from the
       # platform's secret store; see README "Secrets".
-      POSTGRES_USER: ${POSTGRES_USER:-nare}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nare_dev_password}
-      POSTGRES_DB: ${POSTGRES_DB:-nare}
+      POSTGRES_USER: ${POSTGRES_USER:-DR}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-DR_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-DR}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       # -d/-U so readiness does not depend on psql finding a default cluster.
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nare} -d ${POSTGRES_DB:-nare}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-DR} -d ${POSTGRES_DB:-DR}"]
       interval: 5s
       timeout: 5s
       retries: 12
@@ -73,7 +73,7 @@ services:
       # local disk for logos and refuse to run without a secret (Phase 3d/4g).
       APP_ENV: ${APP_ENV:-production}
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required - copy .env.example to .env}
-      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-nare}:${POSTGRES_PASSWORD:-nare_dev_password}@db:5432/${POSTGRES_DB:-nare}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-DR}:${POSTGRES_PASSWORD:-DR_dev_password}@db:5432/${POSTGRES_DB:-DR}
       REDIS_URL: redis://redis:6379/0
       BASE_URL: ${BASE_URL:-http://localhost:8000}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8000}
@@ -86,7 +86,7 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_FROM: ${SMTP_FROM:-no-reply@nareandco.com}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@DRandco.com}
       # Never "1" in production: it enables the Werkzeug debugger.
       FLASK_DEBUG: "false"
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
@@ -114,7 +114,7 @@ services:
     environment:
       APP_ENV: ${APP_ENV:-production}
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required - copy .env.example to .env}
-      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-nare}:${POSTGRES_PASSWORD:-nare_dev_password}@db:5432/${POSTGRES_DB:-nare}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-DR}:${POSTGRES_PASSWORD:-DR_dev_password}@db:5432/${POSTGRES_DB:-DR}
       REDIS_URL: redis://redis:6379/0
       BASE_URL: ${BASE_URL:-http://localhost:8000}
       S3_BUCKET: ${S3_BUCKET:-}
@@ -129,7 +129,7 @@ services:
     # `rq worker`, not `python -m rq worker`: rq ships no __main__, so
     # `python -m rq` fails with "No module named rq.__main__" and the worker
     # crash-loops. The Procfile had the same mistake.
-    command: ["rq", "worker", "nare", "--url", "redis://redis:6379/0"]
+    command: ["rq", "worker", "DR", "--url", "redis://redis:6379/0"]
     healthcheck:
       # rq has no endpoint; assert the process is alive rather than pretend.
       test: ["CMD-SHELL", "pgrep -f 'rq worker' >/dev/null || exit 1"]

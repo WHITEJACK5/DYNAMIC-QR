@@ -22,7 +22,7 @@ and unit-tested; the end-to-end delivery needs your Sentry DSN.
 import logging
 import os
 
-logger = logging.getLogger("nare")
+logger = logging.getLogger("DR")
 
 _client = None
 

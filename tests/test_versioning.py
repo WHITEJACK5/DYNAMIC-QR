@@ -10,24 +10,24 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-32chars")
 os.environ.setdefault("BASE_URL", "http://localhost:5000")
 
-import server as nare
+import server as DR
 from server import app
 
 
 @pytest.fixture(autouse=True)
 def _clear_rate():
-    nare._rate_store.clear()
+    DR._rate_store.clear()
     yield
-    nare._rate_store.clear()
+    DR._rate_store.clear()
 
 
 @pytest.fixture
 def client():
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
     tmp.close()
-    old = nare.DB_PATH
-    nare.DB_PATH = tmp.name
-    nare.init_db()
+    old = DR.DB_PATH
+    DR.DB_PATH = tmp.name
+    DR.init_db()
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c
@@ -35,8 +35,8 @@ def client():
         os.unlink(tmp.name)
     except OSError:
         pass
-    nare.DB_PATH = old
-    nare._rate_store.clear()
+    DR.DB_PATH = old
+    DR._rate_store.clear()
 
 
 def test_health_both_versions(client):
@@ -53,7 +53,7 @@ def test_register_login_list_parity(client):
     r = client.post("/api/register", json={"email": "leg@x.com", "password": "StrongPass123!", "name": "L"})
     assert r.status_code == 200
     assert r.headers.get("Deprecation") == "true"
-    nare._rate_store.clear()
+    DR._rate_store.clear()
     r = client.post("/api/v1/register", json={"email": "v1@x.com", "password": "StrongPass123!", "name": "V"})
     assert r.status_code == 200
     assert "Deprecation" not in r.headers

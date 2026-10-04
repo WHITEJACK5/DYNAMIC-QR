@@ -59,13 +59,13 @@ def redirect_dynamic(code):
                 <html style="font-family:Inter,sans-serif;background:#0A0A0A;color:white;display:flex;align-items:center;justify-content:center;min-height:100vh">
                 <div style="background:#111;border:1px solid #222;padding:40px;border-radius:24px;max-width:400px;width:100%;text-align:center">
                 <h2 style="color:#00FF88">ðŸ”’ Password Protected</h2>
-                <p>This QR is protected by <b>NARE & CO.</b></p>
+                <p>This QR is protected by <b>DR & CO.</b></p>
                 <p style="color:#FF5555;font-size:13px;margin-top:8px">Incorrect password â€” try again</p>
                 <form method="POST">
                   <input name="pwd" type="password" placeholder="Enter password" required style="width:100%;padding:14px;border-radius:12px;border:1px solid #333;background:#000;color:white;margin:16px 0"/>
                   <button type="submit" style="width:100%;padding:14px;background:#00FF88;color:black;border:none;border-radius:12px;font-weight:800;cursor:pointer">Unlock</button>
                 </form>
-                <p style="font-size:12px;color:#888;margin-top:12px">Secured by NARE & CO. â€¢ Grid White / Black / Neon Green</p>
+                <p style="font-size:12px;color:#888;margin-top:12px">Secured by DR & CO. â€¢ Grid White / Black / Neon Green</p>
                 </div></html>
                 """,401
         s.close()
@@ -73,12 +73,12 @@ def redirect_dynamic(code):
             <html style="font-family:Inter,sans-serif;background:#0A0A0A;color:white;display:flex;align-items:center;justify-content:center;min-height:100vh">
             <div style="background:#111;border:1px solid #222;padding:40px;border-radius:24px;max-width:400px;width:100%;text-align:center">
             <h2 style="color:#00FF88">ðŸ”’ Password Protected</h2>
-            <p>This QR is protected by <b>NARE & CO.</b></p>
+            <p>This QR is protected by <b>DR & CO.</b></p>
             <form method="POST">
               <input name="pwd" type="password" placeholder="Enter password" required style="width:100%;padding:14px;border-radius:12px;border:1px solid #333;background:#000;color:white;margin:16px 0"/>
               <button type="submit" style="width:100%;padding:14px;background:#00FF88;color:black;border:none;border-radius:12px;font-weight:800;cursor:pointer">Unlock</button>
             </form>
-            <p style="font-size:12px;color:#888;margin-top:12px">Secured by NARE & CO. â€¢ Grid White / Black / Neon Green â€¢ POST only, not logged in URL</p>
+            <p style="font-size:12px;color:#888;margin-top:12px">Secured by DR & CO. â€¢ Grid White / Black / Neon Green â€¢ POST only, not logged in URL</p>
             </div></html>
             """,401
     # Track scan: fast local write now, geo enriched async after redirect.
@@ -105,7 +105,7 @@ def redirect_dynamic(code):
         return f"""        <html style="font-family:Inter,sans-serif;background:#F8F9FA;min-height:100vh"><body style="margin:0;padding:40px;background:
         radial-gradient(circle at 1px 1px, #e5e7eb 1px, transparent 0);background-size:22px 22px">
         <div style="max-width:640px;margin:0 auto;background:white;border:1px solid #0A0A0A;border-radius:20px;overflow:hidden;box-shadow:8px 8px 0 #0A0A0A">
-        <div style="background:#0A0A0A;color:#00FF88;padding:16px 24px;display:flex;justify-content:space-between;align-items:center"><b>NARE & CO.</b><span style="font-size:12px;border:1px solid #00FF88;padding:4px 8px;border-radius:20px">SECURE QR</span></div>
+        <div style="background:#0A0A0A;color:#00FF88;padding:16px 24px;display:flex;justify-content:space-between;align-items:center"><b>DR & CO.</b><span style="font-size:12px;border:1px solid #00FF88;padding:4px 8px;border-radius:20px">SECURE QR</span></div>
         <div style="padding:32px"><h2>QR Content</h2><pre style="white-space:pre-wrap;background:#F8F9FA;padding:16px;border-radius:12px;border:1px solid #e5e7eb">{target[:2000]}</pre>
-        <p style="color:#666;font-size:13px">Scanned via NARE & CO. dynamic QR â€¢ {device} â€¢ {browser} â€¢ {country}</p></div></div></body></html>
+        <p style="color:#666;font-size:13px">Scanned via DR & CO. dynamic QR â€¢ {device} â€¢ {browser} â€¢ {country}</p></div></div></body></html>
         """

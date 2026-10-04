@@ -85,11 +85,11 @@ def live_server(smtp, tmp_path_factory):
         "BASE_URL": f"http://127.0.0.1:{port}",
         "HOST": "127.0.0.1",
         "PORT": str(port),
-        "NARE_DB_PATH": str(db),
+        "DR_DB_PATH": str(db),
         "APP_ENV": "development",
         "SMTP_HOST": "127.0.0.1",
         "SMTP_PORT": str(smtp.port),
-        "SMTP_FROM": "no-reply@nareandco.test",
+        "SMTP_FROM": "no-reply@DRandco.test",
         # The catcher speaks plaintext SMTP on loopback, like a local relay.
         # Real deployments should leave STARTTLS on (the default).
         "SMTP_STARTTLS": "0",
@@ -161,14 +161,14 @@ def page(browser):
 
 
 def _unique_email(prefix="e2e"):
-    return f"{prefix}-{int(time.time() * 1000)}@nareandco.test"
+    return f"{prefix}-{int(time.time() * 1000)}@DRandco.test"
 
 
 def _open_auth(page, mode):
     """
     Open the auth modal and wait until it is actually open.
 
-    Waiting only for NareSession was a race: session.js is the first
+    Waiting only for DRSession was a race: session.js is the first
     script, so it is defined before app.js has declared openAuth, and the
     register click then landed on a modal that was never shown.
     """
@@ -191,8 +191,8 @@ def _register_via_ui(page, base, email, password="StrongPass123!"):
         name_input.first.fill("E2E User")
     page.locator("#authSubmit").click()
     page.wait_for_function(
-        "() => !!localStorage.getItem('nare_refresh')", timeout=20000)
-    return page.evaluate("() => localStorage.getItem('nare_refresh')")
+        "() => !!localStorage.getItem('DR_refresh')", timeout=20000)
+    return page.evaluate("() => localStorage.getItem('DR_refresh')")
 
 
 def _login_via_ui(page, base, email, password="StrongPass123!"):
@@ -202,8 +202,8 @@ def _login_via_ui(page, base, email, password="StrongPass123!"):
     page.locator("#authPass").fill(password)
     page.locator("#authSubmit").click()
     page.wait_for_function(
-        "() => !!localStorage.getItem('nare_token')", timeout=20000)
-    return page.evaluate("() => localStorage.getItem('nare_token')")
+        "() => !!localStorage.getItem('DR_token')", timeout=20000)
+    return page.evaluate("() => localStorage.getItem('DR_token')")
 
 
 def _verify_from_email(smtp, email, page):
@@ -245,7 +245,7 @@ def test_page_loads_with_security_headers_and_session_helper(page, live_server):
     page.on("response", lambda r: responses.append(r))
     page.goto(live_server + "/", wait_until="domcontentloaded")
     body = page.locator("body").inner_text()
-    assert "NARE" in body.upper()
+    assert "DR" in body.upper()
     doc = [r for r in responses if r.url.rstrip("/").endswith(live_server.rstrip("/"))]
     assert doc, "no main document response captured"
     headers = doc[0].headers
@@ -275,7 +275,7 @@ def test_register_verify_login_and_create_dynamic_qr(page, live_server, smtp):
     # the field the app renders for it, flip the styled toggle, submit.
     page.goto(live_server + "/", wait_until="domcontentloaded")
     page.wait_for_function("() => typeof window.openAuth === 'function'")
-    page.evaluate("() => window.NareSession.refreshAccessToken()")
+    page.evaluate("() => window.DRSession.refreshAccessToken()")
     page.locator('.type-btn[data-type="url"]').first.click()
     page.wait_for_selector("#f_url", timeout=10000)
     # the checkbox is visually hidden behind a styled label, so click the
@@ -305,7 +305,7 @@ def test_register_verify_login_and_create_dynamic_qr(page, live_server, smtp):
     # "no dynamic QR" never will.
     diag = page.evaluate(
         """async () => {
-             const t = localStorage.getItem('nare_token');
+             const t = localStorage.getItem('DR_token');
              const r = await fetch('/api/qrcodes?limit=50&offset=0',
                {headers:{Authorization:`Bearer ${t}`}});
              const j = await r.json();
@@ -325,7 +325,7 @@ def test_register_verify_login_and_create_dynamic_qr(page, live_server, smtp):
     if not short_code:
         short_code = page.evaluate(
             """async () => {
-                 const t = localStorage.getItem('nare_token');
+                 const t = localStorage.getItem('DR_token');
                  const r = await fetch('/api/qrcodes?limit=50&offset=0',
                    {headers:{Authorization:`Bearer ${t}`}});
                  const j = await r.json();
@@ -356,7 +356,7 @@ def test_scan_redirect_and_analytics_full_journey(page, browser, live_server, sm
     # measuring that host's latency, not the redirect.
     short_code = page.evaluate(
         """async () => {
-             const t = localStorage.getItem('nare_token');
+             const t = localStorage.getItem('DR_token');
              const r = await fetch('/api/generate', {
                method:'POST',
                headers:{'Content-Type':'application/json',
@@ -421,11 +421,11 @@ def test_logout_revokes_the_session(page, live_server, smtp):
     _register_via_ui(page, live_server, email)
     _verify_from_email(smtp, email, page)
     _login_via_ui(page, live_server, email)
-    token = page.evaluate("() => localStorage.getItem('nare_token')")
+    token = page.evaluate("() => localStorage.getItem('DR_token')")
     assert token
 
-    page.evaluate("async () => { await window.NareSession.logout(); }")
-    assert not page.evaluate("() => localStorage.getItem('nare_token')")
+    page.evaluate("async () => { await window.DRSession.logout(); }")
+    assert not page.evaluate("() => localStorage.getItem('DR_token')")
 
     # the revoked token must be refused even if something still holds it
     status = page.evaluate(

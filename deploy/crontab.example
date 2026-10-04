@@ -1,4 +1,4 @@
-# NARE & CO. — crontab alternative to deploy/nare-backup.timer
+# DR & CO. — crontab alternative to deploy/DR-backup.timer
 #
 # Use this if the host has no systemd. Install with:
 #   crontab -l > /tmp/ct && cat deploy/crontab.example >> /tmp/ct && crontab /tmp/ct
@@ -11,12 +11,12 @@
 # PATH and the interpreter are absolute: cron does not inherit your shell.
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-DATABASE_URL=postgresql://nare:CHANGE_ME@127.0.0.1:5432/nare
+DATABASE_URL=postgresql://DR:CHANGE_ME@127.0.0.1:5432/DR
 
 # m  h dom mon dow  command
 # 03:17 daily: dump, then prune dumps older than 14 days.
-17 3 * * * cd /srv/nare && /usr/bin/python3 -m scripts.pgbackup dump --out "backups/nare-$(date +\%F).dump" >> /var/log/nare-backup.log 2>&1
-32 3 * * * cd /srv/nare && /usr/bin/python3 -m scripts.pgbackup rotate --keep 14 >> /var/log/nare-backup.log 2>&1
+17 3 * * * cd /srv/DR && /usr/bin/python3 -m scripts.pgbackup dump --out "backups/DR-$(date +\%F).dump" >> /var/log/DR-backup.log 2>&1
+32 3 * * * cd /srv/DR && /usr/bin/python3 -m scripts.pgbackup rotate --keep 14 >> /var/log/DR-backup.log 2>&1
 
 # Copy dumps off this host. A dump sitting on the same disk is not a backup.
-# 47 4 * * 0 /usr/bin/rclone sync /srv/nare/backups remote:nare-backups
+# 47 4 * * 0 /usr/bin/rclone sync /srv/DR/backups remote:DR-backups

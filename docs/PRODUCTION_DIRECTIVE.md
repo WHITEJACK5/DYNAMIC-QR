@@ -11,7 +11,7 @@ service." No corners cut, no impressive-sounding features that aren't real, and 
 is touched without leaving it more correct, more tested, and more explainable.
 
 **Repository:** `WHITEJACK5/DYNAMIC-QR` (Flask + SQLite QR-code generation/analytics
-service, "NARE & CO.")
+service, "DR & CO.")
 
 **Mandate:** Work through every item below, in order, as its own atomic, reviewable unit
 of work. Do not batch unrelated fixes into one commit. Do not mark anything done until
@@ -47,7 +47,7 @@ description.
   ship dead pages.
 - [ ] **Fix the pre-`logger` reference bug** in the `SECRET_KEY` bootstrap block (`app.py`,
   the `.env` auto-write path) — `logger.warning(...)` is called before
-  `logger = logging.getLogger("nare")` is defined. Reorder initialization so logging is
+  `logger = logging.getLogger("DR")` is defined. Reorder initialization so logging is
   configured before first use, and add a test that exercises the "no SECRET_KEY set"
   cold-start path.
 - [ ] **Remove the third-party data leak** in `static/js/app.js` (`api.qrserver.com`

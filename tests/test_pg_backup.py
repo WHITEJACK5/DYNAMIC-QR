@@ -26,16 +26,16 @@ def _have_clients():
     return all(which(b) for b in ("pg_dump", "pg_restore", "psql"))
 
 
-def _sql(url, statements, dbname="nare"):
+def _sql(url, statements, dbname="DR"):
     """Run SQL against the target using the containerized psql.
 
     `url` is kept for the caller's context; the container is addressed by
     dbname because these tests drive a local container, not a network host.
     """
-    container = os.getenv("TEST_PG_CONTAINER", "nare-pg")
+    container = os.getenv("TEST_PG_CONTAINER", "DR-pg")
     script = "; ".join(statements)
     return subprocess.run(
-        ["docker", "exec", "-i", container, "psql", "-U", "nare", "-d", dbname, "-tAc", script],
+        ["docker", "exec", "-i", container, "psql", "-U", "DR", "-d", dbname, "-tAc", script],
         check=True, capture_output=True, text=True,
     ).stdout.strip()
 
@@ -47,11 +47,11 @@ def _admin():
     CREATE/DROP DATABASE cannot run inside a transaction block and psql -c
     wraps multiple statements in one.
     """
-    container = os.getenv("TEST_PG_CONTAINER", "nare-pg")
+    container = os.getenv("TEST_PG_CONTAINER", "DR-pg")
 
     def run(statement):
         return subprocess.run(
-            ["docker", "exec", "-i", container, "psql", "-U", "nare",
+            ["docker", "exec", "-i", container, "psql", "-U", "DR",
              "-d", "postgres", "-tAc", statement],
             check=True, capture_output=True, text=True,
         ).stdout.strip()
@@ -62,7 +62,7 @@ def _admin():
 def _scratch(name):
     """Create an isolated database and return its URL.
 
-    The round trip used to seed the shared `nare` database, which only works
+    The round trip used to seed the shared `DR` database, which only works
     while nothing else is using it. With the compose stack running, the app
     holds connections there and the DROP fails. Owning a scratch database
     makes the test independent of whatever else is attached to the server.
@@ -91,35 +91,35 @@ def _seed_statements():
 def test_dump_restore_roundtrip_in_container(tmp_path):
     """pg_dump -Fc -> restore into a clean database -> assert the data survived.
 
-    Restores into a scratch database rather than back into `nare`. Restoring
+    Restores into a scratch database rather than back into `DR`. Restoring
     over the source database only works while nothing else in the schema
     exists, so it broke whenever an earlier test in the same session had
     created tables the dump also contains. Restoring into a fresh database
     is also what disaster recovery actually looks like.
     """
-    source = _scratch("nare_backup_src")
+    source = _scratch("DR_backup_src")
     _sql(source, _seed_statements())
     assert _sql(source, ["SELECT count(*) FROM qrcodes"]) == "1"
 
-    dump_in_container = "/tmp/nare-test.dump"
+    dump_in_container = "/tmp/DR-test.dump"
     subprocess.run(
-        ["docker", "exec", "nare-pg", "pg_dump", "-U", "nare", "-d", "nare_backup_src", "-Fc",
+        ["docker", "exec", "DR-pg", "pg_dump", "-U", "DR", "-d", "DR_backup_src", "-Fc",
          "-f", dump_in_container],
         check=True, capture_output=True, text=True,
     )
     size = subprocess.run(
-        ["docker", "exec", "nare-pg", "sh", "-c", f"wc -c < {dump_in_container}"],
+        ["docker", "exec", "DR-pg", "sh", "-c", f"wc -c < {dump_in_container}"],
         check=True, capture_output=True, text=True,
     ).stdout.strip()
     assert int(size) > 0, "dump file is empty"
 
-    restore_db = "nare_backup_probe"
+    restore_db = "DR_backup_probe"
     # separate statements: CREATE DATABASE cannot run in a transaction block
     _admin()(f"DROP DATABASE IF EXISTS {restore_db}")
     _admin()(f"CREATE DATABASE {restore_db}")
 
     r = subprocess.run(
-        ["docker", "exec", "nare-pg", "pg_restore", "-U", "nare", "-d", restore_db,
+        ["docker", "exec", "DR-pg", "pg_restore", "-U", "DR", "-d", restore_db,
          "--no-owner", "--no-privileges", dump_in_container],
         capture_output=True, text=True,
     )
@@ -130,8 +130,8 @@ def test_dump_restore_roundtrip_in_container(tmp_path):
     assert row == "survivor|https://example.com/keep-me|7"
 
     _admin()(f"DROP DATABASE IF EXISTS {restore_db}")
-    _admin()("DROP DATABASE IF EXISTS nare_backup_src")
-    subprocess.run(["docker", "exec", "nare-pg", "rm", "-f", dump_in_container], check=False)
+    _admin()("DROP DATABASE IF EXISTS DR_backup_src")
+    subprocess.run(["docker", "exec", "DR-pg", "rm", "-f", dump_in_container], check=False)
 
 
 def _url_for(dbname):
@@ -182,11 +182,11 @@ def test_helper_rejects_non_postgres_url(monkeypatch):
 
 def test_helper_parses_dsn(monkeypatch):
     monkeypatch.setenv(
-        "DATABASE_URL", "postgresql+psycopg2://alice:s3cr3t@db.internal:6543/nare"
+        "DATABASE_URL", "postgresql+psycopg2://alice:s3cr3t@db.internal:6543/DR"
     )
     p = pgbackup._dsn_parts()
     assert (p["host"], p["port"], p["user"], p["dbname"]) == (
-        "db.internal", "6543", "alice", "nare"
+        "db.internal", "6543", "alice", "DR"
     )
     assert pgbackup._env(p)["PGPASSWORD"] == "s3cr3t"
 

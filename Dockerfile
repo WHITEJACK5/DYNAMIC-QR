@@ -1,4 +1,4 @@
-# NARE & CO. — production image (Phase 6a)
+# DR & CO. — production image (Phase 6a)
 #
 # Served by gunicorn (wsgi:application) behind the reverse proxy, never by
 # app.run(). Postgres and Redis are separate services; see docker-compose.yml.
@@ -50,8 +50,8 @@ RUN apt-get update \
 
 # Unprivileged runtime user with a fixed uid/gid so bind-mounted volumes
 # have predictable ownership.
-RUN groupadd --system --gid 1001 nare \
- && useradd --system --uid 1001 --gid nare --home-dir /app --shell /usr/sbin/nologin nare
+RUN groupadd --system --gid 1001 DR \
+ && useradd --system --uid 1001 --gid DR --home-dir /app --shell /usr/sbin/nologin DR
 
 WORKDIR /app
 
@@ -60,14 +60,14 @@ COPY requirements.txt .
 RUN pip install --no-index --find-links=/wheels -r requirements.txt \
  && rm -rf /wheels
 
-COPY --chown=nare:nare . /app
+COPY --chown=DR:DR . /app
 
 # The app writes to data/ (SQLite fallback) and uploads/; both are volumes
 # in compose, and object storage is the system of record for logos in
 # production, so this is only the dev-mode fallback path.
-RUN mkdir -p /app/data /app/uploads && chown -R nare:nare /app/data /app/uploads
+RUN mkdir -p /app/data /app/uploads && chown -R DR:DR /app/data /app/uploads
 
-USER nare
+USER DR
 
 EXPOSE 8000
 

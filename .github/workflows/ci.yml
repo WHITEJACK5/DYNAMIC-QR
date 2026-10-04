@@ -16,9 +16,9 @@ jobs:
         # important half is a green build that proves very little.
         image: postgres:16
         env:
-          POSTGRES_USER: nare
-          POSTGRES_PASSWORD: nare_ci_pw
-          POSTGRES_DB: nare
+          POSTGRES_USER: DR
+          POSTGRES_PASSWORD: DR_ci_pw
+          POSTGRES_DB: DR
         ports: ['5432:5432']
         options: >-
           --health-cmd pg_isready
@@ -63,13 +63,13 @@ jobs:
         env:
           SECRET_KEY: ci-test-secret-key-must-be-32-chars-long
           BASE_URL: http://localhost:5000
-          TEST_DATABASE_URL: postgresql+psycopg2://nare:nare_ci_pw@127.0.0.1:5432/nare
-          DATABASE_URL: postgresql+psycopg2://nare:nare_ci_pw@127.0.0.1:5432/nare
+          TEST_DATABASE_URL: postgresql+psycopg2://DR:DR_ci_pw@127.0.0.1:5432/DR
+          DATABASE_URL: postgresql+psycopg2://DR:DR_ci_pw@127.0.0.1:5432/DR
           REDIS_URL: redis://127.0.0.1:6379/0
         run: pytest -q tests/test_migrations.py tests/test_models_db.py tests/test_postgres_e2e.py tests/test_cache.py tests/test_jobs.py
       - name: Migrations apply and roll back on PostgreSQL
         env:
-          DATABASE_URL: postgresql+psycopg2://nare:nare_ci_pw@127.0.0.1:5432/nare
+          DATABASE_URL: postgresql+psycopg2://DR:DR_ci_pw@127.0.0.1:5432/DR
         run: |
           alembic upgrade head
           alembic downgrade base
@@ -112,7 +112,7 @@ jobs:
 
   secrets:
     # Phase 4f: replaces the previous "check" which grepped for one known
-    # string ("nare-co-secret-2026") and therefore detected no other secret
+    # string ("DRQR-secret-2026") and therefore detected no other secret
     # at all. gitleaks scans the working tree AND the full history.
     runs-on: ubuntu-latest
     steps:
@@ -151,9 +151,9 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: nare
-          POSTGRES_PASSWORD: nare_ci_pw
-          POSTGRES_DB: nare
+          POSTGRES_USER: DR
+          POSTGRES_PASSWORD: DR_ci_pw
+          POSTGRES_DB: DR
         ports: ['5432:5432']
         options: >-
           --health-cmd pg_isready
@@ -173,7 +173,7 @@ jobs:
         env:
           SECRET_KEY: ci-test-secret-key-must-be-32-chars-long
           BASE_URL: http://localhost:5000
-          TEST_DATABASE_URL: postgresql+psycopg2://nare:nare_ci_pw@127.0.0.1:5432/nare
+          TEST_DATABASE_URL: postgresql+psycopg2://DR:DR_ci_pw@127.0.0.1:5432/DR
         # The browser and load tests are excluded here on purpose: they run
         # their own jobs, they need extra tooling, and coverage tracing
         # slows them enough to make them time-sensitive. They are still run
@@ -223,16 +223,16 @@ jobs:
           context: .
           push: false
           load: true
-          tags: nare-ci:${{ github.sha }}
+          tags: DR-ci:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: The production entrypoint imports
         run: |
-          docker run --rm --entrypoint python nare-ci:${{ github.sha }} \
+          docker run --rm --entrypoint python DR-ci:${{ github.sha }} \
             -c "import wsgi; assert wsgi.application; print('wsgi ok')"
       - name: The image contains no committed secrets
         run: |
-          if docker run --rm --entrypoint sh nare-ci:${{ github.sha }} -c \
+          if docker run --rm --entrypoint sh DR-ci:${{ github.sha }} -c \
              'test -e /app/.env'; then
             echo "FAIL: a .env file was baked into the image"; exit 1
           fi
@@ -249,7 +249,7 @@ jobs:
           cp .env.example .env
           docker compose up -d --build
           for i in $(seq 1 60); do
-            status=$(docker inspect -f '{{.State.Health.Status}}' nare-app-1 2>/dev/null || echo starting)
+            status=$(docker inspect -f '{{.State.Health.Status}}' DR-app-1 2>/dev/null || echo starting)
             [ "$status" = "healthy" ] && { echo "app healthy"; break; }
             sleep 5
           done

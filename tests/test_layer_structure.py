@@ -73,9 +73,9 @@ def test_every_route_module_defines_a_blueprint():
 
 
 def test_blueprints_are_registered_on_the_app():
-    import server as nare
+    import server as DR
 
-    registered = {b.name for b in nare.app.blueprints.values()}
+    registered = {b.name for b in DR.app.blueprints.values()}
     for name in ("auth", "qr", "analytics", "meta", "pages", "redirect"):
         assert name in registered, f"{name} blueprint is not registered on the app"
 

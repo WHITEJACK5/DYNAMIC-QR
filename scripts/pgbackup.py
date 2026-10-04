@@ -6,8 +6,8 @@ this on a schedule (cron, Task Scheduler, systemd timer) and ship the file
 somewhere durable: a dump on the same disk is not a backup.
 
 Usage:
-    python -m scripts.pgbackup dump   --out backups/nare-20260927.dump
-    python -m scripts.pgbackup restore --in backups/nare-20260927.dump
+    python -m scripts.pgbackup dump   --out backups/DR-20260927.dump
+    python -m scripts.pgbackup restore --in backups/DR-20260927.dump
     python -m scripts.pgbackup list
 
 DATABASE_URL decides the target; no credentials are stored here.
@@ -116,7 +116,7 @@ def rotate(keep=14, directory=DEFAULT_DIR):
 
     cutoff = time.time() - keep * 86400
     removed = []
-    for path in glob.glob(os.path.join(directory, "nare-*.dump")):
+    for path in glob.glob(os.path.join(directory, "DR-*.dump")):
         try:
             if os.path.getmtime(path) < cutoff:
                 os.remove(path)
@@ -129,9 +129,9 @@ def rotate(keep=14, directory=DEFAULT_DIR):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="PostgreSQL backup/restore for NARE & CO.")
+    ap = argparse.ArgumentParser(description="PostgreSQL backup/restore for DR & CO.")
     ap.add_argument("action", choices=["dump", "rotate", "restore", "verify"])
-    ap.add_argument("--out", default=os.path.join(DEFAULT_DIR, "nare-latest.dump"))
+    ap.add_argument("--out", default=os.path.join(DEFAULT_DIR, "DR-latest.dump"))
     ap.add_argument("--in", dest="inp", default=None)
     ap.add_argument("--keep", type=int, default=14, help="days to keep (rotate action)")
     ap.add_argument("--dir", dest="directory", default=DEFAULT_DIR)

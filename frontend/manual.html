@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Manual — NARE & CO.</title>
+    <title>Manual — DR & CO.</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&family=JetBrains+Mono:wght@600&display=swap"
       rel="stylesheet"
@@ -84,7 +84,7 @@
       <div class="container header-inner">
         <a href="/" class="logo"
           ><div class="logo-mark">N</div>
-          <div class="logo-type">NARE <span>& CO.</span></div></a
+          <div class="logo-type">DR <span>& CO.</span></div></a
         >
         <nav class="nav">
           <a href="/">Generator</a>
@@ -113,9 +113,9 @@
             <span class="badge badge-white">Personal Edition</span>
             <span class="badge badge-black">v1.1.0</span>
           </div>
-          <h1>NARE & CO. — Working Manual</h1>
+          <h1>DR & CO. — Working Manual</h1>
           <p style="color: #666">
-            Grid White / Black / Neon Green • Local SQLite <code>data/nare.db</code> •
+            Grid White / Black / Neon Green • Local SQLite <code>data/DR.db</code> •
             Tested on fresh Windows 11 + Python 3.11. Every command below was executed.
           </p>
           <div style="display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0">
@@ -125,17 +125,17 @@
           </div>
           <h2>Fresh Install (Any PC)</h2>
           <pre>
-git clone https://github.com/WHITEJACK5/NARE-CO..git
-cd NARE-CO.
+git clone https://github.com/WHITEJACK5/DRQR..git
+cd DRQR.
 cp .env.example .env   # or ./start.sh auto-creates
 pip install -r requirements.txt
 python app.py
-# → Fresh DB created at data/nare.db
+# → Fresh DB created at data/DR.db
 # open http://127.0.0.1:5000</pre>
           <p>
             No manual DB steps. <code>app.py:31</code> creates <code>data/</code> +
             <code>.gitkeep</code>, <code>init_db()</code> creates tables. Delete
-            <code>data/nare.db</code> → restart → fresh.
+            <code>data/DR.db</code> → restart → fresh.
           </p>
           <h2>Run Daily</h2>
           <pre>
@@ -232,7 +232,7 @@ curl http://127.0.0.1:5000/api/health</pre>
         class="container"
         style="font-size: 12px; display: flex; justify-content: space-between"
       >
-        <span>© 2026 NARE & CO. — Manual v1.1.0</span
+        <span>© 2026 DR & CO. — Manual v1.1.0</span
         ><span style="color: var(--neon)">Personal Use • Local DB</span>
       </div>
     </footer>

@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.models import Base
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_SQLITE = "sqlite:///" + os.path.join(APP_DIR, "data", "nare.db").replace("\\", "/")
+DEFAULT_SQLITE = "sqlite:///" + os.path.join(APP_DIR, "data", "DR.db").replace("\\", "/")
 
 _engine = None
 _SessionFactory = None

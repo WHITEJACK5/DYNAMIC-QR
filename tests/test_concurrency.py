@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["SECRET_KEY"] = "test-secret-key-for-ci-must-be-long-enough-32chars"
 os.environ["BASE_URL"] = "http://localhost:5000"
 
-import server as nare  # noqa: E402,F401
+import server as DR  # noqa: E402,F401
 from app.models import Base, QRCode, Scan, User  # noqa: E402
 from app.repositories import qr_repo, scans_repo  # noqa: E402
 

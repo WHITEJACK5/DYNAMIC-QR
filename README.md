@@ -1,4 +1,4 @@
-# NARE & CO. — QR Code Generator (Personal Use)
+# DR & CO. — QR Code Generator (Personal Use)
 
 **Theme:** Grid White / Black / Neon Green  
 **Personal build — Pricing & FAQ removed, local DB only**
@@ -10,24 +10,24 @@ Full QR Tiger clone for personal use — no pricing panel, no FAQ, pure generato
 When someone clones this repo on a **fresh computer**, everything auto-creates:
 
 ```bash
-git clone https://github.com/WHITEJACK5/NARE-CO..git
-cd NARE-CO.
+git clone https://github.com/WHITEJACK5/DRQR..git
+cd DRQR.
 cp .env.example .env   # or use start.sh which auto-creates .env with random SECRET_KEY
 pip install -r requirements.txt
 python server.py
-# → [NARE & CO.] Fresh DB created at data/nare.db — tables: users, qrcodes, scans, folders, templates
-# → [NARE & CO.] Local DB ready for personal use
+# → [DR & CO.] Fresh DB created at data/DR.db — tables: users, qrcodes, scans, folders, templates
+# → [DR & CO.] Local DB ready for personal use
 # open http://localhost:5000
 ```
 
-No manual DB steps. `server.py` creates `data/` + `uploads/` + `.gitkeep`, `server.py` `init_db()` creates SQLite `data/nare.db` with:
+No manual DB steps. `server.py` creates `data/` + `uploads/` + `.gitkeep`, `server.py` `init_db()` creates SQLite `data/DR.db` with:
 
 - `users` — email, password_hash (Werkzeug), name, created_at
 - `qrcodes` — user_id, name, type, content, data_json, is_dynamic, short_code, fg/bg/gradient/pattern/eye/frame/logo, password, expiry, scan_count
 - `scans` — qr_id, timestamp, ip, device/browser/os/country
 - `folders`, `templates` + indexes on `short_code` and `qr_id`
 
-If DB already exists, it loads: `DB loaded — users:X qrs:Y`. Deleting `data/nare.db` → next `python server.py` recreates fresh (tested).
+If DB already exists, it loads: `DB loaded — users:X qrs:Y`. Deleting `data/DR.db` → next `python server.py` recreates fresh (tested).
 
 ## Features — Personal Edition
 
@@ -36,7 +36,7 @@ If DB already exists, it loads: `DB loaded — users:X qrs:Y`. Deleting `data/na
 - **Logo Centre:** Drag & drop PNG/JPG/WebP/SVG (≤5MB, square recommended) → 22% centered, white rounded bg (18px), H-error correction — `server.py`, `static/js/app.js:392`
 - **Customization:** Pattern (square/dots/rounded/gapped), Eyes, Colors + gradient, Frame CTA, Templates — live preview `POST /api/preview` with spinner, no overflow
 - **Homepage:** Generator + Live Preview only — Pricing/FAQ removed, grid-white/black/neon, fully responsive, no breakouts
-- **Auth — Professional:** `frontend/index.html:487` modal with email validation, password toggle, inline `field-error`, loading spinner, JWT 7-day (`localStorage nare_token`), error toasts for 409/401
+- **Auth — Professional:** `frontend/index.html:487` modal with email validation, password toggle, inline `field-error`, loading spinner, JWT 7-day (`localStorage DR_token`), error toasts for 409/401
 - **Dashboard** `frontend/dashboard.html:1` — **Local DB managing:**
   - List/search/filter all your QRs, live thumbnails via `POST /api/preview`
   - **Full Edit** (`editModal`): name, type, content, data_json, fg/bg, pattern/eye, frame, password, scan_limit, expiry → `PUT /api/qrcodes/<id>` `server.py`
@@ -58,14 +58,14 @@ python server.py
 **Test Health**
 ```powershell
 curl http://localhost:5000/api/health
-# {"service":"NARE & CO.","status":"ok"}
+# {"service":"DR & CO.","status":"ok"}
 ```
 
 **Register + Generate Dynamic (saved to DB)**
 ```powershell
-curl -X POST http://localhost:5000/api/register -H "Content-Type: application/json" -d '{"email":"you@nare.com","password":"123456","name":"You"}'
+curl -X POST http://localhost:5000/api/register -H "Content-Type: application/json" -d '{"email":"you@DR.com","password":"123456","name":"You"}'
 # → {token, user}
-curl -X POST http://localhost:5000/api/generate -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{"type":"url","data":{"url":"https://nareandco.com"},"is_dynamic":true,"fg_color":"#0A0A0A","bg_color":"#FFFFFF","pattern":"dots"}'
+curl -X POST http://localhost:5000/api/generate -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{"type":"url","data":{"url":"https://DRandco.com"},"is_dynamic":true,"fg_color":"#0A0A0A","bg_color":"#FFFFFF","pattern":"dots"}'
 ```
 
 **List & Manage (DB)**
@@ -77,7 +77,7 @@ curl -X PUT -H "Authorization: Bearer <token>" -H "Content-Type: application/jso
 ## Project Structure (Fresh Clone)
 
 ```
-nare-and-co/
+DR-and-co/
   server.py              # composition root + dev entrypoint (app.run, dev only)
   wsgi.py                # production entrypoint (gunicorn wsgi:application)
   alembic.ini            # migrations config (URL comes from the environment)
@@ -125,7 +125,7 @@ nare-and-co/
     pgbackup.py       # pg_dump / pg_restore / verify
   data/
     .gitkeep          # kept in git, DB auto-created on first run
-    nare.db           # ignored by .gitignore — SQLite path only
+    DR.db           # ignored by .gitignore — SQLite path only
   uploads/
     .gitkeep          # used only when no S3 bucket is configured
   frontend/
@@ -168,18 +168,18 @@ The whole application runs on either database — the same repository code, no
 SQLite-only paths. The dialect is chosen by one environment variable.
 
 **SQLite (default, zero setup).** With `DATABASE_URL` unset the app creates and
-migrates `data/nare.db` on first run. Copy the file to back it up.
+migrates `data/DR.db` on first run. Copy the file to back it up.
 
 **PostgreSQL.** Set `DATABASE_URL` and nothing else changes:
 
 ```bash
-export DATABASE_URL=postgresql://user:password@localhost:5432/nare
+export DATABASE_URL=postgresql://user:password@localhost:5432/DR
 python server.py          # runs `alembic upgrade head` on an empty database
 ```
 
 ```python
 # .env
-DATABASE_URL=postgresql://user:password@localhost:5432/nare
+DATABASE_URL=postgresql://user:password@localhost:5432/DR
 DB_POOL_SIZE=5          # per worker process
 DB_MAX_OVERFLOW=10
 DB_POOL_RECYCLE=1800
@@ -199,7 +199,7 @@ alembic downgrade -1        # roll back one
 alembic revision --autogenerate -m "add x"   # after editing app/models/entities.py
 ```
 
-A pre-Alembic `data/nare.db` is adopted by stamping it at head — your data is
+A pre-Alembic `data/DR.db` is adopted by stamping it at head — your data is
 never dropped.
 
 ### Backups
@@ -209,8 +209,8 @@ automated backups and PITR; enable them there. For self-hosted or containerised
 databases, use the script in this repo:
 
 ```bash
-export DATABASE_URL=postgresql://user:password@localhost:5432/nare
-python -m scripts.pgbackup dump --out backups/nare-$(date +%F).dump
+export DATABASE_URL=postgresql://user:password@localhost:5432/DR
+python -m scripts.pgbackup dump --out backups/DR-$(date +%F).dump
 python -m scripts.pgbackup rotate --keep 14     # prune dumps older than 14 days
 python -m scripts.pgbackup verify               # reachable + table count
 ```
@@ -218,13 +218,13 @@ python -m scripts.pgbackup verify               # reachable + table count
 Scheduling it is provided, not left to a comment. systemd:
 
 ```bash
-echo 'DATABASE_URL=postgresql://user:password@localhost:5432/nare' \
-  | sudo tee /etc/nare-backup.env && sudo chmod 600 /etc/nare-backup.env
-sudo cp deploy/nare-backup.service deploy/nare-backup.timer /etc/systemd/system/
+echo 'DATABASE_URL=postgresql://user:password@localhost:5432/DR' \
+  | sudo tee /etc/DR-backup.env && sudo chmod 600 /etc/DR-backup.env
+sudo cp deploy/DR-backup.service deploy/DR-backup.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now nare-backup.timer
-systemctl list-timers nare-backup.timer         # confirm next run
-journalctl -u nare-backup.service              # read the log
+sudo systemctl enable --now DR-backup.timer
+systemctl list-timers DR-backup.timer         # confirm next run
+journalctl -u DR-backup.service              # read the log
 ```
 
 Without systemd, use `deploy/crontab.example` (`crontab -l` plus that file).
@@ -234,7 +234,7 @@ missed while the machine was off still happens.
 Restore (drops and rebuilds the schema, then replays the dump):
 
 ```bash
-python -m scripts.pgbackup restore --in backups/nare-2026-09-27.dump
+python -m scripts.pgbackup restore --in backups/DR-2026-09-27.dump
 ```
 
 Requires the PostgreSQL client tools (`pg_dump`, `pg_restore`, `psql`) on the
@@ -283,7 +283,7 @@ only exists on one box is data loss:
 
 ```bash
 # .env — works with AWS S3, Cloudflare R2, Backblaze B2
-S3_BUCKET=nare-logos
+S3_BUCKET=DR-logos
 S3_ENDPOINT_URL=https://<account>.r2.cloudflarestorage.com
 AWS_REGION=auto
 ```
@@ -456,8 +456,8 @@ running stack end to end.
 
 ### Structured logging
 
-Every log line is JSON: `{"ts": "...", "level": "INFO", "logger": "nare",
-"service": "nare", "env": "production", "msg": "...", ...}`. Fields passed via
+Every log line is JSON: `{"ts": "...", "level": "INFO", "logger": "DR",
+"service": "DR", "env": "production", "msg": "...", ...}`. Fields passed via
 `extra=` are promoted to the top level, so they are queryable rather than
 greppable. Messages use `%s` templates, so a filtered-out DEBUG line is never
 built. `tests/test_structured_logging.py` fails if application code goes back
@@ -472,7 +472,7 @@ id would grow without bound). Scrape it with any Prometheus setup:
 ```yaml
 # prometheus.yml
 scrape_configs:
-  - job_name: nare
+  - job_name: DR
     static_configs:
       - targets: ["app:8000"]
 ```
@@ -523,12 +523,12 @@ and proven.
 
 - No `.env` needed for the SQLite path — the file creates itself and is migrated
   on first run.
-- To reset the SQLite DB: delete `data/nare.db` → `python server.py` recreates it.
-- To back up SQLite: copy `data/nare.db`. To back up PostgreSQL: see Backups above.
+- To reset the SQLite DB: delete `data/DR.db` → `python server.py` recreates it.
+- To back up SQLite: copy `data/DR.db`. To back up PostgreSQL: see Backups above.
 - Images/logos in `uploads/` are ignored by git (used only when no S3 bucket is configured).
 
 ---
 
-Built for **NARE & CO.** — Personal edition, local-first, single-command fresh install.
+Built for **DR & CO.** — Personal edition, local-first, single-command fresh install.
 
-# NARE-CO.
+# DRQR.

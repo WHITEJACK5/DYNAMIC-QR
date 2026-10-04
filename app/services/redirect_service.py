@@ -13,7 +13,7 @@ from werkzeug.security import check_password_hash
 
 from app.utils import detect_device
 
-logger = logging.getLogger("nare")
+logger = logging.getLogger("DR")
 
 SMART_TYPES = ("smarturl", "smart url", "multiurl")
 

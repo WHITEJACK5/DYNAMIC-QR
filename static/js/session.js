@@ -11,19 +11,19 @@
   let timer = null;
 
   function storeSession(j) {
-    localStorage.setItem('nare_token', j.access_token || j.token);
-    if (j.refresh_token) localStorage.setItem('nare_refresh', j.refresh_token);
+    localStorage.setItem('DR_token', j.access_token || j.token);
+    if (j.refresh_token) localStorage.setItem('DR_refresh', j.refresh_token);
     schedule();
   }
 
   function clearSession() {
-    localStorage.removeItem('nare_token');
-    localStorage.removeItem('nare_refresh');
-    localStorage.removeItem('nare_user');
+    localStorage.removeItem('DR_token');
+    localStorage.removeItem('DR_refresh');
+    localStorage.removeItem('DR_user');
   }
 
   async function refreshAccessToken() {
-    const rt = localStorage.getItem('nare_refresh');
+    const rt = localStorage.getItem('DR_refresh');
     if (!rt) return false;
     try {
       const r = await fetch(`${API}/api/refresh`, {
@@ -39,8 +39,8 @@
         return false;
       }
       const j = await r.json();
-      localStorage.setItem('nare_token', j.access_token);
-      localStorage.setItem('nare_refresh', j.refresh_token);
+      localStorage.setItem('DR_token', j.access_token);
+      localStorage.setItem('DR_refresh', j.refresh_token);
       return true;
     } catch (e) {
       return false; // offline: try again on the next tick
@@ -49,7 +49,7 @@
 
   function schedule() {
     if (timer) clearTimeout(timer);
-    if (!localStorage.getItem('nare_refresh')) return;
+    if (!localStorage.getItem('DR_refresh')) return;
     timer = setTimeout(async function () {
       await refreshAccessToken();
       schedule();
@@ -58,7 +58,7 @@
 
   // Laptop asleep for an hour returns a stale token; renew on wake.
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden && localStorage.getItem('nare_refresh')) refreshAccessToken();
+    if (!document.hidden && localStorage.getItem('DR_refresh')) refreshAccessToken();
   });
 
   async function logout() {
@@ -68,14 +68,14 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('nare_token')}`
+          'Authorization': `Bearer ${localStorage.getItem('DR_token')}`
         },
-        body: JSON.stringify({ refresh_token: localStorage.getItem('nare_refresh') })
+        body: JSON.stringify({ refresh_token: localStorage.getItem('DR_refresh') })
       });
     } catch (e) { /* offline: dropping local state is still correct */ }
     clearSession();
   }
 
-  window.NareSession = { storeSession, clearSession, refreshAccessToken, logout, schedule };
+  window.DRSession = { storeSession, clearSession, refreshAccessToken, logout, schedule };
   schedule();
 })();

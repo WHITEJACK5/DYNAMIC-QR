@@ -1,12 +1,12 @@
-"""Composition root and development entrypoint for NARE & CO.
+"""Composition root and development entrypoint for DR & CO.
 
-Phase 2a keeps `import server as nare; nare.<helper>` working for the many
+Phase 2a keeps `import server as DR; DR.<helper>` working for the many
 call sites and tests that use it; the helpers themselves live in
 app/utils/. Phase 2g made this a thin composition root — the production
 entrypoint is wsgi.py, served by gunicorn behind nginx.
 """
 # Phase 2a: pure helpers live in app/utils/ (zero Flask/DB imports).
-# app.py re-exports them so `import app as nare; nare.hex_to_rgb` keeps working.
+# app.py re-exports them so `import app as DR; DR.hex_to_rgb` keeps working.
 from app.utils import (
     build_gs1_content,  # noqa: F401 — re-exported for backwards compat
     validate_email_format,  # noqa: F401 — re-exported (schemas own validation now)
@@ -27,12 +27,12 @@ from app.extensions import (
     app,
     get_base_url,
     get_session,
-    limiter,  # noqa: F401 — re-exported: tests inspect nare.limiter
+    limiter,  # noqa: F401 — re-exported: tests inspect DR.limiter
     )
 from app.extensions import rate_store
 
 #: Kept as a module attribute because the test suite calls
-#: `nare._rate_store.clear()` between cases.
+#: `DR._rate_store.clear()` between cases.
 _rate_store = rate_store
 
 # ---------------- DB ----------------
@@ -89,9 +89,9 @@ def init_db():
         _migrations.upgrade_to_head(target)
         logger.info(f"Fresh database migrated to head at {target}")
         if not str(target).startswith("postgresql"):
-            print(f"[NARE & CO.] Fresh DB created at {DB_PATH} — tables: "
+            print(f"[DR & CO.] Fresh DB created at {DB_PATH} — tables: "
                   "users, qrcodes, scans, folders, templates (Alembic head)")
-            print("[NARE & CO.] Local DB ready for personal use — login + QR "
+            print("[DR & CO.] Local DB ready for personal use — login + QR "
                   "managing + analytics (SQLite)")
     try:
         _s = get_session()
@@ -102,7 +102,7 @@ def init_db():
         _s.close()
         # Report against whichever database this process actually uses.
         if _u or not str(target).startswith("postgresql"):
-            print(f"[NARE & CO.] DB loaded — {target} — users:{_u} qrs:{_q}")
+            print(f"[DR & CO.] DB loaded — {target} — users:{_u} qrs:{_q}")
     except Exception as e:
         logger.warning(f"DB status check failed: {e}")
 
@@ -146,7 +146,7 @@ from app.routes.qr import _bulk_job  # noqa: E402,F401 — RQ worker entrypoint
 if __name__ == "__main__":
     # DEV-ONLY entrypoint. Production serves wsgi:application via gunicorn
     # behind a reverse proxy — never app.run().
-    print("=== NARE & CO. - Personal Edition (dev server) ===")
+    print("=== DR & CO. - Personal Edition (dev server) ===")
     print("Grid White / Black / Neon Green")
     print(f"Base URL: {get_base_url()}")
     print(f"Allowed Origins: {ALLOWED_ORIGINS}")

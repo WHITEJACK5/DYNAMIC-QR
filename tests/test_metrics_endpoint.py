@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["SECRET_KEY"] = "test-secret-key-for-ci-must-be-long-enough-32chars"
 os.environ["BASE_URL"] = "http://localhost:5000"
 
-import server as nare  # noqa: E402
+import server as DR  # noqa: E402
 from server import app  # noqa: E402
 
 
@@ -28,9 +28,9 @@ from server import app  # noqa: E402
 def client():
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
     tmp.close()
-    old = nare.DB_PATH
-    nare.DB_PATH = tmp.name
-    nare.init_db()
+    old = DR.DB_PATH
+    DR.DB_PATH = tmp.name
+    DR.init_db()
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c
@@ -38,8 +38,8 @@ def client():
         os.unlink(tmp.name)
     except OSError:
         pass
-    nare.DB_PATH = old
-    nare._rate_store.clear()
+    DR.DB_PATH = old
+    DR._rate_store.clear()
 
 
 def _get_metrics(client):
@@ -52,15 +52,15 @@ def _get_metrics(client):
 # ------------------------------------------------------------- it is served
 def test_metrics_endpoint_is_reachable(client):
     body = _get_metrics(client)
-    assert "nare_requests_total" in body
-    assert "nare_request_duration_seconds" in body
-    assert "nare_errors_total" in body
+    assert "DR_requests_total" in body
+    assert "DR_request_duration_seconds" in body
+    assert "DR_errors_total" in body
 
 
 def test_metrics_is_also_under_the_versioned_path(client):
     r = client.get("/api/v1/metrics")
     assert r.status_code == 200
-    assert "nare_requests_total" in r.get_data(as_text=True)
+    assert "DR_requests_total" in r.get_data(as_text=True)
 
 
 def test_metrics_requires_no_authentication(client):
@@ -70,17 +70,17 @@ def test_metrics_requires_no_authentication(client):
 
 # ------------------------------------------------------- the numbers move
 def test_request_counter_increments(client):
-    before = _counter_value(_get_metrics(client), "nare_requests_total")
+    before = _counter_value(_get_metrics(client), "DR_requests_total")
     client.get("/api/health")
-    after = _counter_value(_get_metrics(client), "nare_requests_total")
+    after = _counter_value(_get_metrics(client), "DR_requests_total")
     assert after > before, f"{before} -> {after}"
 
 
 def test_error_counter_increments_on_a_500(client):
-    before = _counter_value(_get_metrics(client), "nare_errors_total")
+    before = _counter_value(_get_metrics(client), "DR_errors_total")
     # an unmatched route is a 404, which is an error response
     client.get("/api/definitely-not-here")
-    after = _counter_value(_get_metrics(client), "nare_errors_total")
+    after = _counter_value(_get_metrics(client), "DR_errors_total")
     assert after > before, f"{before} -> {after}"
 
 
@@ -88,7 +88,7 @@ def test_latency_histogram_records_observations(client):
     client.get("/api/health")
     body = _get_metrics(client)
     # any non-zero bucket count proves the histogram is recording
-    buckets = re.findall(r"nare_request_duration_seconds_bucket\{[^}]*\} (\d+)", body)
+    buckets = re.findall(r"DR_request_duration_seconds_bucket\{[^}]*\} (\d+)", body)
     assert any(int(b) > 0 for b in buckets), \
         "no request was recorded in the latency histogram"
 
@@ -116,9 +116,9 @@ def test_metrics_survive_a_broken_request(client):
 
 # --------------------------------------------------------------- the wiring
 def test_metrics_are_registered_on_the_app():
-    import server as nare
+    import server as DR
 
-    assert "metrics" in nare.app.blueprints, \
+    assert "metrics" in DR.app.blueprints, \
         "the metrics blueprint is not registered"
 
 

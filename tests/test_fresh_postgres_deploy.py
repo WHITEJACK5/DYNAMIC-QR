@@ -24,7 +24,7 @@ requires_pg = pytest.mark.skipif(
     not PG_URL.startswith("postgresql"), reason="TEST_DATABASE_URL not a PostgreSQL URL")
 
 ADMIN_URL = ""
-SCRATCH = "nare_fresh_deploy_probe"
+SCRATCH = "DR_fresh_deploy_probe"
 
 
 def _admin_url():
@@ -135,9 +135,9 @@ def test_init_db_acts_on_the_configured_database_not_the_sqlite_path(monkeypatch
     decision and the action, so the two can never diverge again.
     """
     import inspect as _inspect
-    import server as nare
+    import server as DR
 
-    src = _inspect.getsource(nare.init_db)
+    src = _inspect.getsource(DR.init_db)
     # every migration call takes the resolved target explicitly
     for call in ("current_revision", "user_tables", "stamp_head", "upgrade_to_head"):
         assert f"_migrations.{call}(target)" in src, \

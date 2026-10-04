@@ -75,7 +75,7 @@ def server(tmp_path_factory):
     env.update({
         "SECRET_KEY": "loadtest-secret-key-must-be-32-chars-long-ok",
         "BASE_URL": f"http://127.0.0.1:{port}",
-        "NARE_DB_PATH": str(db),
+        "DR_DB_PATH": str(db),
         "APP_ENV": "development",
         "PYTHONUNBUFFERED": "1",
     })

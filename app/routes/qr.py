@@ -535,7 +535,7 @@ def download_qr(qr_id):
         try:
             svg_text = create_qr_svg(content, row["fg_color"], row["bg_color"])
             buf = BytesIO(svg_text.encode())
-            return send_file(buf, mimetype="image/svg+xml", as_attachment=True, download_name=f"nare-co-{qr_id}.svg")
+            return send_file(buf, mimetype="image/svg+xml", as_attachment=True, download_name=f"DRQR-{qr_id}.svg")
         except Exception as e:
             logger.exception("SVG download failed: %s", e)
             return jsonify({"error":"SVG generation failed"}), 500
@@ -548,7 +548,7 @@ def download_qr(qr_id):
             w,h=A4
             c.setFillColorRGB(0.04,0.04,0.04)
             c.setFont("Helvetica-Bold", 18)
-            c.drawString(40, h-60, "NARE & CO. \u2014 QR Code")
+            c.drawString(40, h-60, "DR & CO. \u2014 QR Code")
             c.setFont("Helvetica", 9)
             c.setFillColorRGB(0.5,0.5,0.5)
             c.drawString(40, h-75, f"Type: {row['type']} \u2022 {row['name']} \u2022 Generated {row['created_at'][:10]}")
@@ -559,11 +559,11 @@ def download_qr(qr_id):
             c.drawImage(ir, 120, h-500, width=350, height=350, preserveAspectRatio=True, mask='auto')
             c.setFillColorRGB(0,1,0.53)
             c.setFont("Helvetica-Bold", 10)
-            c.drawCentredString(w/2, h-520, row["frame_text"] or "Scan Me \u2014 NARE & CO.")
+            c.drawCentredString(w/2, h-520, row["frame_text"] or "Scan Me \u2014 DR & CO.")
             c.showPage()
             c.save()
             pdf_buf.seek(0)
-            return send_file(pdf_buf, mimetype="application/pdf", as_attachment=True, download_name=f"nare-co-{qr_id}.pdf")
+            return send_file(pdf_buf, mimetype="application/pdf", as_attachment=True, download_name=f"DRQR-{qr_id}.pdf")
         except Exception as e:
             logger.exception("PDF generation failed: %s", e)
             return jsonify({"error":"PDF failed"}), 500
@@ -573,7 +573,7 @@ def download_qr(qr_id):
             buf=BytesIO()
             img.save(buf, format="PNG")
             buf.seek(0)
-            return send_file(buf, mimetype="image/png", as_attachment=True, download_name=f"nare-co-{qr_id}.png")
+            return send_file(buf, mimetype="image/png", as_attachment=True, download_name=f"DRQR-{qr_id}.png")
         except Exception as e:
             logger.exception("PNG download failed: %s", e)
             return jsonify({"error":"PNG failed"}), 500
@@ -601,6 +601,6 @@ def duplicate(qr_id):
 @qr.route("/api/health")
 @qr.route("/api/v1/health")
 def health():
-    return jsonify({"status":"ok","service":"NARE & CO.","version":"1.1.0","theme":"grid-white / black / neon-green"})
+    return jsonify({"status":"ok","service":"DR & CO.","version":"1.1.0","theme":"grid-white / black / neon-green"})
 
 # Catch-all for frontend routes â€” safe

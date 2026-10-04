@@ -1,4 +1,4 @@
-"""NARE & CO. application package — the layered layout the architecture requires.
+"""DR & CO. application package — the layered layout the architecture requires.
 
     app/
       routes/        thin HTTP handlers (parse request -> call service/repo -> respond)

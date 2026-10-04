@@ -6,32 +6,32 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 os.environ["SECRET_KEY"] = "test-secret-key-for-ci-must-be-long-enough-32chars"
 os.environ["BASE_URL"] = "http://localhost:5000"
 # Prevent .env loading from polluting
-import server as nare
+import server as DR
 from server import app
 
 @pytest.fixture(autouse=True)
 def clear_rate_store():
-    nare._rate_store.clear()
+    DR._rate_store.clear()
     yield
-    nare._rate_store.clear()
+    DR._rate_store.clear()
 
 @pytest.fixture
 def client():
     # Use temp file DB
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
     tmp.close()
-    old_path = nare.DB_PATH
-    nare.DB_PATH = tmp.name
+    old_path = DR.DB_PATH
+    DR.DB_PATH = tmp.name
     # re-init
-    nare.init_db()
+    DR.init_db()
     app.config['TESTING'] = True
     with app.test_client() as c:
         yield c
     try:
         os.unlink(tmp.name)
     except: pass
-    nare.DB_PATH = old_path
-    nare._rate_store.clear()
+    DR.DB_PATH = old_path
+    DR._rate_store.clear()
 
 from conftest import mark_verified
 

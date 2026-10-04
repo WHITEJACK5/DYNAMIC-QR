@@ -1,5 +1,5 @@
 @echo off
-echo === NARE ^& CO. — Grid White / Black / Neon Green ===
+echo === DR ^& CO. — Grid White / Black / Neon Green ===
 echo Installing deps...
 pip install -r requirements.txt
 echo Starting server on http://localhost:5000

@@ -1,1 +1,1 @@
-"""NARE & CO. operational scripts."""
+"""DR & CO. operational scripts."""

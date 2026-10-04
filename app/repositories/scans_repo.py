@@ -10,7 +10,7 @@ from sqlalchemy import String, cast, func
 
 from app.models import QRCode, Scan
 
-logger = logging.getLogger("nare")
+logger = logging.getLogger("DR")
 
 
 def record_scan(s, qr_id, timestamp, ip, user_agent, device, browser, os_name):

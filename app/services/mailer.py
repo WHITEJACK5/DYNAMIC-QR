@@ -19,11 +19,11 @@ import os
 import smtplib
 from email.message import EmailMessage
 
-logger = logging.getLogger("nare")
+logger = logging.getLogger("DR")
 
 VERIFY_SUBJECT = "Confirm your email address"
 VERIFY_BODY = (
-    "Confirm your email address for NARE & CO.\n\n"
+    "Confirm your email address for DR & CO.\n\n"
     "Open this link to activate your account:\n"
     "{url}\n\n"
     "The link expires in {hours} hours. "
@@ -65,7 +65,7 @@ def send(to, subject, body):
     try:
         msg = EmailMessage()
         msg["Subject"] = subject
-        msg["From"] = os.getenv("SMTP_FROM", "no-reply@nareandco.com")
+        msg["From"] = os.getenv("SMTP_FROM", "no-reply@DRandco.com")
         msg["To"] = to
         msg.set_content(body)
         port = int(os.getenv("SMTP_PORT", "587"))

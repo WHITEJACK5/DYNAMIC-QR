@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NARE & CO. — Start (Unix/macOS)
+# DR & CO. — Start (Unix/macOS)
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -24,5 +24,5 @@ if [ -f "venv/bin/activate" ]; then
   source venv/bin/activate
 fi
 pip install -r requirements.txt
-echo "=== NARE & CO. starting on http://localhost:5000 ==="
+echo "=== DR & CO. starting on http://localhost:5000 ==="
 python server.py

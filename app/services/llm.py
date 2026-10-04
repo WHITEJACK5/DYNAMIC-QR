@@ -13,7 +13,7 @@ sentiment job must never take down the worker or lose the review.
 import logging
 import os
 
-logger = logging.getLogger("nare")
+logger = logging.getLogger("DR")
 
 SENTIMENT_SYSTEM = (
     "Classify the sentiment of this customer review as exactly one of: "

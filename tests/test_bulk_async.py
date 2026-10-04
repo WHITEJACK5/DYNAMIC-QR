@@ -12,7 +12,7 @@ os.environ.pop("REDIS_URL", None)
 
 import pytest
 
-import server as nare
+import server as DR
 from server import app
 from app import jobs
 
@@ -21,19 +21,19 @@ from app import jobs
 def _clean():
     os.environ.pop("REDIS_URL", None)
     jobs.reset_state()
-    nare._rate_store.clear()
+    DR._rate_store.clear()
     yield
     jobs.reset_state()
-    nare._rate_store.clear()
+    DR._rate_store.clear()
 
 
 @pytest.fixture
 def client():
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
     tmp.close()
-    old = nare.DB_PATH
-    nare.DB_PATH = tmp.name
-    nare.init_db()
+    old = DR.DB_PATH
+    DR.DB_PATH = tmp.name
+    DR.init_db()
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c
@@ -41,7 +41,7 @@ def client():
         os.unlink(tmp.name)
     except OSError:
         pass
-    nare.DB_PATH = old
+    DR.DB_PATH = old
 
 
 def _token(client, email="bulk2@x.com"):
@@ -83,7 +83,7 @@ def test_enqueue_path_202_and_status(client, monkeypatch):
                     headers={"Authorization": f"Bearer {tok}"})
     assert r.status_code == 202
     assert r.json["job_id"] == "job-1" and r.json["status_url"].endswith("/job-1")
-    assert seen["func"] is nare._bulk_job
+    assert seen["func"] is DR._bulk_job
     assert seen["meta"] == {"user_id": 1}
 
     class FakeDone:

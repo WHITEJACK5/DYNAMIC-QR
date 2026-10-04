@@ -19,7 +19,7 @@ os.environ["BASE_URL"] = "http://localhost:5000"
 
 from PIL import Image  # noqa: E402
 
-import server as nare  # noqa: E402
+import server as DR  # noqa: E402
 from server import app  # noqa: E402
 from app.services import storage  # noqa: E402
 
@@ -42,9 +42,9 @@ def _no_storage_config():
 def client():
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
     tmp.close()
-    old_path = nare.DB_PATH
-    nare.DB_PATH = tmp.name
-    nare.init_db()
+    old_path = DR.DB_PATH
+    DR.DB_PATH = tmp.name
+    DR.init_db()
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c
@@ -52,8 +52,8 @@ def client():
         os.unlink(tmp.name)
     except OSError:
         pass
-    nare.DB_PATH = old_path
-    nare._rate_store.clear()
+    DR.DB_PATH = old_path
+    DR._rate_store.clear()
 
 
 def _logo_b64(color=(10, 20, 30)):
@@ -83,7 +83,7 @@ def test_upload_without_storage_returns_503_naming_the_variable(client, monkeypa
 
 
 def test_upload_s3_failure_returns_503(client, monkeypatch, tmp_path):
-    monkeypatch.setenv("S3_BUCKET", "nare-logos")
+    monkeypatch.setenv("S3_BUCKET", "DR-logos")
     monkeypatch.setattr(storage, "LOCAL_DIR", str(tmp_path / "uploads"))
     storage.reset_state()
 
@@ -91,7 +91,7 @@ def test_upload_s3_failure_returns_503(client, monkeypatch, tmp_path):
         def put_object(self, **kw):
             raise RuntimeError("network down")
 
-    store = storage.S3LogoStore(bucket="nare-logos")
+    store = storage.S3LogoStore(bucket="DR-logos")
     store.client = BoomClient()
     monkeypatch.setattr(storage, "S3LogoStore",
                         lambda bucket, endpoint=None, region=None: store)

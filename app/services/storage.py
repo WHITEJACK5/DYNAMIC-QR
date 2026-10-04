@@ -25,7 +25,7 @@ import logging
 import os
 import secrets
 
-logger = logging.getLogger("nare")
+logger = logging.getLogger("DR")
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCAL_DIR = os.path.join(APP_DIR, "uploads")

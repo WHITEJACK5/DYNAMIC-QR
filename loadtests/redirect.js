@@ -22,8 +22,8 @@ const CODE = __ENV.CODE || "abc12345";
 
 // Dedicated metrics so the redirect can be tracked separately from the rest
 // of the API if this script is ever extended.
-const redirectDuration = new Trend("nare_redirect_duration", true);
-const redirectFailed = new Rate("nare_redirect_failed");
+const redirectDuration = new Trend("DR_redirect_duration", true);
+const redirectFailed = new Rate("DR_redirect_failed");
 
 export const options = {
   scenarios: {
@@ -64,8 +64,8 @@ export const options = {
     "http_req_failed": ["rate<0.01"],
     "http_req_duration": ["p(95)<300", "p(99)<800"],
     checks: ["rate>0.99"],
-    nare_redirect_duration: ["p(95)<300"],
-    nare_redirect_failed: ["rate<0.01"],
+    DR_redirect_duration: ["p(95)<300"],
+    DR_redirect_failed: ["rate<0.01"],
   },
 };
 

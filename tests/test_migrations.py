@@ -79,7 +79,7 @@ def test_postgres_migration_cycle():
 
     parts = urlsplit(PG_URL)
     admin = urlunsplit((parts.scheme, parts.netloc, "/postgres", "", ""))
-    scratch = "nare_migration_probe"
+    scratch = "DR_migration_probe"
     opened = []
 
     def _admin_engine():

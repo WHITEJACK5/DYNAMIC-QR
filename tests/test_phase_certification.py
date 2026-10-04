@@ -109,7 +109,7 @@ class TestPhase1:
         """
         src = _read(os.path.join(APP, "config.py"))
         assert "install_json_logging" in src
-        assert 'logger = logging.getLogger("nare")' in src
+        assert 'logger = logging.getLogger("DR")' in src
         # the .env decision and the key bootstrap both log, so both must come
         # after logging is installed
         assert src.index("install_json_logging") < src.index("IS_PRODUCTION")
@@ -265,8 +265,8 @@ class TestPhase3:
     def test_3_4_automated_backups(self):
         """'Set up automated backups ... document the restore procedure'"""
         assert _exists(os.path.join(HERE, "scripts", "pgbackup.py"))
-        assert _exists(os.path.join(HERE, "deploy", "nare-backup.timer"))
-        assert _exists(os.path.join(HERE, "deploy", "nare-backup.service"))
+        assert _exists(os.path.join(HERE, "deploy", "DR-backup.timer"))
+        assert _exists(os.path.join(HERE, "deploy", "DR-backup.service"))
         readme = _read(os.path.join(HERE, "README.md"))
         assert "restore" in readme.lower()
 
@@ -543,7 +543,7 @@ class TestGroundRules:
         # old grep was, and matching that prose would make this assert nothing.
         ci_code = "\n".join(ln for ln in ci.splitlines()
                             if not ln.strip().startswith("#"))
-        assert "nare-co-secret-2026" not in ci_code, \
+        assert "DRQR-secret-2026" not in ci_code, \
             "the placeholder single-string secret grep is back"
 
     def test_the_directive_is_committed_so_it_cannot_drift(self):

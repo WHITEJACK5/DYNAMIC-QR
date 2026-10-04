@@ -15,25 +15,25 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-
 os.environ.setdefault("BASE_URL", "http://localhost:5000")
 os.environ.pop("REDIS_URL", None)
 
-import server as nare
+import server as DR
 from app import ratelimit
 from server import app as flask_app
 
 
 @pytest.fixture(autouse=True)
 def _reset():
-    nare._rate_store.clear()
+    DR._rate_store.clear()
     yield
-    nare._rate_store.clear()
+    DR._rate_store.clear()
 
 
 @pytest.fixture
 def client():
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
     tmp.close()
-    old = nare.DB_PATH
-    nare.DB_PATH = tmp.name
-    nare.init_db()
+    old = DR.DB_PATH
+    DR.DB_PATH = tmp.name
+    DR.init_db()
     flask_app.config["TESTING"] = True
     with flask_app.test_client() as c:
         yield c
@@ -41,13 +41,13 @@ def client():
         os.unlink(tmp.name)
     except OSError:
         pass
-    nare.DB_PATH = old
+    DR.DB_PATH = old
 
 
 def test_limiter_is_flask_limiter():
     from flask_limiter import Limiter
 
-    assert isinstance(nare.limiter, Limiter)
+    assert isinstance(DR.limiter, Limiter)
 
 
 def test_storage_uri_follows_redis_url():
@@ -94,6 +94,6 @@ def test_reset_clears_the_counters(client):
     for _ in range(6):
         client.post("/api/login", json={"email": "a@b.com", "password": "x"})
     assert client.post("/api/login", json={"email": "a@b.com", "password": "x"}).status_code == 429
-    nare._rate_store.clear()
+    DR._rate_store.clear()
     r = client.post("/api/login", json={"email": "a@b.com", "password": "x"})
     assert r.status_code == 401

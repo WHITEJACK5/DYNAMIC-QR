@@ -51,7 +51,7 @@ class JsonFormatter(logging.Formatter):
     caller cannot clobber the timestamp or level.
     """
 
-    def __init__(self, service="nare", env=None):
+    def __init__(self, service="DR", env=None):
         super().__init__()
         self.service = service
         self.env = env or "unknown"
@@ -83,7 +83,7 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload, default=str, ensure_ascii=False)
 
 
-def install_json_logging(level=None, service="nare", env=None):
+def install_json_logging(level=None, service="DR", env=None):
     """Route the root logger through the JSON formatter.
 
     Called from app/config.py, which every module imports first, so this

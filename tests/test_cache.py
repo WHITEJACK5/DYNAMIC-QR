@@ -12,7 +12,7 @@ os.environ.pop("REDIS_URL", None)
 
 import pytest
 
-import server as nare
+import server as DR
 from server import app
 from app import cache
 
@@ -21,19 +21,19 @@ from app import cache
 def _clean():
     os.environ.pop("REDIS_URL", None)
     cache.reset_state()
-    nare._rate_store.clear()
+    DR._rate_store.clear()
     yield
     cache.reset_state()
-    nare._rate_store.clear()
+    DR._rate_store.clear()
 
 
 @pytest.fixture
 def client():
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
     tmp.close()
-    old = nare.DB_PATH
-    nare.DB_PATH = tmp.name
-    nare.init_db()
+    old = DR.DB_PATH
+    DR.DB_PATH = tmp.name
+    DR.init_db()
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c
@@ -41,7 +41,7 @@ def client():
         os.unlink(tmp.name)
     except OSError:
         pass
-    nare.DB_PATH = old
+    DR.DB_PATH = old
 
 
 def test_key_deterministic():

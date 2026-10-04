@@ -28,8 +28,8 @@ export function Header() {
   return (
     <header className="site-header">
       <SkipLink />
-      <Link href="/" className="brand" aria-label="NARE and CO home">
-        NARE <span className="amp">&amp;</span> CO
+      <Link href="/" className="brand" aria-label="DR and CO home">
+        DR <span className="amp">&amp;</span> CO
       </Link>
       <Nav />
     </header>
@@ -63,7 +63,7 @@ export function Nav() {
 export function Footer() {
   return (
     <footer className="site-footer">
-      <p>NARE &amp; CO — self-hosted QR generation. Your data stays on your machine.</p>
+      <p>DR &amp; CO — self-hosted QR generation. Your data stays on your machine.</p>
       <nav aria-label="Footer">
         <ul className="footer-list">
           <li>

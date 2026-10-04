@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-must-be-long-enough-32chars")
 
-import server as nare
+import server as DR
 from app import migrations as mig
 from app import db as cdb
 from app.models import Base, QRCode, Scan, User
@@ -30,7 +30,7 @@ EXPECTED_TABLES = {"users", "folders", "qrcodes", "scans", "templates", "reviews
 def _legacy_db():
     """A freshly migrated SQLite database, independent of DATABASE_URL.
 
-    This used to call nare.init_db(), which resolved its target from the
+    This used to call DR.init_db(), which resolved its target from the
     ambient database URL. That was fine while init_db() ignored
     DATABASE_URL — but init_db() deciding on the SQLite path while acting on
     PostgreSQL was the Phase 3b bug, so the test was relying on a bug. With
@@ -49,7 +49,7 @@ def _teardown(path, old):
         os.unlink(path)
     except OSError:
         pass
-    nare.DB_PATH = old
+    DR.DB_PATH = old
 
 
 def test_models_create_all_sqlite(tmp_path):

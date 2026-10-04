@@ -38,10 +38,10 @@ from app.logging_config import install_json_logging
 
 install_json_logging(
     level=os.getenv("LOG_LEVEL", "INFO"),
-    service="nare",
+    service="DR",
     env="production" if _looks_like_production() else "development",
 )
-logger = logging.getLogger("nare")
+logger = logging.getLogger("DR")
 
 # Phase 7a: Sentry. Initialised here, before any route can raise, and
 # fail-safe — without SENTRY_DSN this is a no-op.
@@ -60,7 +60,7 @@ if IS_PRODUCTION:
     _env_file = os.path.join(APP_DIR, ".env")
     if os.path.exists(_env_file):
         logger.warning(
-            "[NARE & CO.] Ignoring %s: secrets in staging/production must come "
+            "[DR & CO.] Ignoring %s: secrets in staging/production must come "
             "from the host's secret store, not a file. If this file is baked "
             "into the image, remove it from the build.", _env_file
         )
@@ -69,8 +69,8 @@ else:
 
 # Data location. Overridable so a container can mount a volume and so the
 # end-to-end tests can run against a throwaway database instead of the
-# developer's data/nare.db.
-DB_PATH = os.getenv("NARE_DB_PATH") or os.path.join(APP_DIR, "data", "nare.db")
+# developer's data/DR.db.
+DB_PATH = os.getenv("DR_DB_PATH") or os.path.join(APP_DIR, "data", "DR.db")
 UPLOAD_DIR = os.path.join(APP_DIR, "uploads")
 STATIC_DIR = os.path.join(APP_DIR, "static")
 FRONTEND_DIR = os.path.join(APP_DIR, "frontend")
@@ -123,17 +123,17 @@ if not SECRET_KEY:
         if not os.path.exists(_env_path):
             with open(_env_path, "w") as f:
                 f.write(f"SECRET_KEY={generated}\nBASE_URL=http://localhost:5000\nHOST=127.0.0.1\nPORT=5000\nFLASK_DEBUG=false\nALLOWED_ORIGINS=http://localhost:5000,http://127.0.0.1:5000\n")
-            logger.info("[NARE & CO.] Created .env with fresh SECRET_KEY at %s", _env_path)
+            logger.info("[DR & CO.] Created .env with fresh SECRET_KEY at %s", _env_path)
         else:
             # append if .env exists but no key
             with open(_env_path, "a") as f:
                 f.write(f"\nSECRET_KEY={generated}\n")
-            logger.info("[NARE & CO.] Appended SECRET_KEY to %s", _env_path)
+            logger.info("[DR & CO.] Appended SECRET_KEY to %s", _env_path)
     except Exception as e:
         logger.warning("Could not write .env: %s", e)
     SECRET_KEY = generated
     JWT_SECRET = SECRET_KEY
-    logging.warning("[NARE & CO.] SECRET_KEY was not set — generated and persisted to .env (development only)")
+    logging.warning("[DR & CO.] SECRET_KEY was not set — generated and persisted to .env (development only)")
     logger.info("SECRET_KEY generated and saved to .env - restart to use persistent key (or set manually)")
 else:
     if len(SECRET_KEY) < 32:
@@ -142,7 +142,7 @@ else:
                 f"SECRET_KEY is only {len(SECRET_KEY)} characters; at least 32 "
                 "are required. A short key is a guessable key."
             )
-        logging.warning("[NARE & CO.] SECRET_KEY is short (<32 chars) — use a long random string.")
+        logging.warning("[DR & CO.] SECRET_KEY is short (<32 chars) — use a long random string.")
         logger.warning("SECRET_KEY too short - generate: python -c \"import secrets; print(secrets.token_hex(32))\"")
 
 # In production the secret store must be the only source. Warn if a .env is
@@ -150,7 +150,7 @@ else:
 # injected secret unnoticed.
 if IS_PRODUCTION and os.path.exists(os.path.join(APP_DIR, ".env")):
     logger.warning(
-        "[NARE & CO.] A .env file exists but secrets are being read from the "
+        "[DR & CO.] A .env file exists but secrets are being read from the "
         "environment. Ensure it is not baked into the image."
     )
 

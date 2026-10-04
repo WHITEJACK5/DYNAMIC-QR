@@ -145,7 +145,7 @@ def test_s3_failure_raises_and_writes_nothing_locally(monkeypatch, tmp_path):
 
 def test_unusable_s3_credentials_do_not_fall_back(monkeypatch):
     """A bad bucket/client must surface, not silently degrade to disk."""
-    monkeypatch.setenv("S3_BUCKET", "nare-logos")
+    monkeypatch.setenv("S3_BUCKET", "DR-logos")
 
     def boom(**kwargs):
         raise RuntimeError("no credentials")
@@ -164,9 +164,9 @@ def test_new_key_is_unpredictable_and_sanitized():
 
 
 def test_renderer_accepts_logo_bytes_and_storage_ref(monkeypatch, tmp_path):
-    import server as nare
+    import server as DR
 
-    img = nare.create_qr_image("https://example.com", logo_bytes=_png(), size=300)
+    img = DR.create_qr_image("https://example.com", logo_bytes=_png(), size=300)
     assert img.size == (300, 300)
 
     # and via a stored reference (opt-in local mode for this dev loop)
@@ -174,5 +174,5 @@ def test_renderer_accepts_logo_bytes_and_storage_ref(monkeypatch, tmp_path):
     monkeypatch.setattr(storage, "LOCAL_DIR", str(tmp_path))
     storage.reset_state()
     ref = storage.save_logo(_png())
-    img2 = nare.create_qr_image("https://example.com", logo_path=ref, size=300)
+    img2 = DR.create_qr_image("https://example.com", logo_path=ref, size=300)
     assert img2.size == (300, 300)

@@ -1,4 +1,4 @@
-"""Models layer: SQLAlchemy ORM entities (Phase 3a) for NARE & CO.
+"""Models layer: SQLAlchemy ORM entities (Phase 3a) for DR & CO.
 
 The directive lists `app/models/` as a required layer, so this is a package.
 Declarations live in `entities`; everything is re-exported here so the

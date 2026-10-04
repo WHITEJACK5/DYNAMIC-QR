@@ -12,25 +12,25 @@ os.environ.setdefault("BASE_URL", "http://localhost:5000")
 
 from pydantic import ValidationError
 
-import server as nare
+import server as DR
 from server import app
 from app.schemas import LoginRequest, RegisterRequest, first_error
 
 
 @pytest.fixture(autouse=True)
 def _clear_rate():
-    nare._rate_store.clear()
+    DR._rate_store.clear()
     yield
-    nare._rate_store.clear()
+    DR._rate_store.clear()
 
 
 @pytest.fixture
 def client():
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
     tmp.close()
-    old = nare.DB_PATH
-    nare.DB_PATH = tmp.name
-    nare.init_db()
+    old = DR.DB_PATH
+    DR.DB_PATH = tmp.name
+    DR.init_db()
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c
@@ -38,13 +38,13 @@ def client():
         os.unlink(tmp.name)
     except OSError:
         pass
-    nare.DB_PATH = old
-    nare._rate_store.clear()
+    DR.DB_PATH = old
+    DR._rate_store.clear()
 
 
 def test_register_schema_normalizes_and_enforces():
-    r = RegisterRequest.model_validate({"email": "  YOU@Nare.Local ", "password": "StrongPass123!", "name": "Y"})
-    assert r.email == "you@nare.local"
+    r = RegisterRequest.model_validate({"email": "  YOU@DR.Local ", "password": "StrongPass123!", "name": "Y"})
+    assert r.email == "you@DR.local"
     with pytest.raises(ValidationError) as e:
         RegisterRequest.model_validate({"email": "bad", "password": "StrongPass123!"})
     assert first_error(e.value) == "Invalid email format"

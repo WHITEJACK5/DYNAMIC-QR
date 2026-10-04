@@ -1,16 +1,16 @@
-# NARE & CO. — backup schedule (systemd timer).
+# DR & CO. — backup schedule (systemd timer).
 #
-# Paired with nare-backup.service. Enable both:
-#   sudo cp deploy/nare-backup.{service,timer} /etc/systemd/system/
-#   sudo systemctl daemon-reload && sudo systemctl enable --now nare-backup.timer
+# Paired with DR-backup.service. Enable both:
+#   sudo cp deploy/DR-backup.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now DR-backup.timer
 #
 # Deliberately randomized within the day (OnCalendar with a spread) so the
 # dump does not always land on the same minute as every other cron job on
 # the host. Persistent=true means a missed run (machine off) fires on boot.
 
 [Unit]
-Description=Run the NARE & CO. PostgreSQL backup daily at 03:17
-Documentation=file:///srv/nare/README.md
+Description=Run the DR & CO. PostgreSQL backup daily at 03:17
+Documentation=file:///srv/DR/README.md
 
 [Timer]
 OnCalendar=*-*-* 03:17:00
@@ -18,7 +18,7 @@ OnCalendar=*-*-* 03:17:00
 Persistent=true
 # Spread load if several timers fire together.
 RandomizedDelaySec=600
-Unit=nare-backup.service
+Unit=DR-backup.service
 
 [Install]
 WantedBy=timers.target

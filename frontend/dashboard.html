@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard — NARE & CO.</title>
+    <title>Dashboard — DR & CO.</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap"
       rel="stylesheet"
@@ -32,7 +32,7 @@
       <div class="container header-inner">
         <a href="/" class="logo"
           ><div class="logo-mark">N</div>
-          <div class="logo-type">NARE <span>& CO.</span></div></a
+          <div class="logo-type">DR <span>& CO.</span></div></a
         >
         <nav class="nav">
           <a href="/">Generator</a>
@@ -76,7 +76,7 @@
           </div>
           <div>
             <strong style="font-size: 13px">Workspace</strong>
-            <div style="font-size: 11px; color: #666">NARE & CO. Grid</div>
+            <div style="font-size: 11px; color: #666">DR & CO. Grid</div>
           </div>
         </div>
         <a href="#" class="active" data-view="qrs"
@@ -123,7 +123,7 @@
                 border-radius: 6px;
                 color: var(--neon);
               "
-              >data/nare.db</code
+              >data/DR.db</code
             ><br />All QRs & scans stored locally. No limits.
           </div>
           <div style="font-size: 11px; color: #888">
@@ -200,7 +200,7 @@
             <div style="font-size: 40px">⬢</div>
             <h3>No QR codes yet</h3>
             <p style="color: #666">
-              Create your first NARE & CO. QR — static free or dynamic trackable.
+              Create your first DR & CO. QR — static free or dynamic trackable.
             </p>
             <button
               class="btn btn-primary"
@@ -296,8 +296,8 @@
           <div class="card">
             <h3>Settings & Security</h3>
             <p style="color: #666; font-size: 13px">
-              NARE & CO. — Grid White / Black / Neon Green • Database: SQLite
-              <code>data/nare.db</code> by default, PostgreSQL when
+              DR & CO. — Grid White / Black / Neon Green • Database: SQLite
+              <code>data/DR.db</code> by default, PostgreSQL when
               <code>DATABASE_URL</code> is set • HOST restricted to 127.0.0.1 •
               Rate-limited • POST-only passwords. No uptime guarantee and no GDPR/CCPA
               compliance claimed.
@@ -417,9 +417,9 @@
               ><button
                 class="btn btn-ghost btn-sm"
                 onclick="
-                  if (confirm('Reset local DB? This deletes data/nare.db')) {
+                  if (confirm('Reset local DB? This deletes data/DR.db')) {
                     fetch('/api/health').then(() =>
-                      toast('Delete data/nare.db and restart server'),
+                      toast('Delete data/DR.db and restart server'),
                     )
                   }
                 "
@@ -526,7 +526,7 @@
           </div>
           <div class="field">
             <label>Frame Text</label
-            ><input id="editFrameText" placeholder="SCAN ME • NARE & CO." />
+            ><input id="editFrameText" placeholder="SCAN ME • DR & CO." />
           </div>
           <div class="field">
             <label>Frame Color</label
@@ -580,7 +580,7 @@
         setTimeout(() => t.classList.remove('show'), 3000)
       }
       function auth() {
-        const tok = localStorage.getItem('nare_token')
+        const tok = localStorage.getItem('DR_token')
         if (!tok) {
           location.href = '/?needAuth=1'
           return null
@@ -596,7 +596,7 @@
       async function load() {
         const token = auth()
         if (!token) return
-        const u = JSON.parse(localStorage.getItem('nare_user') || '{}')
+        const u = JSON.parse(localStorage.getItem('DR_user') || '{}')
         document.getElementById('userEmail').textContent = u.email || 'User'
         try {
           const r = await fetch(`${API}/api/qrcodes`, {
@@ -622,7 +622,7 @@
             e.message.includes('revoked') ||
             e.message.includes('expired')
           ) {
-            window.NareSession.clearSession()
+            window.DRSession.clearSession()
             location.href = '/?needAuth=1'
           }
         }
@@ -930,7 +930,7 @@
       }
 
       document.getElementById('logout').onclick = async () => {
-        await window.NareSession.logout()
+        await window.DRSession.logout()
         toast('Logged out')
         setTimeout(() => (location.href = '/'), 400)
       }

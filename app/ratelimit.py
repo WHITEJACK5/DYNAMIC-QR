@@ -19,7 +19,7 @@ from flask import jsonify
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-logger = logging.getLogger("nare")
+logger = logging.getLogger("DR")
 
 #: The JSON body the API has always returned for 429. Flask-Limiter's default
 #: is plain text, which would break clients (and the dashboard) expecting JSON.

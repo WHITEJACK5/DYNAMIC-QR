@@ -94,13 +94,13 @@ def test_formatter_emits_valid_json():
     from app.logging_config import JsonFormatter
 
     record = logging.LogRecord(
-        name="nare.test", level=logging.INFO, pathname=__file__, lineno=1,
+        name="DR.test", level=logging.INFO, pathname=__file__, lineno=1,
         msg="user %s logged in", args=(42,), exc_info=None)
-    out = JsonFormatter(service="nare", env="test").format(record)
+    out = JsonFormatter(service="DR", env="test").format(record)
     parsed = json.loads(out)
     assert parsed["msg"] == "user 42 logged in"
     assert parsed["level"] == "INFO"
-    assert parsed["service"] == "nare"
+    assert parsed["service"] == "DR"
     assert parsed["env"] == "test"
     assert "ts" in parsed
 
@@ -110,7 +110,7 @@ def test_extra_fields_are_promoted_to_top_level():
     from app.logging_config import JsonFormatter
 
     record = logging.LogRecord(
-        name="nare.test", level=logging.WARNING, pathname=__file__, lineno=1,
+        name="DR.test", level=logging.WARNING, pathname=__file__, lineno=1,
         msg="rate limited", args=(), exc_info=None)
     record.user_id = 7
     record.path = "/api/qrcodes"
@@ -130,7 +130,7 @@ def test_extra_cannot_clobber_reserved_fields():
     from app.logging_config import JsonFormatter
 
     record = logging.LogRecord(
-        name="nare.test", level=logging.INFO, pathname=__file__, lineno=1,
+        name="DR.test", level=logging.INFO, pathname=__file__, lineno=1,
         msg="x", args=(), exc_info=None)
     record.level = "FORGED"
     record.ts = "forged"
@@ -140,7 +140,7 @@ def test_extra_cannot_clobber_reserved_fields():
 
     # and via the extra= path, which is how a caller would actually try it
     record2 = logging.LogRecord(
-        name="nare.test", level=logging.ERROR, pathname=__file__, lineno=1,
+        name="DR.test", level=logging.ERROR, pathname=__file__, lineno=1,
         msg="x", args=(), exc_info=None)
     record2.level = "DEBUG"
     parsed2 = json.loads(JsonFormatter().format(record2))
@@ -152,7 +152,7 @@ def test_non_serialisable_extra_fields_do_not_crash_the_formatter():
     from app.logging_config import JsonFormatter
 
     record = logging.LogRecord(
-        name="nare.test", level=logging.INFO, pathname=__file__, lineno=1,
+        name="DR.test", level=logging.INFO, pathname=__file__, lineno=1,
         msg="x", args=(), exc_info=None)
     record.weird = {1, 2, 3}
     parsed = json.loads(JsonFormatter().format(record))
@@ -167,7 +167,7 @@ def test_exceptions_are_structured():
         raise ValueError("boom")
     except ValueError:
         record = logging.LogRecord(
-            name="nare.test", level=logging.ERROR, pathname=__file__, lineno=1,
+            name="DR.test", level=logging.ERROR, pathname=__file__, lineno=1,
             msg="failed", args=(), exc_info=sys.exc_info())
     parsed = json.loads(JsonFormatter().format(record))
     assert "ValueError" in parsed["exc"]
@@ -184,7 +184,7 @@ def test_the_app_installs_the_json_formatter():
     """
     from app.logging_config import install_json_logging, JsonFormatter
 
-    install_json_logging(level="INFO", service="nare", env="test")
+    install_json_logging(level="INFO", service="DR", env="test")
     root = logging.getLogger()
     assert root.handlers, "the root logger has no handlers"
     assert any(isinstance(h.formatter, JsonFormatter) for h in root.handlers), \
@@ -200,7 +200,7 @@ def test_a_real_log_line_is_json():
     """
     import app.config  # noqa: F401 — importing installs the formatter
 
-    log = logging.getLogger("nare.test.e2e")
+    log = logging.getLogger("DR.test.e2e")
     buf = io.StringIO()
     handler = logging.StreamHandler(buf)
     from app.logging_config import JsonFormatter
@@ -232,7 +232,7 @@ def test_lazy_interpolation_does_not_run_when_filtered():
             calls.append(record.msg)
             return super().format(record)
 
-    log = logging.getLogger("nare.test.lazy")
+    log = logging.getLogger("DR.test.lazy")
     log.handlers = []
     handler = logging.StreamHandler(io.StringIO())
     handler.setFormatter(Counting())

@@ -32,7 +32,7 @@ def test_short_code_entropy():
 def test_email_validation():
     assert validate_email_format("a@b.com") is True
     assert validate_email_format("bad") is False
-    assert validate_email_format("you@nare.local") is True  # permissive fallback
+    assert validate_email_format("you@DR.local") is True  # permissive fallback
 
 
 def test_password_strength():

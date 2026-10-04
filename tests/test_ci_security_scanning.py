@@ -4,7 +4,7 @@ The directive requires Dependabot, gitleaks/truffleHog, and bandit. The
 previous CI nominally had two of them and neither worked:
 
   * "Check no hardcoded secret" grepped for one literal string
-    ("nare-co-secret-2026"), so it could not detect any other secret.
+    ("DRQR-secret-2026"), so it could not detect any other secret.
   * bandit ran as `bandit -r server.py -ll`, and after the Phase 2
     refactor server.py is ~105 lines out of ~3,100 — about 3% coverage,
     reported as green.
@@ -219,13 +219,13 @@ def test_gitleaks_scans_history_not_just_the_working_tree(jobs):
 
 def test_the_old_single_string_grep_is_gone(jobs):
     """
-    The previous check was `grep -R "nare-co-secret-2026"`, which can only
+    The previous check was `grep -R "DRQR-secret-2026"`, which can only
     ever find that one string. Asserted against the executed commands: the
     workflow still mentions it in a comment explaining what was replaced.
     """
     runs = "\n".join(s.get("run", "") for s in
                      [st for j in jobs.values() for st in j["steps"]])
-    assert "nare-co-secret-2026" not in runs, \
+    assert "DRQR-secret-2026" not in runs, \
         "the placeholder single-string secret grep is back"
     assert "if grep -R" not in runs, "a hand-rolled grep is standing in for gitleaks"
 

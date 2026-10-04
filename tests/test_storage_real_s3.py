@@ -3,9 +3,9 @@
 Runs only when S3_ENDPOINT_URL is set, so CI/local stay hermetic. Proven
 against Adobe S3Mock (a genuine S3 HTTP implementation) in a container:
 
-    docker run -d --name nare-s3mock -p 9090:9090 -p 9191:9191 \
-      -e initialBuckets=nare-logos adobe/s3mock:latest
-    S3_ENDPOINT_URL=http://127.0.0.1:9090 S3_BUCKET=nare-logos \
+    docker run -d --name DR-s3mock -p 9090:9090 -p 9191:9191 \
+      -e initialBuckets=DR-logos adobe/s3mock:latest
+    S3_ENDPOINT_URL=http://127.0.0.1:9090 S3_BUCKET=DR-logos \
       AWS_ACCESS_KEY_ID=x AWS_SECRET_ACCESS_KEY=y \
       pytest tests/test_storage_real_s3.py -q
 
@@ -73,10 +73,10 @@ def test_two_uploads_get_distinct_keys(s3):
 
 def test_qr_renders_with_a_real_s3_logo(s3):
     """End to end: store to S3, then render a QR using the s3:// reference."""
-    import server as nare
+    import server as DR
 
     ref = storage.save_logo(_png((255, 0, 0)))
-    img = nare.create_qr_image("https://example.com/s3-logo", logo_path=ref, size=400)
+    img = DR.create_qr_image("https://example.com/s3-logo", logo_path=ref, size=400)
     assert img.size == (400, 400)
     assert img.convert("RGB").getcolors(maxcolors=100000) is not None  # actually drawn
 

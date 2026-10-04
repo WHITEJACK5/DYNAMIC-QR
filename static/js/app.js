@@ -1,4 +1,4 @@
-// NARE & CO. — Industry Grade Frontend | Grid White / Black / Neon Green
+// DR & CO. — Industry Grade Frontend | Grid White / Black / Neon Green
 const API = location.origin;
 let state = {
   type: "url",
@@ -46,30 +46,30 @@ const TYPES = [
 ];
 
 const FORM_DEFS = {
-  url: [{key:"url", label:"Website URL *", placeholder:"https://www.nareandco.com", type:"url", required:true}],
+  url: [{key:"url", label:"Website URL *", placeholder:"https://www.DRandco.com", type:"url", required:true}],
   text: [{key:"text", label:"Your Text *", placeholder:"Enter text to encode", type:"textarea", required:true}],
-  email: [{key:"email", label:"Email address *", placeholder:"hello@nareandco.com", required:true}, {key:"subject", label:"Subject", placeholder:"Hello"}, {key:"body", label:"Message", placeholder:"Hi there!", type:"textarea"}],
+  email: [{key:"email", label:"Email address *", placeholder:"hello@DRandco.com", required:true}, {key:"subject", label:"Subject", placeholder:"Hello"}, {key:"body", label:"Message", placeholder:"Hi there!", type:"textarea"}],
   sms: [{key:"phone", label:"Phone Number *", placeholder:"+919876543210", required:true}, {key:"message", label:"Message", placeholder:"Hello!", type:"textarea"}],
-  wifi: [{key:"ssid", label:"Network Name (SSID) *", placeholder:"NARE-WIFI", required:true}, {key:"password", label:"Password", placeholder:"••••••••"}, {key:"encryption", label:"Encryption", type:"select", opts:["WPA","WEP","nopass"]}, {key:"hidden", label:"Hidden?", type:"select", opts:["false","true"]}],
-  vcard: [{key:"name", label:"Full Name *", placeholder:"Jane Doe", required:true}, {key:"organization", label:"Organization", placeholder:"NARE & CO."}, {key:"phone", label:"Phone", placeholder:"+91 98765 43210"}, {key:"email", label:"Email", placeholder:"jane@nareandco.com"}, {key:"url", label:"Website", placeholder:"https://nareandco.com"}, {key:"address", label:"Address", placeholder:"Hyderabad, India"}],
+  wifi: [{key:"ssid", label:"Network Name (SSID) *", placeholder:"DR-WIFI", required:true}, {key:"password", label:"Password", placeholder:"••••••••"}, {key:"encryption", label:"Encryption", type:"select", opts:["WPA","WEP","nopass"]}, {key:"hidden", label:"Hidden?", type:"select", opts:["false","true"]}],
+  vcard: [{key:"name", label:"Full Name *", placeholder:"Jane Doe", required:true}, {key:"organization", label:"Organization", placeholder:"DR & CO."}, {key:"phone", label:"Phone", placeholder:"+91 98765 43210"}, {key:"email", label:"Email", placeholder:"jane@DRandco.com"}, {key:"url", label:"Website", placeholder:"https://DRandco.com"}, {key:"address", label:"Address", placeholder:"Hyderabad, India"}],
   whatsapp: [{key:"phone", label:"WhatsApp Number *", placeholder:"+919876543210", required:true}, {key:"message", label:"Prefilled Message", placeholder:"Hi!"}],
   location: [{key:"latitude", label:"Latitude *", placeholder:"17.3850", required:true}, {key:"longitude", label:"Longitude *", placeholder:"78.4867", required:true}],
-  event: [{key:"title", label:"Event Title *", placeholder:"NARE & CO. Launch", required:true}, {key:"location", label:"Location", placeholder:"Hyderabad"}, {key:"start", label:"Start (YYYYMMDDTHHMMSSZ)", placeholder:"20260905T100000Z"}, {key:"end", label:"End", placeholder:"20260905T120000Z"}, {key:"description", label:"Description", type:"textarea", placeholder:"Join us..."}],
+  event: [{key:"title", label:"Event Title *", placeholder:"DR & CO. Launch", required:true}, {key:"location", label:"Location", placeholder:"Hyderabad"}, {key:"start", label:"Start (YYYYMMDDTHHMMSSZ)", placeholder:"20260905T100000Z"}, {key:"end", label:"End", placeholder:"20260905T120000Z"}, {key:"description", label:"Description", type:"textarea", placeholder:"Join us..."}],
   file: [{key:"url", label:"File URL *", placeholder:"https://example.com/file.pdf", required:true}, {key:"note", label:"Tip", type:"help", text:"Paste direct file link (PDF/JPG/PNG/MP4). For dynamic hosting, use File QR — we create trackable short URL."}],
-  linkpage: [{key:"title", label:"Page Title", placeholder:"NARE & CO. Links"}, {key:"bio", label:"Bio", placeholder:"Discover our world..."}, {key:"links", label:"Links (label|url per line)", type:"textarea", placeholder:"Instagram|https://instagram.com/nare\nShop|https://nareandco.com/shop"}],
-  menu: [{key:"restaurant", label:"Restaurant Name", placeholder:"NARE Bistro"}, {key:"url", label:"Menu Link / PDF URL *", placeholder:"https://nareandco.com/menu.pdf", required:true}],
+  linkpage: [{key:"title", label:"Page Title", placeholder:"DR & CO. Links"}, {key:"bio", label:"Bio", placeholder:"Discover our world..."}, {key:"links", label:"Links (label|url per line)", type:"textarea", placeholder:"Instagram|https://instagram.com/DR\nShop|https://DRandco.com/shop"}],
+  menu: [{key:"restaurant", label:"Restaurant Name", placeholder:"DR Bistro"}, {key:"url", label:"Menu Link / PDF URL *", placeholder:"https://DRandco.com/menu.pdf", required:true}],
   appstore: [{key:"ios", label:"App Store (iOS) URL", placeholder:"https://apps.apple.com/..."}, {key:"android", label:"Google Play URL", placeholder:"https://play.google.com/..."}],
-  landingpage: [{key:"title", label:"Landing Title", placeholder:"Summer Drop — NARE & CO."}, {key:"url", label:"Destination URL *", placeholder:"https://nareandco.com/drop", required:true}],
-  smarturl: [{key:"primaryUrl", label:"Default URL *", placeholder:"https://nareandco.com", required:true}, {key:"rules", label:"Rules (optional)", type:"textarea", placeholder:"country:IN → https://in.nareandco.com"}],
+  landingpage: [{key:"title", label:"Landing Title", placeholder:"Summer Drop — DR & CO."}, {key:"url", label:"Destination URL *", placeholder:"https://DRandco.com/drop", required:true}],
+  smarturl: [{key:"primaryUrl", label:"Default URL *", placeholder:"https://DRandco.com", required:true}, {key:"rules", label:"Rules (optional)", type:"textarea", placeholder:"country:IN → https://in.DRandco.com"}],
   gs1: [{key:"content", label:"GS1 Data *", placeholder:"(01)09506000134352(17)240105(10)ABC123", required:true}],
   mp3: [{key:"url", label:"Audio URL *", placeholder:"https://soundcloud.com/...", required:true}],
   video: [{key:"url", label:"Video URL *", placeholder:"https://youtube.com/watch?v=...", required:true}],
-  facebook: [{key:"url", label:"Facebook URL *", placeholder:"https://facebook.com/nareandco", required:true}],
-  youtube: [{key:"url", label:"YouTube URL *", placeholder:"https://youtube.com/@nare", required:true}],
-  instagram: [{key:"url", label:"Instagram URL *", placeholder:"https://instagram.com/nare", required:true}],
-  pinterest: [{key:"url", label:"Pinterest URL *", placeholder:"https://pinterest.com/nare", required:true}],
-  tiktok: [{key:"url", label:"TikTok URL *", placeholder:"https://tiktok.com/@nare", required:true}],
-  twitter: [{key:"url", label:"Twitter/X URL *", placeholder:"https://x.com/nare", required:true}],
+  facebook: [{key:"url", label:"Facebook URL *", placeholder:"https://facebook.com/DRandco", required:true}],
+  youtube: [{key:"url", label:"YouTube URL *", placeholder:"https://youtube.com/@DR", required:true}],
+  instagram: [{key:"url", label:"Instagram URL *", placeholder:"https://instagram.com/DR", required:true}],
+  pinterest: [{key:"url", label:"Pinterest URL *", placeholder:"https://pinterest.com/DR", required:true}],
+  tiktok: [{key:"url", label:"TikTok URL *", placeholder:"https://tiktok.com/@DR", required:true}],
+  twitter: [{key:"url", label:"Twitter/X URL *", placeholder:"https://x.com/DR", required:true}],
   googleform: [{key:"url", label:"Google Form URL *", placeholder:"https://forms.gle/...", required:true}],
   googlereview: [{key:"url", label:"Google Review Link *", placeholder:"https://g.page/r/...", required:true}],
 };
@@ -111,7 +111,7 @@ function renderForm(){
     }
   });
   html+=`<div class="two-col">
-    <div class="field"><label for="f_name">QR Name (dashboard)</label><input id="f_name" placeholder="My ${state.type.toUpperCase()} QR — NARE" maxlength="60"></div>
+    <div class="field"><label for="f_name">QR Name (dashboard)</label><input id="f_name" placeholder="My ${state.type.toUpperCase()} QR — DR" maxlength="60"></div>
     <div class="field"><label for="f_folder">Campaign Folder</label><select id="f_folder"><option>My QR Codes</option><option>Marketing</option><option>Events</option><option>Retail</option></select></div>
   </div>`;
   if(state.isDynamic){
@@ -289,7 +289,7 @@ async function generate(){
     return;
   }
   // For dynamic, require login to enable tracking/edit
-  const token=localStorage.getItem('nare_token');
+  const token=localStorage.getItem('DR_token');
   if(state.isDynamic && !token){
     toast("Login required for Dynamic (trackable) QR — showing login", true);
     openAuth('register');
@@ -344,7 +344,7 @@ async function generate(){
       bar.style.cssText='margin:0 18px 14px;background:var(--black);color:var(--neon);padding:12px 14px;border-radius:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--black)';
       document.getElementById('generateBtn').parentElement.insertAdjacentElement('afterend', bar);
     }
-    const dlName=`NARE-CO-${state.type}-${Date.now()}.png`;
+    const dlName=`DRQR-${state.type}-${Date.now()}.png`;
     bar.innerHTML=`
       <span style="font-size:12px;font-weight:800">✔ ${j.is_dynamic?'Dynamic saved to Dashboard':'Static ready'} • <span style="color:white">${j.is_dynamic?`/r/${j.short_code}`: 'Static'}</span></span>
       <span style="display:flex;gap:6px">
@@ -453,10 +453,10 @@ async function submitAuth(){
     // success
     // Phase 4c: keeps the access + refresh pair and schedules renewal, so the
     // 15-minute access token is refreshed before any call site uses it.
-    window.NareSession.storeSession(j);
-    localStorage.setItem('nare_user', JSON.stringify(j.user));
+    window.DRSession.storeSession(j);
+    localStorage.setItem('DR_user', JSON.stringify(j.user));
     if(document.getElementById('rememberMe').checked){
-      localStorage.setItem('nare_remember','1');
+      localStorage.setItem('DR_remember','1');
     }
     document.getElementById('authSuccess').textContent= authMode==='login' ? `Welcome back, ${j.user.email}` : `Account created! Welcome, ${j.user.name||j.user.email}`;
     document.getElementById('authSuccess').classList.add('show');
@@ -481,8 +481,8 @@ async function submitAuth(){
   }
 }
 function updateAuthUI(){
-  const token=localStorage.getItem('nare_token');
-  const userStr=localStorage.getItem('nare_user');
+  const token=localStorage.getItem('DR_token');
+  const userStr=localStorage.getItem('DR_user');
   const loginBtn=document.getElementById('loginBtn');
   const regBtn=document.getElementById('registerBtn');
   const navDash=document.getElementById('navDash');
@@ -490,7 +490,7 @@ function updateAuthUI(){
     try{
       const u=JSON.parse(userStr);
       loginBtn.textContent="Log Out";
-      loginBtn.onclick=async()=>{ await window.NareSession.logout(); toast("Logged out"); setTimeout(()=>location.reload(), 500); };
+      loginBtn.onclick=async()=>{ await window.DRSession.logout(); toast("Logged out"); setTimeout(()=>location.reload(), 500); };
       regBtn.textContent="Dashboard →";
       regBtn.onclick=()=>location.href="/dashboard";
       if(navDash) navDash.style.display="inline-flex";
@@ -662,10 +662,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.querySelectorAll('[data-template]').forEach(b=>{
     b.onclick=()=>{
       const t=b.dataset.template;
-      if(t==="neon"){ state.fg="#0A0A0A"; state.bg="#FFFFFF"; state.pattern="dots"; state.eyeStyle="circle"; state.frameText="SCAN ME • NARE & CO."; state.frameColor="#00FF88"; }
+      if(t==="neon"){ state.fg="#0A0A0A"; state.bg="#FFFFFF"; state.pattern="dots"; state.eyeStyle="circle"; state.frameText="SCAN ME • DR & CO."; state.frameColor="#00FF88"; }
       if(t==="mono"){ state.fg="#0A0A0A"; state.bg="#FFFFFF"; state.pattern="square"; state.eyeStyle="square"; state.frameText=""; }
       if(t==="grid"){ state.fg="#1A1A1A"; state.bg="#F8F9FA"; state.pattern="gapped"; state.eyeStyle="rounded"; }
-      if(t==="neonBlack"){ state.fg="#00FF88"; state.bg="#0A0A0A"; state.pattern="rounded"; state.eyeStyle="circle"; state.frameText="NARE & CO. — SCAN"; state.frameColor="#00FF88"; }
+      if(t==="neonBlack"){ state.fg="#00FF88"; state.bg="#0A0A0A"; state.pattern="rounded"; state.eyeStyle="circle"; state.frameText="DR & CO. — SCAN"; state.frameColor="#00FF88"; }
       if(fg) fg.value=state.fg; if(bg) bg.value=state.bg; if(fgt) fgt.value=state.fg; if(bgt) bgt.value=state.bg;
       const ft=document.getElementById('frameText');
       const fc=document.getElementById('frameColor');
@@ -677,7 +677,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const saveTpl=document.getElementById('saveTemplateBtn');
   if(saveTpl){
     saveTpl.onclick=async()=>{
-      const token=localStorage.getItem('nare_token');
+      const token=localStorage.getItem('DR_token');
       if(!token){ toast("Log in to save templates", true); openAuth('login'); return; }
       saveTpl.disabled=true; saveTpl.textContent="Saving…";
       try{
@@ -693,25 +693,25 @@ document.addEventListener('DOMContentLoaded', ()=>{
     b.onclick=()=>{
       const fmt=b.dataset.dl;
       if(state.lastId){
-        const token=localStorage.getItem('nare_token');
+        const token=localStorage.getItem('DR_token');
         if(token){
           // Header, not URL: a token in the query string leaks into access
           // logs, browser history and Referer headers. Phase 4a.
           fetch(`${API}/api/download/${state.lastId}?format=${fmt}`,{headers:{Authorization:`Bearer ${token}`}})
             .then(r=>{ if(!r.ok) throw new Error('Download failed'); return r.blob(); })
-            .then(blob=>download(URL.createObjectURL(blob), `NARE-CO-${fmt}-${Date.now()}.${fmt==='pdf'?'pdf':'png'}`))
+            .then(blob=>download(URL.createObjectURL(blob), `DRQR-${fmt}-${Date.now()}.${fmt==='pdf'?'pdf':'png'}`))
             .catch(()=>toast("Download failed", true));
           return;
         }
       }
-      if(state.lastImage) download(state.lastImage, `NARE-CO-${fmt}-${Date.now()}.${fmt==='pdf'?'pdf':'png'}`);
+      if(state.lastImage) download(state.lastImage, `DRQR-${fmt}-${Date.now()}.${fmt==='pdf'?'pdf':'png'}`);
       else toast("Generate a QR first", true);
     };
   });
   const dlBtn=document.getElementById('downloadBtn');
   if(dlBtn){
     dlBtn.onclick=()=>{
-      if(state.lastImage) download(state.lastImage, `NARE-CO-QR-${Date.now()}.png`);
+      if(state.lastImage) download(state.lastImage, `DRQR-QR-${Date.now()}.png`);
       else toast("Generate a QR first!", true);
     };
   }
@@ -781,11 +781,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const r=await fetch(`${API}/api/2fa/login-verify`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({temp_token:window._temp2FA, code})});
       const j=await r.json();
       if(!r.ok) throw new Error(j.error);
-      window.NareSession.storeSession(j);
+      window.DRSession.storeSession(j);
       // fetch user
-      const me=await fetch(`${API}/api/me`,{headers:{Authorization:`Bearer ${localStorage.getItem('nare_token')}`}});
+      const me=await fetch(`${API}/api/me`,{headers:{Authorization:`Bearer ${localStorage.getItem('DR_token')}`}});
       const u=await me.json();
-      localStorage.setItem('nare_user', JSON.stringify(u));
+      localStorage.setItem('DR_user', JSON.stringify(u));
       closeModal('twofaModal');
       toast(`2FA verified — welcome ${u.email}`);
       updateAuthUI();

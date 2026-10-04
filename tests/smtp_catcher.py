@@ -70,7 +70,7 @@ class SMTPCatcher:
                 fh.write((line + "\r\n").encode())
                 fh.flush()
 
-            reply("220 nare-e2e ESMTP")
+            reply("220 DR-e2e ESMTP")
             sender, rcpts = None, []
             while True:
                 line = fh.readline()
@@ -79,10 +79,10 @@ class SMTPCatcher:
                 cmd = line.decode("utf-8", "replace").strip()
                 upper = cmd.upper()
                 if upper.startswith("EHLO"):
-                    reply("250-nare-e2")
+                    reply("250-DR-e2")
                     reply("250 SIZE 10485760")
                 elif upper.startswith("HELO"):
-                    reply("250 nare-e2")
+                    reply("250 DR-e2")
                 elif upper.startswith("MAIL FROM"):
                     sender = cmd[10:].strip().strip("<>")
                     reply("250 OK")

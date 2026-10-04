@@ -13,7 +13,7 @@ import logging
 import os
 import threading
 
-logger = logging.getLogger("nare")
+logger = logging.getLogger("DR")
 
 _rq_queue = None
 
@@ -36,7 +36,7 @@ def get_queue():
 
         conn = redis.Redis.from_url(url, socket_timeout=1)
         conn.ping()
-        _rq_queue = Queue("nare", connection=conn)
+        _rq_queue = Queue("DR", connection=conn)
         logger.info("Job queue using RQ/Redis")
         return _rq_queue
     except Exception as e:

@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["SECRET_KEY"] = "test-secret-key-for-ci-must-be-long-enough-32chars"
 os.environ["BASE_URL"] = "http://localhost:5000"
 
-import server as nare  # noqa: E402
+import server as DR  # noqa: E402
 from server import app  # noqa: E402
 from conftest import mark_verified  # noqa: E402
 
@@ -35,9 +35,9 @@ B = {"email": "bob@example.com", "password": "StrongPass123!", "name": "Bob"}
 def client():
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
     tmp.close()
-    old_path = nare.DB_PATH
-    nare.DB_PATH = tmp.name
-    nare.init_db()
+    old_path = DR.DB_PATH
+    DR.DB_PATH = tmp.name
+    DR.init_db()
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c
@@ -45,8 +45,8 @@ def client():
         os.unlink(tmp.name)
     except OSError:
         pass
-    nare.DB_PATH = old_path
-    nare._rate_store.clear()
+    DR.DB_PATH = old_path
+    DR._rate_store.clear()
 
 
 def _account(client, creds):

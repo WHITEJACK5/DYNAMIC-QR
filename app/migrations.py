@@ -3,7 +3,7 @@
 Lets app startup / RQ workers / tests drive migrations without shelling
 out to the CLI. Uses ALMECIC_DATABASE_URL when set, else DATABASE_URL,
 else the local SQLite default — so the fresh-clone contract ("delete
-data/nare.db, run the app, it comes back") is preserved by migrations
+data/DR.db, run the app, it comes back") is preserved by migrations
 rather than by inline DDL.
 """
 import logging
@@ -16,7 +16,7 @@ from alembic.script import ScriptDirectory
 
 from app.db import database_url
 
-logger = logging.getLogger("nare")
+logger = logging.getLogger("DR")
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INFRA_TABLES = {"alembic_version"}

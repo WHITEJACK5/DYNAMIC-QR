@@ -14,7 +14,7 @@ def index():
     fm = os.path.join(APP_DIR, "frontend", "index.html")
     if os.path.exists(fm):
         return send_from_directory(os.path.join(APP_DIR, "frontend"), "index.html")
-    return send_from_directory(STATIC_DIR, "index.html") if os.path.exists(os.path.join(STATIC_DIR,"index.html")) else "NARE & CO - Frontend not found"
+    return send_from_directory(STATIC_DIR, "index.html") if os.path.exists(os.path.join(STATIC_DIR,"index.html")) else "DR & CO - Frontend not found"
 
 
 @pages.route("/dashboard")
