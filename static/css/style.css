@@ -66,8 +66,7 @@ a{color:inherit;text-decoration:none}
 }
 .logo-heart img{
   width:100%;height:100%;display:block;
-  image-rendering:pixelated;
-  image-rendering:-moz-crisp-edges;
+  object-fit:contain;
   animation:heart-spin 6s linear infinite;
   transform-origin:50% 50%;
   backface-visibility:visible;

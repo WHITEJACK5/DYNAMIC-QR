@@ -100,7 +100,7 @@ textarea:focus-visible,
   width: 1.15em;
   height: 1.15em;
   display: block;
-  image-rendering: pixelated;
+  object-fit: contain;
   animation: heart-spin 6s linear infinite;
   transform-origin: 50% 50%;
   backface-visibility: visible;
