@@ -1,1 +1,1 @@
-"""DR & CO. operational scripts."""
+"""DRQR operational scripts."""

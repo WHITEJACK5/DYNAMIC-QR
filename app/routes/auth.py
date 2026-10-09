@@ -274,7 +274,7 @@ def forgot_password():
     s.close()
     # For personal use, log token (in real app, email it)
     logger.info("Password reset token for %s: %s (expires %s)", email, reset_token, expires)
-    logger.info("[DR & CO.] Password reset for %s: token=%s expires %s", email, reset_token, expires)
+    logger.info("[DRQR] Password reset for %s: token=%s expires %s", email, reset_token, expires)
     # Return token directly for personal local use (so user can see it)
     return jsonify({"message":"Reset token generated (see server logs).","reset_token": reset_token, "expires": expires}), 200
 
@@ -324,7 +324,7 @@ def setup_2fa():
         # Generate QR provisioning URI
         user_email = g.user_email
         totp = pyotp.TOTP(secret)
-        uri = totp.provisioning_uri(name=user_email, issuer_name="DR & CO.")
+        uri = totp.provisioning_uri(name=user_email, issuer_name="DRQR")
         # Also generate QR image for the URI
         qr_img = create_qr_image(uri, size=400)
         b64 = image_to_base64(qr_img)

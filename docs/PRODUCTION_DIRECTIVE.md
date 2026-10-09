@@ -11,7 +11,7 @@ service." No corners cut, no impressive-sounding features that aren't real, and 
 is touched without leaving it more correct, more tested, and more explainable.
 
 **Repository:** `WHITEJACK5/DYNAMIC-QR` (Flask + SQLite QR-code generation/analytics
-service, "DR & CO.")
+service, "DRQR")
 
 **Mandate:** Work through every item below, in order, as its own atomic, reviewable unit
 of work. Do not batch unrelated fixes into one commit. Do not mark anything done until

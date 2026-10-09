@@ -1,4 +1,4 @@
-# DR & CO. — production image (Phase 6a)
+# DRQR — production image (Phase 6a)
 #
 # Served by gunicorn (wsgi:application) behind the reverse proxy, never by
 # app.run(). Postgres and Redis are separate services; see docker-compose.yml.

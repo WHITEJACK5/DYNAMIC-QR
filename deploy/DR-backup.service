@@ -1,4 +1,4 @@
-# DR & CO. — automated PostgreSQL backup (systemd).
+# DRQR — automated PostgreSQL backup (systemd).
 #
 # Installed by the deploy step; runs `pgbackup dump` then `pgbackup rotate`
 # so retention is enforced without a second scheduler. Enable with:
@@ -16,7 +16,7 @@
 #   sudo chmod 600 /etc/DR-backup.env
 
 [Unit]
-Description=DR & CO. PostgreSQL backup (pg_dump + retention)
+Description=DRQR PostgreSQL backup (pg_dump + retention)
 Documentation=file:///srv/DR/README.md
 After=network-online.target
 Wants=network-online.target

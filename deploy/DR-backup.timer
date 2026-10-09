@@ -1,4 +1,4 @@
-# DR & CO. — backup schedule (systemd timer).
+# DRQR — backup schedule (systemd timer).
 #
 # Paired with DR-backup.service. Enable both:
 #   sudo cp deploy/DR-backup.{service,timer} /etc/systemd/system/
@@ -9,7 +9,7 @@
 # the host. Persistent=true means a missed run (machine off) fires on boot.
 
 [Unit]
-Description=Run the DR & CO. PostgreSQL backup daily at 03:17
+Description=Run the DRQR PostgreSQL backup daily at 03:17
 Documentation=file:///srv/DR/README.md
 
 [Timer]

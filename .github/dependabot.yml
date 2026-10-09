@@ -1,4 +1,4 @@
-# Dependabot for the DR & CO. directive (Phase 4f).
+# Dependabot for the DRQR directive (Phase 4f).
 # Directive: "Add dependency + secret scanning to CI: Dependabot (or
 # Renovate) for dependency updates, gitleaks or truffleHog for secret
 # scanning, and a basic SAST pass (bandit for Python)."

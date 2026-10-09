@@ -21,7 +21,7 @@ from app import schemas
 SPEC = {
     "openapi": "3.0.3",
     "info": {
-        "title": "DR & CO. API",
+        "title": "DRQR API",
         "version": "1.1.0",
         "description": (
             "Self-hosted QR code generation and analytics. "
@@ -304,7 +304,7 @@ def swagger_ui_html(spec_url: str = "/api/v1/openapi.json") -> str:
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>DR &amp; CO. — API Reference</title>
+    <title>DRQR — API Reference</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
   </head>

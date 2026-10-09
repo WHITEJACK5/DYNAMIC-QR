@@ -13,7 +13,7 @@
 # So the allowlist matches the two literal placeholder values and nothing
 # else. Any other credential in tests/ is still reported.
 
-title = "DR & CO. gitleaks configuration"
+title = "DRQR gitleaks configuration"
 
 [extend]
 useDefault = true

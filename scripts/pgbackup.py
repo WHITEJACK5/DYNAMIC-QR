@@ -129,7 +129,7 @@ def rotate(keep=14, directory=DEFAULT_DIR):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="PostgreSQL backup/restore for DR & CO.")
+    ap = argparse.ArgumentParser(description="PostgreSQL backup/restore for DRQR")
     ap.add_argument("action", choices=["dump", "rotate", "restore", "verify"])
     ap.add_argument("--out", default=os.path.join(DEFAULT_DIR, "DR-latest.dump"))
     ap.add_argument("--in", dest="inp", default=None)

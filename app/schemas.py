@@ -210,7 +210,7 @@ class QRStyle(BaseModel):
 
     fg_color: str = "#0A0A0A"
     bg_color: str = "#FFFFFF"
-    frame_color: str = "#00FF88"
+    frame_color: str = "#F5A623"
     pattern: str = "square"
     eye_style: str = "square"
     gradient: str = "solid"
@@ -326,7 +326,7 @@ class GenerateFormRequest(BaseModel):
     is_dynamic: bool = False
     fg_color: str = "#0A0A0A"
     bg_color: str = "#FFFFFF"
-    frame_color: str = "#00FF88"
+    frame_color: str = "#F5A623"
     pattern: str = "square"
     eye_style: str = "square"
     gradient: str = "solid"
@@ -360,7 +360,7 @@ class GenerateFormRequest(BaseModel):
     @field_validator("frame_color", mode="before")
     @classmethod
     def _fc(cls, v):
-        return _check_color(_form_str(v, "#00FF88"), "frame_color")
+        return _check_color(_form_str(v, "#F5A623"), "frame_color")
 
     @field_validator("is_dynamic", mode="before")
     @classmethod

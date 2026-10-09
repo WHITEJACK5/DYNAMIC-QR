@@ -1,6 +1,6 @@
-# DR & CO. — Working Manual (Personal Edition)
+# DRQR — Working Manual (Personal Edition)
 
-**Grid White `#F8F9FA` • Black `#0A0A0A` • Neon Green `#00FF88` • Local SQLite `data/DR.db`**
+**Grid White `#F8F9FA` • Black `#0A0A0A` • Amber `#F5A623` • Local SQLite `data/DR.db`**
 
 This manual is tested on a fresh Windows 11 + Python 3.11 clone. Every command below was executed and verified.
 
@@ -54,8 +54,8 @@ chmod +x start.sh && ./start.sh
 - `server.py` `init_db()` creates `data/DR.db` with tables `users`, `qrcodes`, `scans`, `folders`, `templates` + indexes `idx_qr_short`, `idx_scans_qr`
 - Console prints:
   ```
-  [DR & CO.] Fresh DB created at .../data/DR.db — tables: users, qrcodes, scans, folders, templates
-  [DR & CO.] Local DB ready
+  [DRQR] Fresh DB created at .../data/DR.db — tables: users, qrcodes, scans, folders, templates
+  [DRQR] Local DB ready
   Server: http://127.0.0.1:5000
   ```
 
@@ -98,7 +98,7 @@ python server.py
 
 ```bash
 curl http://127.0.0.1:5000/api/health
-# {"service":"DR & CO.","status":"ok","version":"1.1.0"}
+# {"service":"DRQR","status":"ok","version":"1.1.0"}
 netstat -ano | findstr 5000  # Windows: should show 127.0.0.1:5000 LISTENING (not 0.0.0.0)
 lsof -i :5000                # Unix
 ```
@@ -129,7 +129,7 @@ ALLOWED_ORIGINS=http://localhost:5000,http://127.0.0.1:5000
 1. **Pick type:** `All 25+ | Popular | Business | Social | Utility` tabs → click `URL`, `vCard`, `WiFi`, etc. `static/js/app.js:18` defines all.
 2. **Choose Static vs Dynamic:** Toggle `STATIC ⇆ DYNAMIC` (`#dynamicToggle`). Dynamic requires login (shows register modal) and enables **Edit • Track • Password • Expiry**.
 3. **Fill form:** Required fields marked `*` are validated (`validateForm()` `app.js:270`). Example:
-   - URL: `https://DRandco.com`
+   - URL: `https://drqr.com`
    - WiFi: `SSID: DR-WIFI, Password: neon123, Encryption: WPA`
    - vCard: `Name, Phone, Email`
    - Text: any plain text
@@ -138,7 +138,7 @@ ALLOWED_ORIGINS=http://localhost:5000,http://127.0.0.1:5000
    - **Eyes:** Square / Circle / Rounded
    - **Colors:** Foreground `#0A0A0A`, Background `#FFFFFF`, gradient `Solid/Linear/Radial`, presets `Black/White`, `Black/Neon`.
    - **Logo:** Click or drag PNG/JPG/WebP/SVG ≤5MB, square recommended → centered at `22%` with white rounded bg (18px), `H` error correction ensures scan (`server.py`). Preview shows `Logo applied`. `Remove Logo` to clear.
-   - **Frame:** Text `SCAN ME • DR & CO.` (max 32), Frame Color `#00FF88` — high contrast = better scan.
+   - **Frame:** Text `SCAN ME • DRQR` (max 32), Frame Color `#F5A623` — high contrast = better scan.
    - **Templates:** `Neon Pop`, `Mono Black`, `Grid White`, `Neon Night` → `Save as Template` (requires login, stored in `templates`).
    Preview updates via `POST /api/preview` `app.js:168` with loading spinner `qrLoading`; fallback to `qrserver.com` if backend unavailable.
 5. **Generate:** `⚡ Generate QR Code` → if dynamic without login, prompts register; else calls `POST /api/generate` `server.py`. On success, inline bar appears: `✔ Dynamic saved to Dashboard • /r/<code>` with `⬇ PNG` + `Dashboard →` — **no confirm dialog** (removed proving page). Check `Dashboard` to see it.
@@ -321,7 +321,7 @@ DRQR.
 | `Tests fail with 429` | `tests/test_api.py` has `clear_rate_store` fixture — run `pytest -q` without parallel |
 | Fresh clone `data/DR.db` missing | Normal — `python server.py` creates it; check `data/.gitkeep` exists |
 
-Logs: `server.py` logs to stdout — watch for `[DR & CO.]` and `WARNING`. For silent `except`, now logged via `logger.warning`.
+Logs: `server.py` logs to stdout — watch for `[DRQR]` and `WARNING`. For silent `except`, now logged via `logger.warning`.
 
 ---
 
@@ -344,4 +344,4 @@ Logs: `server.py` logs to stdout — watch for `[DR & CO.]` and `WARNING`. For s
 
 For help: check `server.py` logs, `tests/test_api.py` as working examples, or open `http://127.0.0.1:5000/manual.html`.
 
-© 2026 DR & CO. — Personal Use — Grid White / Black / Neon Green
+© 2026 DRQR — Personal Use — Grid White / Black / Amber

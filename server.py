@@ -1,4 +1,4 @@
-"""Composition root and development entrypoint for DR & CO.
+"""Composition root and development entrypoint for DRQR
 
 Phase 2a keeps `import server as DR; DR.<helper>` working for the many
 call sites and tests that use it; the helpers themselves live in
@@ -89,9 +89,9 @@ def init_db():
         _migrations.upgrade_to_head(target)
         logger.info(f"Fresh database migrated to head at {target}")
         if not str(target).startswith("postgresql"):
-            print(f"[DR & CO.] Fresh DB created at {DB_PATH} — tables: "
+            print(f"[DRQR] Fresh DB created at {DB_PATH} — tables: "
                   "users, qrcodes, scans, folders, templates (Alembic head)")
-            print("[DR & CO.] Local DB ready for personal use — login + QR "
+            print("[DRQR] Local DB ready for personal use — login + QR "
                   "managing + analytics (SQLite)")
     try:
         _s = get_session()
@@ -102,7 +102,7 @@ def init_db():
         _s.close()
         # Report against whichever database this process actually uses.
         if _u or not str(target).startswith("postgresql"):
-            print(f"[DR & CO.] DB loaded — {target} — users:{_u} qrs:{_q}")
+            print(f"[DRQR] DB loaded — {target} — users:{_u} qrs:{_q}")
     except Exception as e:
         logger.warning(f"DB status check failed: {e}")
 
@@ -146,8 +146,8 @@ from app.routes.qr import _bulk_job  # noqa: E402,F401 — RQ worker entrypoint
 if __name__ == "__main__":
     # DEV-ONLY entrypoint. Production serves wsgi:application via gunicorn
     # behind a reverse proxy — never app.run().
-    print("=== DR & CO. - Personal Edition (dev server) ===")
-    print("Grid White / Black / Neon Green")
+    print("=== DRQR - Personal Edition (dev server) ===")
+    print("Grid White / Black / Amber")
     print(f"Base URL: {get_base_url()}")
     print(f"Allowed Origins: {ALLOWED_ORIGINS}")
     if FLASK_DEBUG:

@@ -30,7 +30,7 @@ from app.utils import hex_to_rgb
 
 def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="square",
                     eye_style="square", gradient=None, logo_path=None, frame_text=None,
-                    frame_color="#00FF88", size=1000,
+                    frame_color="#F5A623", size=1000,
                     error_correction=qrcode.constants.ERROR_CORRECT_H, logo_bytes=None):
     if pattern == "dots" or pattern == "dot":
         drawer = CircleModuleDrawer()
@@ -71,10 +71,10 @@ def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="sq
         try:
             if gradient == "radial":
                 color_mask = RadialGradiantColorMask(
-                    back_color=bg_rgb, center_color=fg_rgb, edge_color=hex_to_rgb("#00FF88"))
+                    back_color=bg_rgb, center_color=fg_rgb, edge_color=hex_to_rgb("#F5A623"))
             else:
                 color_mask = SquareGradiantColorMask(
-                    back_color=bg_rgb, center_color=fg_rgb, edge_color=hex_to_rgb("#00FF88"))
+                    back_color=bg_rgb, center_color=fg_rgb, edge_color=hex_to_rgb("#F5A623"))
         except Exception as e:
             logger.warning("Gradient mask failed: %s", e)
             color_mask = SolidFillColorMask(back_color=bg_rgb, front_color=fg_rgb)
@@ -128,7 +128,7 @@ def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="sq
             frame_h = int(size * 0.14)
             new_h = size + frame_h
             try:
-                fc = hex_to_rgb(frame_color) if frame_color else hex_to_rgb("#00FF88")
+                fc = hex_to_rgb(frame_color) if frame_color else hex_to_rgb("#F5A623")
             except Exception:
                 fc = (0, 255, 136)
             framed = Image.new("RGBA", (size, new_h), fc + (255,))

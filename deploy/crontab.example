@@ -1,4 +1,4 @@
-# DR & CO. — crontab alternative to deploy/DR-backup.timer
+# DRQR — crontab alternative to deploy/DR-backup.timer
 #
 # Use this if the host has no systemd. Install with:
 #   crontab -l > /tmp/ct && cat deploy/crontab.example >> /tmp/ct && crontab /tmp/ct

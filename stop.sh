@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-# DR & CO. — Stop
-pkill -f "python.*server.py" || pkill -f "server.py" || echo "No running DR & CO. process found"
+# DRQR — Stop
+pkill -f "python.*server.py" || pkill -f "server.py" || echo "No running DRQR process found"
 echo "Stopped"

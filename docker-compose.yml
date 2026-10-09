@@ -1,4 +1,4 @@
-# DR & CO. — full local stack: app + PostgreSQL + Redis (Phase 6a).
+# DRQR — full local stack: app + PostgreSQL + Redis (Phase 6a).
 #
 #   cp .env.example .env      # the only manual step
 #   docker compose up --build
@@ -86,7 +86,7 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_FROM: ${SMTP_FROM:-no-reply@DRandco.com}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@drqr.com}
       # Never "1" in production: it enables the Werkzeug debugger.
       FLASK_DEBUG: "false"
       LOG_LEVEL: ${LOG_LEVEL:-INFO}

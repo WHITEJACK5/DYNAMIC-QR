@@ -182,7 +182,7 @@ DRQR/
 │   ├── api-docs.html
 │   └── manual.html
 ├── static/
-│   ├── css/style.css        # Grid white / black / neon green
+│   ├── css/style.css        # Grid white / black / amber
 │   └── js/
 │       ├── app.js           # 25 types, preview, logo, auth
 │       └── session.js       # Token storage, renewal, logout
@@ -214,7 +214,7 @@ All configuration is via environment variables. See `.env.example` for the full 
 | `AWS_SECRET_ACCESS_KEY` | No | — | AWS credentials |
 | `SMTP_HOST` | No | — | Enables transactional email |
 | `SMTP_PORT` | No | `587` | SMTP port |
-| `SMTP_FROM` | No | `no-reply@DRandco.com` | From address for emails |
+| `SMTP_FROM` | No | `no-reply@drqr.com` | From address for emails |
 | `SENTRY_DSN` | No | — | Enables Sentry error tracking |
 | `APP_ENV` | No | `development` | Set to `production` for production mode |
 | `BASE_URL` | No | `http://localhost:5000` | Public base URL for links |
@@ -376,7 +376,7 @@ The source of truth is [`docs/architecture.mmd`](docs/architecture.mmd) — GitH
 
 - Grid White: `#F8F9FA` + `#E9ECEF` 32px
 - Black: `#0A0A0A` / `#111111`
-- Neon: `#00FF88` / `#39FF14` / `#00E676` glow `0 0 20px rgba(0,255,136,0.5)`
+- Neon: `#F5A623` / `#39FF14` / `#00E676` glow `0 0 20px rgba(0,255,136,0.5)`
 
 ---
 

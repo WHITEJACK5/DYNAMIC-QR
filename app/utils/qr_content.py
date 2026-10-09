@@ -51,12 +51,12 @@ def build_qr_content(qr_type, data):
     d = data or {}
     try:
         if t == "url" or t == "link":
-            url = d.get("url") or d.get("content") or "https://DRandco.com"
+            url = d.get("url") or d.get("content") or "https://drqr.com"
             if not re.match(r'^https?://', url):
                 url = "https://" + url
             return url
         elif t == "text":
-            return d.get("text") or d.get("content") or "Hello DR & CO"
+            return d.get("text") or d.get("content") or "Hello DRQR"
         elif t == "email":
             email = d.get("email", "")
             subj = d.get("subject", "")
@@ -100,20 +100,20 @@ def build_qr_content(qr_type, data):
         elif t == "mp3" or t == "audio":
             return d.get("url") or d.get("link") or ""
         elif t == "file":
-            return d.get("url") or d.get("fileUrl") or d.get("content") or "https://DRandco.com/file"
+            return d.get("url") or d.get("fileUrl") or d.get("content") or "https://drqr.com/file"
         elif t in ["appstore", "app stores"]:
             android = d.get("android") or ""
             ios = d.get("ios") or ""
             return android or ios or "https://play.google.com/store"
         elif t == "smarturl" or t == "smart url" or t == "multiurl":
             # Store rules but return primary for generation; routing happens on redirect
-            return d.get("primaryUrl") or d.get("url") or "https://DRandco.com"
+            return d.get("primaryUrl") or d.get("url") or "https://drqr.com"
         elif t == "gs1":
             return build_gs1_content(d)
         elif t == "menu":
             return d.get("url") or json.dumps(d)
         elif t == "landingpage" or t == "landing page":
-            return d.get("url") or "https://DRandco.com/landing"
+            return d.get("url") or "https://drqr.com/landing"
         elif t == "linkpage" or t == "link page" or t == "bio":
             return d.get("url") or json.dumps(d.get("links", []))
         elif t == "googlereview" or t == "google review":
