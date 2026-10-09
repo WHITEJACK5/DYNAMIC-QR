@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="DRQR — self-hosted QR code generation. Static free unlimited, dynamic and trackable."
+    />
+    <title>DRQR — QR Code Generator</title>
+    <!-- Phase 7a: Sentry. The deployment sets the content attribute to the DSN.
+         With an empty attribute the loader below no-ops. -->
+    <meta name="sentry-dsn" content="" />
+    <script>
+      // Phase 7a: Sentry. The deployment sets the meta tag content to the DSN.
+      // Without it this is a no-op, so the page works with or without Sentry.
+      ;(function () {
+        var dsn = document.querySelector('meta[name="sentry-dsn"]')
+        if (!dsn || !dsn.content) return
+        var s = document.createElement('script')
+        s.src = 'https://browser.sentry-cdn.com/8.0.0/bundle.tracing.min.js'
+        s.crossOrigin = 'anonymous'
+        s.defer = true
+        s.onload = function () {
+          Sentry.init({ dsn: dsn.content, tracesSampleRate: 0.1 })
+        }
+        document.head.appendChild(s)
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

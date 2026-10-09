@@ -17,6 +17,11 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     rollupOptions: {
+      // index.html is the legacy multi-page generator Flask serves at '/'.
+      // The React shell has its own entry so the two never collide.
+      input: {
+        main: 'app.html',
+      },
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
