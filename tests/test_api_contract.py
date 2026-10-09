@@ -63,9 +63,9 @@ def _live_rules():
 #: explicitly is better than a prefix filter that silently skips something.
 #: These are in NORMALISED form (no leading slash), matching normalise().
 NON_API_PREFIXES = ("dashboard", "pricing", "api-docs", "manual",
-                    "MANUAL.md", "frontend/", "r/")
+                    "MANUAL.md", "frontend/", "r/", "assets/")
 NON_API_EXACT = {"", "MANUAL.md", "api-docs", "manual", "r/<code>",
-                 "<path:path>"}
+                 "<path:path>", "app", "assets/<path:path>"}
 
 
 def _is_api_rule(rule: str) -> bool:

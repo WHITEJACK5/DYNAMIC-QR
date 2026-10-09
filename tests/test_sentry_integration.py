@@ -128,7 +128,10 @@ def test_the_frontend_has_a_sentry_loader():
     The browser snippet is loaded by a small inline script that no-ops when no
     DSN is configured, so the pages work with or without Sentry.
     """
-    for page in ("frontend/index.html", "frontend/dashboard.html"):
+    # index.html is the legacy generator; app.html is the React shell Vite
+    # builds from. Both must ship the loader.
+    for page in ("frontend/index.html", "frontend/app.html",
+                 "frontend/dashboard.html"):
         with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                page), encoding="utf-8") as f:
             src = f.read()

@@ -90,7 +90,7 @@ def test_to_public_strips_secret(s):
 def test_apply_update_and_password_clear(s):
     uid = _user(s)
     qid = _qr(s, uid)
-    out = qr_repo.apply_update(s, qid, uid, {"name": "New", "fg_color": "#00FF88", "evil": 1})
+    out = qr_repo.apply_update(s, qid, uid, {"name": "New", "fg_color": "#F5A623", "evil": 1})
     assert out["name"] == "New" and "evil" not in out
     qr_repo.apply_update(s, qid, uid, {"password": "Secret123!"})
     assert qr_repo.get_owned(s, qid, uid).has_password == 1

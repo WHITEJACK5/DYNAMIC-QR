@@ -89,7 +89,7 @@ def live_server(smtp, tmp_path_factory):
         "APP_ENV": "development",
         "SMTP_HOST": "127.0.0.1",
         "SMTP_PORT": str(smtp.port),
-        "SMTP_FROM": "no-reply@DRandco.test",
+        "SMTP_FROM": "no-reply@drqr.test",
         # The catcher speaks plaintext SMTP on loopback, like a local relay.
         # Real deployments should leave STARTTLS on (the default).
         "SMTP_STARTTLS": "0",
@@ -161,7 +161,7 @@ def page(browser):
 
 
 def _unique_email(prefix="e2e"):
-    return f"{prefix}-{int(time.time() * 1000)}@DRandco.test"
+    return f"{prefix}-{int(time.time() * 1000)}@drqr.test"
 
 
 def _open_auth(page, mode):

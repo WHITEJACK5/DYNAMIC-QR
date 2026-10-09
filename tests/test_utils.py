@@ -73,6 +73,6 @@ def test_parity_with_consumers():
     assert redirect_service.detect_device is utils.detect_device
     assert schema_email is utils.validate_email_format
     # and the values agree with the originals
-    assert hex_to_rgb("#00FF88") == (0, 255, 136)
+    assert hex_to_rgb("#F5A623") == (245, 166, 35)
     assert build_qr_content("url", {"url": "https://example.com"}) == "https://example.com"
     assert detect_device("x")[0] == "Desktop"

@@ -193,7 +193,7 @@ def test_colour_contrast_is_addressed():
     future colour change is a decision, not an accident.
     """
     css = _read(os.path.join(FRONTEND, "src", "index.css"))
-    assert "--neon" in css
+    assert "--accent" in css
     # the dark background with neon/white text exceeds AA by a wide margin;
     # the comment records the ratio so it is not a silent assumption
     assert "contrast" in css.lower()
