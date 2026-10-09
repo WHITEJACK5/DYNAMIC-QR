@@ -548,7 +548,7 @@ def download_qr(qr_id):
             w,h=A4
             c.setFillColorRGB(0.04,0.04,0.04)
             c.setFont("Helvetica-Bold", 18)
-            c.drawString(40, h-60, "DR & CO. \u2014 QR Code")
+            c.drawString(40, h-60, "DRQR \u2014 QR Code")
             c.setFont("Helvetica", 9)
             c.setFillColorRGB(0.5,0.5,0.5)
             c.drawString(40, h-75, f"Type: {row['type']} \u2022 {row['name']} \u2022 Generated {row['created_at'][:10]}")
@@ -559,7 +559,7 @@ def download_qr(qr_id):
             c.drawImage(ir, 120, h-500, width=350, height=350, preserveAspectRatio=True, mask='auto')
             c.setFillColorRGB(0,1,0.53)
             c.setFont("Helvetica-Bold", 10)
-            c.drawCentredString(w/2, h-520, row["frame_text"] or "Scan Me \u2014 DR & CO.")
+            c.drawCentredString(w/2, h-520, row["frame_text"] or "Scan Me \u2014 DRQR")
             c.showPage()
             c.save()
             pdf_buf.seek(0)
@@ -601,6 +601,6 @@ def duplicate(qr_id):
 @qr.route("/api/health")
 @qr.route("/api/v1/health")
 def health():
-    return jsonify({"status":"ok","service":"DR & CO.","version":"1.1.0","theme":"grid-white / black / neon-green"})
+    return jsonify({"status":"ok","service":"DRQR","version":"1.1.0","theme":"grid-white / black / amber"})
 
-# Catch-all for frontend routes â€” safe
+# Catch-all for frontend routes — safe
