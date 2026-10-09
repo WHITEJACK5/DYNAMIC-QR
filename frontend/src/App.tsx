@@ -29,6 +29,7 @@ function GeneratorPage() {
     <section aria-labelledby="gen-heading">
       <h1 id="gen-heading">QR Code Generator</h1>
       <p>Static free unlimited, or dynamic and trackable.</p>
+      <div aria-live="polite" className="generator-result" />
     </section>
   )
 }

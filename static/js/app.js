@@ -1,4 +1,4 @@
-// DR & CO. — Industry Grade Frontend | Grid White / Black / Neon Green
+// DRQR — Industry Grade Frontend | Grid White / Black / Amber
 const API = location.origin;
 let state = {
   type: "url",
@@ -9,7 +9,7 @@ let state = {
   bg: "#FFFFFF",
   gradient: "solid",
   frameText: "",
-  frameColor: "#00FF88",
+  frameColor: "#F5A623",
   logoB64: null,
   lastImage: null,
   lastId: null,
@@ -46,25 +46,25 @@ const TYPES = [
 ];
 
 const FORM_DEFS = {
-  url: [{key:"url", label:"Website URL *", placeholder:"https://www.DRandco.com", type:"url", required:true}],
+  url: [{key:"url", label:"Website URL *", placeholder:"https://www.drqr.com", type:"url", required:true}],
   text: [{key:"text", label:"Your Text *", placeholder:"Enter text to encode", type:"textarea", required:true}],
-  email: [{key:"email", label:"Email address *", placeholder:"hello@DRandco.com", required:true}, {key:"subject", label:"Subject", placeholder:"Hello"}, {key:"body", label:"Message", placeholder:"Hi there!", type:"textarea"}],
+  email: [{key:"email", label:"Email address *", placeholder:"hello@drqr.com", required:true}, {key:"subject", label:"Subject", placeholder:"Hello"}, {key:"body", label:"Message", placeholder:"Hi there!", type:"textarea"}],
   sms: [{key:"phone", label:"Phone Number *", placeholder:"+919876543210", required:true}, {key:"message", label:"Message", placeholder:"Hello!", type:"textarea"}],
   wifi: [{key:"ssid", label:"Network Name (SSID) *", placeholder:"DR-WIFI", required:true}, {key:"password", label:"Password", placeholder:"••••••••"}, {key:"encryption", label:"Encryption", type:"select", opts:["WPA","WEP","nopass"]}, {key:"hidden", label:"Hidden?", type:"select", opts:["false","true"]}],
-  vcard: [{key:"name", label:"Full Name *", placeholder:"Jane Doe", required:true}, {key:"organization", label:"Organization", placeholder:"DR & CO."}, {key:"phone", label:"Phone", placeholder:"+91 98765 43210"}, {key:"email", label:"Email", placeholder:"jane@DRandco.com"}, {key:"url", label:"Website", placeholder:"https://DRandco.com"}, {key:"address", label:"Address", placeholder:"Hyderabad, India"}],
+  vcard: [{key:"name", label:"Full Name *", placeholder:"Jane Doe", required:true}, {key:"organization", label:"Organization", placeholder:"DRQR"}, {key:"phone", label:"Phone", placeholder:"+91 98765 43210"}, {key:"email", label:"Email", placeholder:"jane@drqr.com"}, {key:"url", label:"Website", placeholder:"https://drqr.com"}, {key:"address", label:"Address", placeholder:"Hyderabad, India"}],
   whatsapp: [{key:"phone", label:"WhatsApp Number *", placeholder:"+919876543210", required:true}, {key:"message", label:"Prefilled Message", placeholder:"Hi!"}],
   location: [{key:"latitude", label:"Latitude *", placeholder:"17.3850", required:true}, {key:"longitude", label:"Longitude *", placeholder:"78.4867", required:true}],
-  event: [{key:"title", label:"Event Title *", placeholder:"DR & CO. Launch", required:true}, {key:"location", label:"Location", placeholder:"Hyderabad"}, {key:"start", label:"Start (YYYYMMDDTHHMMSSZ)", placeholder:"20260905T100000Z"}, {key:"end", label:"End", placeholder:"20260905T120000Z"}, {key:"description", label:"Description", type:"textarea", placeholder:"Join us..."}],
+  event: [{key:"title", label:"Event Title *", placeholder:"DRQR Launch", required:true}, {key:"location", label:"Location", placeholder:"Hyderabad"}, {key:"start", label:"Start (YYYYMMDDTHHMMSSZ)", placeholder:"20260905T100000Z"}, {key:"end", label:"End", placeholder:"20260905T120000Z"}, {key:"description", label:"Description", type:"textarea", placeholder:"Join us..."}],
   file: [{key:"url", label:"File URL *", placeholder:"https://example.com/file.pdf", required:true}, {key:"note", label:"Tip", type:"help", text:"Paste direct file link (PDF/JPG/PNG/MP4). For dynamic hosting, use File QR — we create trackable short URL."}],
-  linkpage: [{key:"title", label:"Page Title", placeholder:"DR & CO. Links"}, {key:"bio", label:"Bio", placeholder:"Discover our world..."}, {key:"links", label:"Links (label|url per line)", type:"textarea", placeholder:"Instagram|https://instagram.com/DR\nShop|https://DRandco.com/shop"}],
-  menu: [{key:"restaurant", label:"Restaurant Name", placeholder:"DR Bistro"}, {key:"url", label:"Menu Link / PDF URL *", placeholder:"https://DRandco.com/menu.pdf", required:true}],
+  linkpage: [{key:"title", label:"Page Title", placeholder:"DRQR Links"}, {key:"bio", label:"Bio", placeholder:"Discover our world..."}, {key:"links", label:"Links (label|url per line)", type:"textarea", placeholder:"Instagram|https://instagram.com/DR\nShop|https://drqr.com/shop"}],
+  menu: [{key:"restaurant", label:"Restaurant Name", placeholder:"DR Bistro"}, {key:"url", label:"Menu Link / PDF URL *", placeholder:"https://drqr.com/menu.pdf", required:true}],
   appstore: [{key:"ios", label:"App Store (iOS) URL", placeholder:"https://apps.apple.com/..."}, {key:"android", label:"Google Play URL", placeholder:"https://play.google.com/..."}],
-  landingpage: [{key:"title", label:"Landing Title", placeholder:"Summer Drop — DR & CO."}, {key:"url", label:"Destination URL *", placeholder:"https://DRandco.com/drop", required:true}],
-  smarturl: [{key:"primaryUrl", label:"Default URL *", placeholder:"https://DRandco.com", required:true}, {key:"rules", label:"Rules (optional)", type:"textarea", placeholder:"country:IN → https://in.DRandco.com"}],
+  landingpage: [{key:"title", label:"Landing Title", placeholder:"Summer Drop — DRQR"}, {key:"url", label:"Destination URL *", placeholder:"https://drqr.com/drop", required:true}],
+  smarturl: [{key:"primaryUrl", label:"Default URL *", placeholder:"https://drqr.com", required:true}, {key:"rules", label:"Rules (optional)", type:"textarea", placeholder:"country:IN → https://in.drqr.com"}],
   gs1: [{key:"content", label:"GS1 Data *", placeholder:"(01)09506000134352(17)240105(10)ABC123", required:true}],
   mp3: [{key:"url", label:"Audio URL *", placeholder:"https://soundcloud.com/...", required:true}],
   video: [{key:"url", label:"Video URL *", placeholder:"https://youtube.com/watch?v=...", required:true}],
-  facebook: [{key:"url", label:"Facebook URL *", placeholder:"https://facebook.com/DRandco", required:true}],
+  facebook: [{key:"url", label:"Facebook URL *", placeholder:"https://facebook.com/drqr", required:true}],
   youtube: [{key:"url", label:"YouTube URL *", placeholder:"https://youtube.com/@DR", required:true}],
   instagram: [{key:"url", label:"Instagram URL *", placeholder:"https://instagram.com/DR", required:true}],
   pinterest: [{key:"url", label:"Pinterest URL *", placeholder:"https://pinterest.com/DR", required:true}],
@@ -267,7 +267,7 @@ function updatePreviewMeta(){
   const el=document.getElementById('previewType');
   if(!el) return;
   el.textContent=`${state.type.toUpperCase()} • ${state.isDynamic?'Dynamic':'Static'}`;
-  el.style.background=state.isDynamic?'var(--neon)':'white';
+  el.style.background=state.isDynamic?'var(--accent)':'white';
   el.style.color='var(--black)';
 }
 
@@ -341,7 +341,7 @@ async function generate(){
     if(!bar){
       bar=document.createElement('div');
       bar.id='genSuccess';
-      bar.style.cssText='margin:0 18px 14px;background:var(--black);color:var(--neon);padding:12px 14px;border-radius:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--black)';
+      bar.style.cssText='margin:0 18px 14px;background:var(--black);color:var(--accent);padding:12px 14px;border-radius:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--black)';
       document.getElementById('generateBtn').parentElement.insertAdjacentElement('afterend', bar);
     }
     const dlName=`DRQR-${state.type}-${Date.now()}.png`;
@@ -536,7 +536,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if(tog){
     tog.addEventListener('change', ()=>{
       state.isDynamic=tog.checked;
-      document.getElementById('toggleBg').style.background= tog.checked ? "var(--neon)" : "#333";
+      document.getElementById('toggleBg').style.background= tog.checked ? "var(--accent)" : "#333";
       document.getElementById('toggleKnob').style.transform= tog.checked ? "translateX(22px)" : "translateX(0)";
       document.getElementById('toggleKnob').style.background= tog.checked ? "var(--black)" : "white";
       renderForm();
@@ -624,7 +624,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     };
   }
   if(dropZone){
-    dropZone.ondragover=e=>{ e.preventDefault(); dropZone.style.borderColor='var(--neon)'; dropZone.style.background='rgba(0,255,136,0.08)'; };
+    dropZone.ondragover=e=>{ e.preventDefault(); dropZone.style.borderColor='var(--accent)'; dropZone.style.background='rgba(245,166,35,0.08)'; };
     dropZone.ondragleave=()=>{ dropZone.style.borderColor='var(--black)'; dropZone.style.background='var(--grid-white)'; };
     dropZone.ondrop=e=>{
       e.preventDefault();
@@ -662,10 +662,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.querySelectorAll('[data-template]').forEach(b=>{
     b.onclick=()=>{
       const t=b.dataset.template;
-      if(t==="neon"){ state.fg="#0A0A0A"; state.bg="#FFFFFF"; state.pattern="dots"; state.eyeStyle="circle"; state.frameText="SCAN ME • DR & CO."; state.frameColor="#00FF88"; }
+      if(t==="neon"){ state.fg="#0A0A0A"; state.bg="#FFFFFF"; state.pattern="dots"; state.eyeStyle="circle"; state.frameText="SCAN ME • DRQR"; state.frameColor="#F5A623"; }
       if(t==="mono"){ state.fg="#0A0A0A"; state.bg="#FFFFFF"; state.pattern="square"; state.eyeStyle="square"; state.frameText=""; }
       if(t==="grid"){ state.fg="#1A1A1A"; state.bg="#F8F9FA"; state.pattern="gapped"; state.eyeStyle="rounded"; }
-      if(t==="neonBlack"){ state.fg="#00FF88"; state.bg="#0A0A0A"; state.pattern="rounded"; state.eyeStyle="circle"; state.frameText="DR & CO. — SCAN"; state.frameColor="#00FF88"; }
+      if(t==="neonBlack"){ state.fg="#F5A623"; state.bg="#0A0A0A"; state.pattern="rounded"; state.eyeStyle="circle"; state.frameText="DRQR — SCAN"; state.frameColor="#F5A623"; }
       if(fg) fg.value=state.fg; if(bg) bg.value=state.bg; if(fgt) fgt.value=state.fg; if(bgt) bgt.value=state.bg;
       const ft=document.getElementById('frameText');
       const fc=document.getElementById('frameColor');

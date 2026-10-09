@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Manual — DR & CO.</title>
+    <title>Manual — DRQR</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&family=JetBrains+Mono:wght@600&display=swap"
       rel="stylesheet"
@@ -39,7 +39,7 @@
       }
       .manual pre {
         background: var(--black);
-        color: var(--neon);
+        color: var(--accent);
         padding: 14px;
         border-radius: 12px;
         overflow: auto;
@@ -83,8 +83,7 @@
     <header class="header">
       <div class="container header-inner">
         <a href="/" class="logo"
-          ><div class="logo-mark">N</div>
-          <div class="logo-type">DR <span>& CO.</span></div></a
+          ><div class="logo-type">DR<span class="logo-heart"><img src="/static/img/heart.png" alt="DRQR" width="26" height="26" /></span><span class="qr">QR</span></div></a
         >
         <nav class="nav">
           <a href="/">Generator</a>
@@ -113,9 +112,9 @@
             <span class="badge badge-white">Personal Edition</span>
             <span class="badge badge-black">v1.1.0</span>
           </div>
-          <h1>DR & CO. — Working Manual</h1>
+          <h1>DRQR — Working Manual</h1>
           <p style="color: #666">
-            Grid White / Black / Neon Green • Local SQLite <code>data/DR.db</code> •
+            Grid White / Black / Amber • Local SQLite <code>data/DR.db</code> •
             Tested on fresh Windows 11 + Python 3.11. Every command below was executed.
           </p>
           <div style="display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0">
@@ -232,8 +231,8 @@ curl http://127.0.0.1:5000/api/health</pre>
         class="container"
         style="font-size: 12px; display: flex; justify-content: space-between"
       >
-        <span>© 2026 DR & CO. — Manual v1.1.0</span
-        ><span style="color: var(--neon)">Personal Use • Local DB</span>
+        <span>© 2026 DRQR — Manual v1.1.0</span
+        ><span style="color: var(--accent)">Personal Use • Local DB</span>
       </div>
     </footer>
   </body>

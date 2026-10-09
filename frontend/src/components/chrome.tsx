@@ -28,8 +28,16 @@ export function Header() {
   return (
     <header className="site-header">
       <SkipLink />
-      <Link href="/" className="brand" aria-label="DR and CO home">
-        DR <span className="amp">&amp;</span> CO
+      <Link href="/" className="brand" aria-label="DRQR home">
+        DR
+        <img
+          src="/static/img/heart.png"
+          alt=""
+          className="brand-heart"
+          width={20}
+          height={20}
+        />
+        <span className="amp">QR</span>
       </Link>
       <Nav />
     </header>
@@ -63,7 +71,7 @@ export function Nav() {
 export function Footer() {
   return (
     <footer className="site-footer">
-      <p>DR &amp; CO — self-hosted QR generation. Your data stays on your machine.</p>
+      <p>DRQR — self-hosted QR generation. Your data stays on your machine.</p>
       <nav aria-label="Footer">
         <ul className="footer-list">
           <li>

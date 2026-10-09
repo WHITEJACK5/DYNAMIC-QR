@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard — DR & CO.</title>
+    <title>Dashboard — DRQR</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap"
       rel="stylesheet"
@@ -31,8 +31,7 @@
     <header class="header">
       <div class="container header-inner">
         <a href="/" class="logo"
-          ><div class="logo-mark">N</div>
-          <div class="logo-type">DR <span>& CO.</span></div></a
+          ><div class="logo-type">DR<span class="logo-heart"><img src="/static/img/heart.png" alt="DRQR" width="26" height="26" /></span><span class="qr">QR</span></div></a
         >
         <nav class="nav">
           <a href="/">Generator</a>
@@ -65,7 +64,7 @@
               width: 40px;
               height: 40px;
               border-radius: 50%;
-              background: var(--neon);
+              background: var(--accent);
               border: 1.5px solid var(--black);
               display: grid;
               place-items: center;
@@ -76,7 +75,7 @@
           </div>
           <div>
             <strong style="font-size: 13px">Workspace</strong>
-            <div style="font-size: 11px; color: #666">DR & CO. Grid</div>
+            <div style="font-size: 11px; color: #666">DRQR Grid</div>
           </div>
         </div>
         <a href="#" class="active" data-view="qrs"
@@ -85,7 +84,7 @@
             id="countBadge"
             style="
               margin-left: auto;
-              background: var(--neon);
+              background: var(--accent);
               color: var(--black);
               padding: 2px 8px;
               border-radius: 999px;
@@ -111,7 +110,7 @@
             border: 1px solid #222;
           "
         >
-          <strong style="font-size: 12px; letter-spacing: 0.08em; color: var(--neon)"
+          <strong style="font-size: 12px; letter-spacing: 0.08em; color: var(--accent)"
             >● PERSONAL USE</strong
           >
           <div style="font-size: 12px; color: #aaa; margin: 6px 0">
@@ -121,7 +120,7 @@
                 background: #111;
                 padding: 2px 6px;
                 border-radius: 6px;
-                color: var(--neon);
+                color: var(--accent);
               "
               >data/DR.db</code
             ><br />All QRs & scans stored locally. No limits.
@@ -200,7 +199,7 @@
             <div style="font-size: 40px">⬢</div>
             <h3>No QR codes yet</h3>
             <p style="color: #666">
-              Create your first DR & CO. QR — static free or dynamic trackable.
+              Create your first DRQR QR — static free or dynamic trackable.
             </p>
             <button
               class="btn btn-primary"
@@ -257,7 +256,7 @@
               style="
                 margin-top: 12px;
                 background: var(--black);
-                color: var(--neon);
+                color: var(--accent);
                 padding: 12px;
                 border-radius: 12px;
                 overflow: auto;
@@ -296,7 +295,7 @@
           <div class="card">
             <h3>Settings & Security</h3>
             <p style="color: #666; font-size: 13px">
-              DR & CO. — Grid White / Black / Neon Green • Database: SQLite
+              DRQR — Grid White / Black / Amber • Database: SQLite
               <code>data/DR.db</code> by default, PostgreSQL when
               <code>DATABASE_URL</code> is set • HOST restricted to 127.0.0.1 •
               Rate-limited • POST-only passwords. No uptime guarantee and no GDPR/CCPA
@@ -364,7 +363,7 @@
                     font-size: 11px;
                     font-family: monospace;
                     background: var(--black);
-                    color: var(--neon);
+                    color: var(--accent);
                     padding: 6px 8px;
                     border-radius: 8px;
                     margin: 8px 0;
@@ -526,14 +525,14 @@
           </div>
           <div class="field">
             <label>Frame Text</label
-            ><input id="editFrameText" placeholder="SCAN ME • DR & CO." />
+            ><input id="editFrameText" placeholder="SCAN ME • DRQR" />
           </div>
           <div class="field">
             <label>Frame Color</label
             ><input
               id="editFrameColor"
               type="color"
-              value="#00FF88"
+              value="#F5A623"
               style="height: 44px"
             />
           </div>
@@ -636,7 +635,7 @@
         <div><strong>Timeline</strong><pre style="background:var(--grid-white);padding:10px;border-radius:10px;overflow:auto;max-height:160px;font-size:11px">${JSON.stringify(j.timeline.slice(0, 7), null, 2)}</pre></div>
         <div><strong>Devices</strong><pre style="background:var(--grid-white);padding:10px;border-radius:10px;overflow:auto;max-height:160px;font-size:11px">${JSON.stringify(j.devices, null, 2)}</pre></div>
       </div>
-      <div style="margin-top:10px"><strong>Top QRs</strong><div style="display:grid;gap:6px;margin-top:6px">${j.top.map((t) => `<div style="display:flex;justify-content:space-between;padding:8px;background:var(--grid-white);border-radius:8px;border:1px solid #EEE"><span>${t.name} <small style="color:#666">${t.type}</small></span><span style="background:var(--neon);padding:2px 8px;border-radius:999px;border:1px solid var(--black);font-weight:800">${t.scan_count} scans</span></div>`).join('') || '<span style="color:#888">No scans yet</span>'}</div></div>
+      <div style="margin-top:10px"><strong>Top QRs</strong><div style="display:grid;gap:6px;margin-top:6px">${j.top.map((t) => `<div style="display:flex;justify-content:space-between;padding:8px;background:var(--grid-white);border-radius:8px;border:1px solid #EEE"><span>${t.name} <small style="color:#666">${t.type}</small></span><span style="background:var(--accent);padding:2px 8px;border-radius:999px;border:1px solid var(--black);font-weight:800">${t.scan_count} scans</span></div>`).join('') || '<span style="color:#888">No scans yet</span>'}</div></div>
     `
         } catch {}
         try {
@@ -685,13 +684,13 @@
         <img src="${API}/api/preview" alt="qr" id="img-${q.id}" style="background:white">
         <div class="qr-meta">
           <strong title="${q.name}">${q.name}</strong>
-          <div style="font-size:11px;color:#666;display:flex;gap:4px;flex-wrap:wrap;align-items:center">${q.type.toUpperCase()} • ${q.is_dynamic ? '<span style="background:var(--neon);padding:2px 6px;border-radius:999px;border:1px solid var(--black);font-weight:800">DYNAMIC</span>' : 'STATIC'} • ${new Date(q.created_at).toLocaleDateString()}</div>
+          <div style="font-size:11px;color:#666;display:flex;gap:4px;flex-wrap:wrap;align-items:center">${q.type.toUpperCase()} • ${q.is_dynamic ? '<span style="background:var(--accent);padding:2px 6px;border-radius:999px;border:1px solid var(--black);font-weight:800">DYNAMIC</span>' : 'STATIC'} • ${new Date(q.created_at).toLocaleDateString()}</div>
           <div style="font-size:11px;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px" title="${shortUrl}">${shortUrl.slice(0, 48)}</div>
         </div>
       </div>
       <div style="padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;background:#F8F9FA;border-top:1px solid #EEE;border-bottom:1px solid #EEE">
         <span class="chip">${q.scan_count || 0} scans</span>
-        <span class="chip" style="background:var(--black);color:var(--neon)">● Live</span>
+        <span class="chip" style="background:var(--black);color:var(--accent)">● Live</span>
         <span class="chip" title="Colors">${q.fg_color || ''} → ${q.bg_color || ''}</span>
         ${q.frame_text ? `<span class="chip">${q.frame_text.slice(0, 12)}</span>` : ''}
       </div>
@@ -731,6 +730,26 @@
         })
       }
 
+      function getUrlState() {
+        const params = new URLSearchParams(location.search)
+        return {
+          search: params.get('search') || '',
+          type: params.get('type') || '',
+          limit: parseInt(params.get('limit')) || 50,
+          offset: parseInt(params.get('offset')) || 0,
+        }
+      }
+
+      function updateUrlState(state) {
+        const params = new URLSearchParams()
+        if (state.search) params.set('search', state.search)
+        if (state.type) params.set('type', state.type)
+        if (state.limit !== 50) params.set('limit', state.limit)
+        if (state.offset !== 0) params.set('offset', state.offset)
+        const qs = params.toString()
+        history.replaceState(null, '', qs ? '?' + qs : location.pathname)
+      }
+
       function filtered() {
         const term = document.getElementById('search').value.toLowerCase()
         const type = document.getElementById('filterType').value
@@ -742,9 +761,14 @@
             (!type || q.type === type),
         )
         renderQrs(f)
+        updateUrlState({ search: term, type, limit: 50, offset: 0 })
       }
       document.getElementById('search').oninput = filtered
       document.getElementById('filterType').onchange = filtered
+
+      const urlState = getUrlState()
+      if (urlState.search) document.getElementById('search').value = urlState.search
+      if (urlState.type) document.getElementById('filterType').value = urlState.type
 
       async function openQr(id) {
         const token = auth()
@@ -770,7 +794,7 @@
         <span class="chip chip-neon">${q.scan_count} scans</span><span class="chip">${q.type}</span><span class="chip">${q.pattern || 'square'} • ${q.eye_style || 'square'}</span><span class="chip">${q.fg_color}→${q.bg_color}</span>
       </div>
     </div>
-    <div style="margin-top:12px"><strong>Analytics</strong><pre style="background:var(--black);color:var(--neon);padding:10px;border-radius:10px;overflow:auto;font-size:11px;max-height:120px">${JSON.stringify(a.timeline.slice(-8), null, 2)}</pre>
+    <div style="margin-top:12px"><strong>Analytics</strong><pre style="background:var(--black);color:var(--accent);padding:10px;border-radius:10px;overflow:auto;font-size:11px;max-height:120px">${JSON.stringify(a.timeline.slice(-8), null, 2)}</pre>
     <div style="margin-top:6px"><strong>Recent scans</strong><div style="max-height:160px;overflow:auto;display:grid;gap:4px;margin-top:6px">${
       a.scans
         .slice(0, 10)
@@ -861,7 +885,7 @@
         document.getElementById('editPattern').value = q.pattern || 'square'
         document.getElementById('editEye').value = q.eye_style || 'square'
         document.getElementById('editFrameText').value = q.frame_text || ''
-        document.getElementById('editFrameColor').value = q.frame_color || '#00FF88'
+        document.getElementById('editFrameColor').value = q.frame_color || '#F5A623'
         document.getElementById('editPassword').value = ''
         document.getElementById('editScanLimit').value = q.scan_limit || ''
         document.getElementById('editExpiry').value = q.expiry_date
