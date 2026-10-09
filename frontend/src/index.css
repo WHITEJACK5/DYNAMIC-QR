@@ -11,13 +11,21 @@
 :root {
   --black: #0a0a0a;
   --white: #ffffff;
-  --neon: #00ff88;
+  --accent: #f5a623;
   --grey-100: #f5f5f5;
   --grey-300: #d4d4d4;
   --grey-600: #525252;
   --grey-900: #171717;
-  /* AA contrast on --black: --neon is ~15:1, --grey-300 is ~10:1 */
+  /* AA contrast on --black: --accent is ~7:1, --grey-300 is ~10:1 */
   --focus-ring: #4d9fff;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 2rem;
+  --text-2xl: 3rem;
 }
 
 * {
@@ -41,7 +49,7 @@ body {
   position: absolute;
   left: -9999px;
   top: 0;
-  background: var(--neon);
+  background: var(--accent);
   color: var(--black);
   padding: 0.5rem 1rem;
   font-weight: 700;
@@ -77,12 +85,38 @@ textarea:focus-visible,
 
 .brand {
   font-weight: 900;
-  font-size: 1.25rem;
+  font-size: 1.75rem;
   color: var(--white);
   text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
 }
+/* DRQR brand mark — pixelated red heart (static/img/heart.png), same art the
+   legacy shell uses. Sized in em so it tracks the type, upscaled with
+   image-rendering: pixelated so the dither stair-step edges stay hard, and
+   rotating clockwise between DR and QR. */
+.brand-heart {
+  width: 1.15em;
+  height: 1.15em;
+  display: block;
+  image-rendering: pixelated;
+  animation: heart-spin 6s linear infinite;
+  transform-origin: 50% 50%;
+  backface-visibility: visible;
+}
+@keyframes heart-spin {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+/* DR in white, QR in the heart red. No text-stroke — at this size the black
+   outline bleeds into the counters and reads as clutter. */
 .brand .amp {
-  color: var(--neon);
+  color: #ff3b1f;
 }
 
 .nav-list,
@@ -100,9 +134,14 @@ textarea:focus-visible,
   text-decoration: none;
   font-weight: 600;
 }
+.nav-list a,
+.footer-list a {
+  transition: background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
 .nav-list a:hover,
 .footer-list a:hover {
-  color: var(--neon);
+  color: var(--accent);
 }
 
 main {
@@ -110,6 +149,12 @@ main {
   margin: 0 auto;
   padding: 2rem;
   min-height: 60vh;
+}
+
+h1 {
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  line-height: 1.15;
 }
 
 .site-footer {
