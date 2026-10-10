@@ -485,7 +485,6 @@ function updateAuthUI(){
   const userStr=localStorage.getItem('DR_user');
   const loginBtn=document.getElementById('loginBtn');
   const regBtn=document.getElementById('registerBtn');
-  const navDash=document.getElementById('navDash');
   if(token && userStr){
     try{
       const u=JSON.parse(userStr);
@@ -493,14 +492,12 @@ function updateAuthUI(){
       loginBtn.onclick=async()=>{ await window.DRSession.logout(); toast("Logged out"); setTimeout(()=>location.reload(), 500); };
       regBtn.textContent="Dashboard →";
       regBtn.onclick=()=>location.href="/dashboard";
-      if(navDash) navDash.style.display="inline-flex";
     }catch{}
   } else {
     loginBtn.textContent="Log In";
     loginBtn.onclick=()=>openAuth('login');
     regBtn.textContent="Register — Free";
     regBtn.onclick=()=>openAuth('register');
-    if(navDash) navDash.style.display="none";
   }
 }
 function toast(msg, isErr=false){

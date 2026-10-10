@@ -35,9 +35,8 @@
         >
         <nav class="nav">
           <a href="/">Generator</a>
+          <a href="/#features">Solutions</a>
           <a href="/dashboard" class="active">Dashboard</a>
-          <a href="/manual.html">Manual</a>
-          <a href="/api-docs">API Docs</a>
         </nav>
         <div class="header-cta">
           <span
@@ -99,36 +98,6 @@
         <a href="#" data-view="bulk">⬆ Bulk Upload</a>
         <a href="#" data-view="templates">🎨 Templates</a>
         <a href="#" data-view="settings">⚙ Settings</a>
-
-        <div
-          style="
-            margin-top: auto;
-            background: var(--black);
-            color: white;
-            border-radius: 16px;
-            padding: 14px;
-            border: 1px solid #222;
-          "
-        >
-          <strong style="font-size: 12px; letter-spacing: 0.08em; color: var(--accent)"
-            >● PERSONAL USE</strong
-          >
-          <div style="font-size: 12px; color: #aaa; margin: 6px 0">
-            Local DB:
-            <code
-              style="
-                background: #111;
-                padding: 2px 6px;
-                border-radius: 6px;
-                color: var(--accent);
-              "
-              >data/DR.db</code
-            ><br />All QRs & scans stored locally. No limits.
-          </div>
-          <div style="font-size: 11px; color: #888">
-            Fresh clone → <b>pip install</b> → <b>python app.py</b> → DB auto-creates.
-          </div>
-        </div>
       </aside>
 
       <main class="dash-main">
@@ -968,7 +937,12 @@
           document
             .querySelectorAll('[id^="view-"]')
             .forEach((v) => (v.style.display = 'none'))
-          document.getElementById('view-' + a.dataset.view).style.display = 'block'
+          const view = document.getElementById('view-' + a.dataset.view)
+          if (!view) return
+          view.style.display = 'block'
+          // Settings shows 2FA state that lives on the server, so it is
+          // refreshed each time that view opens.
+          if (a.dataset.view === 'settings') setTimeout(refresh2FA, 100)
         }
       })
       document.getElementById('bulkBtn').onclick = async () => {
@@ -1099,10 +1073,9 @@
           refresh2FA()
         } else toast(j.error, true)
       }
-      // refresh 2FA status when settings opened
-      document.querySelector('[data-view="settings"]').onclick = () => {
-        setTimeout(refresh2FA, 100)
-      }
+      // 2FA status is refreshed from the sidebar handler when the Settings
+      // view opens; it deliberately is not bound here, because assigning
+      // onclick would replace the handler that swaps the view.
 
       load()
       refresh2FA()

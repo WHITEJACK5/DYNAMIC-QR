@@ -39,11 +39,9 @@
       <div class="logo-type">DR<span class="logo-heart"><img src="/static/img/heart.png" alt="DRQR" width="26" height="26" /></span><span class="qr">QR</span></div>
     </a>
     <nav class="nav" id="nav">
-      <a href="#" class="active">Generator</a>
-      <a href="#features">Solutions</a>
-      <a href="/manual.html">Manual</a>
-      <a href="/api-docs">API Docs</a>
-      <a href="/dashboard" id="navDash" style="display:none;background:var(--accent);color:var(--black);border:1px solid var(--black)">Dashboard →</a>
+      <a href="/" class="active">Generator</a>
+      <a href="/#features">Solutions</a>
+      <a href="/dashboard">Dashboard</a>
     </nav>
     <div class="header-cta">
       <button class="btn btn-ghost btn-sm" id="loginBtn">Log In</button>
@@ -68,7 +66,6 @@
         <p>Create unlimited free QR codes, or choose <b>Dynamic</b> to track scans, edit destinations, and manage <b>25 QR types</b> from a single dashboard. Local-first — your scans stay in <code>data/DR.db</code> on this machine.</p>
         <div class="hero-actions">
           <button class="btn btn-primary" onclick="document.getElementById('generator').scrollIntoView({behavior:'smooth'})">Create FREE QR →</button>
-          <button class="btn btn-ghost" onclick="openModal('demo')">Watch Demo ▸</button>
         </div>
         <div class="trustbar">
           <span class="badge badge-white">Runs locally • No SLA</span>
@@ -338,7 +335,7 @@
       <div>
         <div class="kicker neon">Personal deployment — no SLA</div>
         <h2 style="font-size:28px;margin-top:10px">Self-hosted • SQLite or PostgreSQL • No external tracking</h2>
-        <p style="color:#AAA;max-width:640px">Runs on your own machine via Flask. SQLite (<code>data/DR.db</code>) by default; set <code>DATABASE_URL</code> to run on PostgreSQL instead. No uptime guarantee. Passwords hashed (Werkzeug), JWT auth, optional TOTP 2FA. See <a href="/manual.html" style="color:var(--accent);text-decoration:underline">Manual</a> for what is actually implemented.</p>
+        <p style="color:#AAA;max-width:640px">Runs on your own machine via Flask. SQLite (<code>data/DR.db</code>) by default; set <code>DATABASE_URL</code> to run on PostgreSQL instead. No uptime guarantee. Passwords hashed (Werkzeug), JWT auth, optional TOTP 2FA. See the source for what is actually implemented.</p>
       </div>
       <div class="stats" style="grid-template-columns:repeat(2,1fr);min-width:280px">
         <div class="stat" style="background:#111;color:white;border-color:#222;box-shadow:none"><strong style="color:var(--accent)">Yours</strong><span>SQLite or Postgres</span></div>
@@ -387,7 +384,7 @@
     <div class="footer-grid">
       <div>
         <div class="logo" style="color:white;margin-bottom:10px"><div class="logo-type">DR<span class="logo-heart"><img src="/static/img/heart.png" alt="DRQR" width="26" height="26" /></span><span class="qr">QR</span></div></div>
-        <p style="font-size:13px;line-height:1.7">Most advanced QR generator with logo — grid white, black & Amber. Build, track, and scale campaigns. Made with DRQR design system.</p>
+        <p style="font-size:13px;line-height:1.7">Print once. Redirect forever.</p>
         <div style="display:flex;gap:8px;margin-top:12px">
           <a href="#" class="badge-white" style="background:#111;color:#AAA;border-color:#222">LinkedIn</a>
           <a href="#" class="badge-white" style="background:#111;color:#AAA;border-color:#222">YouTube</a>
@@ -406,16 +403,9 @@
           <a href="#">Help Center</a><a href="#">Contact Us</a><a href="#">Status</a><a href="/dashboard">Dashboard</a>
         </div>
       </div>
-      <div>
-        <strong style="color:white;font-size:12px;letter-spacing:.08em">LEGAL</strong>
-        <div style="display:grid;gap:8px;margin-top:10px;font-size:13px">
-          <a href="/manual.html">Local-first notice</a><a href="#">Terms</a><a href="#">Cookies</a>
-        </div>
-      </div>
     </div>
     <div style="margin-top:22px;padding-top:16px;border-top:1px solid #222;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px">
-      <span>┬⌐ 2026 DRQR — “QR Code” is a trademark of DENSO WAVE. All rights reserved.</span>
-      <span style="color:var(--accent)">Grid White • Black • Amber • Secure by design</span>
+      <span>© 2026 DRQR — self-hosted. Your data never leaves this machine.</span>
     </div>
   </div>
 </footer>
@@ -492,21 +482,6 @@
   </div>
 </div>
 
-<div class="modal" id="demoModal">
-  <div class="modal-card" style="max-width:560px">
-    <div class="modal-head"><h3>DRQR — Platform Demo</h3><button class="btn btn-ghost btn-sm" onclick="closeModal('demoModal')">✕</button></div>
-    <div class="modal-body">
-      <div style="background:var(--black);color:var(--accent);padding:16px;border-radius:12px;font-family:monospace;font-size:12px;line-height:1.7">
-        POST /api/generate { type:"url", data:{url:"https://drqr.com"}, is_dynamic:true }<br>
-        →         200 OK { short_code:"aB3x9Zq", image_base64:"data:image/png...", qr_id: 42 }<br><br>
-        curl -X POST http://localhost:5000/api/generate \<br>
-        &nbsp;&nbsp;-H "Authorization: Bearer &lt;token&gt;" \<br>
-        &nbsp;&nbsp;-d '{"type":"wifi","data":{"ssid":"DR-WIFI","password":"neon123"}}'
-      </div>
-      <div style="display:flex;gap:8px"><a class="btn btn-primary" href="/api-docs" style="flex:1;justify-content:center">API Docs →</a><button class="btn btn-ghost" onclick="closeModal('demoModal')">Close</button></div>
-    </div>
-  </div>
-</div>
 
 <div class="toast" id="toast">✔ Done</div>
 

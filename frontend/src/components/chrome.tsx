@@ -52,16 +52,10 @@ export function Nav() {
           <Link href="/">Generator</Link>
         </li>
         <li>
+          <Link href="/#features">Solutions</Link>
+        </li>
+        <li>
           <Link href="/dashboard">Dashboard</Link>
-        </li>
-        <li>
-          <Link href="/pricing">Pricing</Link>
-        </li>
-        <li>
-          <Link href="/manual">Manual</Link>
-        </li>
-        <li>
-          <Link href="/api-docs">API</Link>
         </li>
       </ul>
     </nav>
@@ -71,17 +65,7 @@ export function Nav() {
 export function Footer() {
   return (
     <footer className="site-footer">
-      <p>DRQR — self-hosted QR generation. Your data stays on your machine.</p>
-      <nav aria-label="Footer">
-        <ul className="footer-list">
-          <li>
-            <Link href="/manual">Manual</Link>
-          </li>
-          <li>
-            <Link href="/api-docs">API docs</Link>
-          </li>
-        </ul>
-      </nav>
+      <p>DRQR — self-hosted QR generation. Your data never leaves this machine.</p>
     </footer>
   )
 }
