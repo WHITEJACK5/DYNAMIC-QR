@@ -12,6 +12,7 @@ the real import in a subprocess, because the failure mode is at import
 time and an in-process assertion would not see it.
 """
 import os
+import re
 import subprocess
 import sys
 
@@ -113,6 +114,49 @@ def test_development_still_auto_generates_and_persists(tmp_path):
     finally:
         if not existed and os.path.exists(env_file):
             os.remove(env_file)
+
+
+def test_secret_key_is_written_once_not_appended_per_start(tmp_path):
+    """
+    A .env with no key gets one added. Running again must add nothing.
+
+    The append path used to fire unconditionally, so every start added
+    another inert SECRET_KEY while leaving the file's original untouched.
+    """
+    env_file = os.path.join(HERE, ".env")
+    existed = os.path.exists(env_file)
+    backup = None
+    if existed:
+        with open(env_file, encoding="utf-8") as f:
+            backup = f.read()
+        os.remove(env_file)
+
+    # a .env that has everything the app needs except a secret
+    with open(env_file, "w", encoding="utf-8") as f:
+        f.write("BASE_URL=http://localhost:5000\nPORT=5000\n")
+
+    e = dict(BASE_ENV)
+    e["SECRET_KEY"] = ""
+    try:
+        for _ in range(3):
+            r = subprocess.run(
+                [sys.executable, "-c",
+                 "import app.config as c; assert len(c.SECRET_KEY)"],
+                capture_output=True, text=True, cwd=HERE, env=e, timeout=120,
+            )
+            assert r.returncode == 0, r.stderr
+
+        with open(env_file, encoding="utf-8") as f:
+            text = f.read()
+        n = len(re.findall(r"^SECRET_KEY=", text, re.MULTILINE))
+        assert n == 1, f".env accumulated {n} SECRET_KEY entries after 3 starts"
+        # and the other settings survived
+        assert "BASE_URL=http://localhost:5000" in text
+    finally:
+        os.remove(env_file)
+        if backup is not None:
+            with open(env_file, "w", encoding="utf-8") as f:
+                f.write(backup)
 
 
 # ------------------------------------------------------------ nothing committed

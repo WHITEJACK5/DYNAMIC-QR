@@ -7,6 +7,7 @@ the Phase 1c fix — keep that ordering.
 """
 import logging
 import os
+import re
 import secrets
 
 from dotenv import load_dotenv
@@ -121,14 +122,35 @@ if not SECRET_KEY:
     try:
         _env_path = os.path.join(APP_DIR, ".env")
         if not os.path.exists(_env_path):
-            with open(_env_path, "w") as f:
-                f.write(f"SECRET_KEY={generated}\nBASE_URL=http://localhost:5000\nHOST=127.0.0.1\nPORT=5000\nFLASK_DEBUG=false\nALLOWED_ORIGINS=http://localhost:5000,http://127.0.0.1:5000\n")
+            with open(_env_path, "w", encoding="utf-8") as f:
+                f.write(
+                    "SECRET_KEY=" + generated + "\n"
+                    "JWT_SECRET=" + generated + "\n"
+                    "BASE_URL=http://localhost:5000\n"
+                    "HOST=127.0.0.1\n"
+                    "PORT=5000\n"
+                    "FLASK_DEBUG=false\n"
+                    "ALLOWED_ORIGINS=http://localhost:5000,"
+                    "http://127.0.0.1:5000,http://localhost:3000\n"
+                )
             logger.info("[DRQR] Created .env with fresh SECRET_KEY at %s", _env_path)
         else:
-            # append if .env exists but no key
-            with open(_env_path, "a") as f:
-                f.write(f"\nSECRET_KEY={generated}\n")
-            logger.info("[DRQR] Appended SECRET_KEY to %s", _env_path)
+            # Append only if a key is genuinely absent. Appending
+            # unconditionally used to add one on every start, growing .env
+            # without limit while every earlier key stayed inert.
+            with open(_env_path, "r+", encoding="utf-8") as f:
+                existing = f.read()
+                if re.search(r"^\s*SECRET_KEY\s*=", existing, re.MULTILINE):
+                    logger.info(
+                        "[DRQR] .env already has a SECRET_KEY; not adding another"
+                    )
+                else:
+                    f.seek(0, os.SEEK_END)
+                    f.write("\nSECRET_KEY=" + generated + "\n")
+                    logger.info(
+                        "[DRQR] Added SECRET_KEY to %s (none was present)",
+                        _env_path,
+                    )
     except Exception as e:
         logger.warning("Could not write .env: %s", e)
     SECRET_KEY = generated
