@@ -17,32 +17,32 @@ let state = {
 };
 
 const TYPES = [
-  {id:"url", label:"URL", icon:"🔗", cat:"popular"},
-  {id:"vcard", label:"vCard", icon:"👤", cat:"business"},
-  {id:"file", label:"File", icon:"📄", cat:"business"},
-  {id:"linkpage", label:"Link Page", icon:"🌐", cat:"social"},
-  {id:"menu", label:"Menu", icon:"🍽️", cat:"business"},
-  {id:"appstore", label:"App Stores", icon:"📱", cat:"business"},
-  {id:"landingpage", label:"Landing", icon:"🖥️", cat:"business"},
-  {id:"smarturl", label:"Smart URL", icon:"🧠", cat:"utility"},
-  {id:"gs1", label:"GS1", icon:"🏷️", cat:"business"},
-  {id:"mp3", label:"MP3", icon:"🎵", cat:"utility"},
-  {id:"video", label:"Video", icon:"📹", cat:"social"},
-  {id:"wifi", label:"WiFi", icon:"📶", cat:"utility"},
-  {id:"email", label:"Email", icon:"📧", cat:"utility"},
-  {id:"whatsapp", label:"WhatsApp", icon:"💬", cat:"social"},
-  {id:"event", label:"Event", icon:"📅", cat:"business"},
-  {id:"facebook", label:"Facebook", icon:"📘", cat:"social"},
-  {id:"youtube", label:"YouTube", icon:"📺", cat:"social"},
-  {id:"instagram", label:"Instagram", icon:"📸", cat:"social"},
-  {id:"pinterest", label:"Pinterest", icon:"📌", cat:"social"},
-  {id:"tiktok", label:"TikTok", icon:"🎶", cat:"social"},
-  {id:"twitter", label:"Twitter", icon:"✖️", cat:"social"},
-  {id:"location", label:"Location", icon:"📍", cat:"utility"},
-  {id:"text", label:"Text", icon:"🔤", cat:"utility"},
-  {id:"sms", label:"SMS", icon:"📨", cat:"utility"},
-  {id:"googleform", label:"G Form", icon:"📝", cat:"business"},
-  {id:"googlereview", label:"G Review", icon:"⭐", cat:"business"},
+  {id:"url", label:"URL", cat:"popular"},
+  {id:"vcard", label:"vCard", cat:"business"},
+  {id:"file", label:"File", cat:"business"},
+  {id:"linkpage", label:"Link Page", cat:"social"},
+  {id:"menu", label:"Menu", cat:"business"},
+  {id:"appstore", label:"App Stores", cat:"business"},
+  {id:"landingpage", label:"Landing", cat:"business"},
+  {id:"smarturl", label:"Smart URL", cat:"utility"},
+  {id:"gs1", label:"GS1", cat:"business"},
+  {id:"mp3", label:"MP3", cat:"utility"},
+  {id:"video", label:"Video", cat:"social"},
+  {id:"wifi", label:"WiFi", cat:"utility"},
+  {id:"email", label:"Email", cat:"utility"},
+  {id:"whatsapp", label:"WhatsApp", cat:"social"},
+  {id:"event", label:"Event", cat:"business"},
+  {id:"facebook", label:"Facebook", cat:"social"},
+  {id:"youtube", label:"YouTube", cat:"social"},
+  {id:"instagram", label:"Instagram", cat:"social"},
+  {id:"pinterest", label:"Pinterest", cat:"social"},
+  {id:"tiktok", label:"TikTok", cat:"social"},
+  {id:"twitter", label:"Twitter", cat:"social"},
+  {id:"location", label:"Location", cat:"utility"},
+  {id:"text", label:"Text", cat:"utility"},
+  {id:"sms", label:"SMS", cat:"utility"},
+  {id:"googleform", label:"G Form", cat:"business"},
+  {id:"googlereview", label:"G Review", cat:"business"},
 ];
 
 const FORM_DEFS = {
@@ -83,7 +83,7 @@ function renderTypeGrid(filter="all"){
   }
   grid.innerHTML=list.map(t=>`
     <button class="type-btn ${state.type===t.id?'active':''}" data-type="${t.id}" aria-label="${t.label}">
-      <div class="ico">${t.icon}</div>
+      <div class="ico"><img src="/static/img/icons/${t.id}.svg" alt="" width="28" height="28" /></div>
       <div>${t.label}</div>
     </button>
   `).join('');
