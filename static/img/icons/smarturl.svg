@@ -1,47 +1,56 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"
      width="64" height="64" role="img">
   <defs>
-    <linearGradient id="tile7" x1="0" y1="0" x2="0.15" y2="1">
-      <stop offset="0" stop-color="#C026D3"/>
+    <linearGradient id="base14" x1="0.1" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#D946EF"/>
       <stop offset="1" stop-color="#86198F"/>
     </linearGradient>
-    <radialGradient id="gloss7" cx="0.28" cy="0.16" r="0.72">
-      <stop offset="0" stop-color="#ffffff" stop-opacity=".34"/>
-      <stop offset="0.55" stop-color="#ffffff" stop-opacity=".07"/>
+    <radialGradient id="spec14" cx="0.27" cy="0.14" r="0.78">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".48"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity=".13"/>
       <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="shade7" cx="0.5" cy="1.02" r="0.6">
-      <stop offset="0" stop-color="#000000" stop-opacity=".22"/>
+    <radialGradient id="contact14" cx="0.5" cy="1.06" r="0.62">
+      <stop offset="0" stop-color="#000000" stop-opacity=".28"/>
       <stop offset="1" stop-color="#000000" stop-opacity="0"/>
     </radialGradient>
-    <filter id="amb7" x="-60%" y="-60%" width="220%" height="220%">
-      <feGaussianBlur stdDeviation="3.4"/>
+    <filter id="amb14" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="4"/>
     </filter>
-    <filter id="gl7" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="1" stdDeviation="1.1" flood-color="#000000"
-                    flood-opacity=".28"/>
+    <filter id="cast14" x="-45%" y="-45%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.6"/>
     </filter>
-    <clipPath id="clip7"><path d="M18.5 4.5h27c8 0 14 6 14 14v27c0 8-6 14-14 14h-27c-8 0-14-6-14-14v-27c0-8 6-14 14-14z"/></clipPath>
+    <clipPath id="clip14"><path d="M20 4.5h24c9 0 15.5 6.5 15.5 15.5v24c0 9-6.5 15.5-15.5 15.5H20c-9 0-15.5-6.5-15.5-15.5v-24C4.5 11 11 4.5 20 4.5z"/></clipPath>
   </defs>
 
-  <path d="M18.5 4.5h27c8 0 14 6 14 14v27c0 8-6 14-14 14h-27c-8 0-14-6-14-14v-27c0-8 6-14 14-14z" fill="#86198F" opacity=".30" filter="url(#amb7)"
-        transform="translate(0,2.5)"/>
+  <path d="M20 4.5h24c9 0 15.5 6.5 15.5 15.5v24c0 9-6.5 15.5-15.5 15.5H20c-9 0-15.5-6.5-15.5-15.5v-24C4.5 11 11 4.5 20 4.5z" fill="#86198F" opacity=".26" filter="url(#amb14)"
+        transform="translate(0,3)"/>
 
-  <g filter="url(#gl7)">
-    <path d="M18.5 4.5h27c8 0 14 6 14 14v27c0 8-6 14-14 14h-27c-8 0-14-6-14-14v-27c0-8 6-14 14-14z" fill="url(#tile7)"/>
-    <g clip-path="url(#clip7)">
-      <rect x="4.5" y="4.5" width="55" height="55" fill="url(#gloss7)"/>
-      <rect x="4.5" y="30" width="55" height="29.5" fill="url(#shade7)"/>
-    </g>
-    <path d="M18.5 4.5h27c8 0 14 6 14 14v27c0 8-6 14-14 14h-27c-8 0-14-6-14-14v-27c0-8 6-14 14-14z" fill="none" stroke="#ffffff" stroke-opacity=".26"
-          stroke-width="1.1"/>
+  <path d="M20 4.5h24c9 0 15.5 6.5 15.5 15.5v24c0 9-6.5 15.5-15.5 15.5H20c-9 0-15.5-6.5-15.5-15.5v-24C4.5 11 11 4.5 20 4.5z" fill="url(#base14)"/>
+  <g clip-path="url(#clip14)">
+    <rect x="4.5" y="4.5" width="55" height="55" fill="url(#spec14)"/>
+    <rect x="4.5" y="31" width="55" height="28.5" fill="url(#contact14)"/>
+  </g>
+  <path d="M20 4.5h24c9 0 15.5 6.5 15.5 15.5v24c0 9-6.5 15.5-15.5 15.5H20c-9 0-15.5-6.5-15.5-15.5v-24C4.5 11 11 4.5 20 4.5z" fill="none" stroke="#ffffff" stroke-opacity=".22" stroke-width="1"/>
+
+  <!-- extruded glyph: blurred dark copy offset down-right, then the glyph on
+       top. The glyph keeps its own fill/stroke - no wrapper sets them. -->
+  <g filter="url(#cast14)" transform="translate(1.5,2.1)" opacity=".40">
+    <g fill="#000000" stroke="#000000">
+      <g fill="#fff" stroke-width="3" stroke-linecap="round">
+        <circle cx="32" cy="32" r="4.6"/>
+        <circle cx="32" cy="17.5" r="4.3"/>
+        <circle cx="20" cy="44" r="4.3"/>
+        <circle cx="44" cy="44" r="4.3"/>
+        <g fill="none" stroke="#fff"><path d="M32 27.8V21.7M27.6 34.4L23.6 40.4M36.4 34.4L40.4 40.4"/></g>
+      </g></g>
   </g>
   
-      <g stroke="#fff" stroke-width="3" stroke-linecap="round" fill="#fff">
-        <circle cx="32" cy="32" r="4.4" stroke="none"/>
-        <circle cx="32" cy="17.5" r="4.2" stroke="none"/>
-        <circle cx="20" cy="44" r="4.2" stroke="none"/>
-        <circle cx="44" cy="44" r="4.2" stroke="none"/>
-        <path d="M32 27.8V21.7M27.6 34.4L23.6 40.4M36.4 34.4L40.4 40.4" fill="none"/>
+      <g fill="#fff" stroke-width="3" stroke-linecap="round">
+        <circle cx="32" cy="32" r="4.6"/>
+        <circle cx="32" cy="17.5" r="4.3"/>
+        <circle cx="20" cy="44" r="4.3"/>
+        <circle cx="44" cy="44" r="4.3"/>
+        <g fill="none" stroke="#fff"><path d="M32 27.8V21.7M27.6 34.4L23.6 40.4M36.4 34.4L40.4 40.4"/></g>
       </g>
 </svg>
