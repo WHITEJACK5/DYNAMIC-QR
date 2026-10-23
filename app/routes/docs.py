@@ -1,13 +1,14 @@
 """Generated API documentation (Phase 9).
 
 Serves the OpenAPI document built from the Pydantic schemas at
-/api/v1/openapi.json, and Swagger UI at /api/v1/docs. The static
-frontend/api-docs.html is replaced by this: the spec is generated from the
-same models the routes validate against, so it cannot drift from the code.
+/api/v1/openapi.json, and a server-rendered reference at /api/v1/docs.
+The static frontend/api-docs.html is gone: both the spec and the reference are
+generated from the same models the routes validate against, so neither can
+drift from the code.
 """
-from flask import Blueprint, jsonify, render_template_string
+from flask import Blueprint, jsonify
 
-from app.openapi import build_spec, swagger_ui_html
+from app.openapi import api_reference_html, build_spec
 
 docs = Blueprint("docs", __name__)
 
@@ -19,6 +20,6 @@ def openapi_spec():
 
 
 @docs.route("/api/v1/docs", methods=["GET"])
-def swagger_ui():
-    """Swagger UI rendering the generated spec."""
-    return render_template_string(swagger_ui_html())
+def api_reference():
+    """A self-contained reference rendered from the generated spec."""
+    return api_reference_html()

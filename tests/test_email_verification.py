@@ -172,10 +172,18 @@ def test_unknown_api_paths_return_json_404_not_the_spa(client):
     assert r.status_code == 404, f"got {r.status_code} for an unknown API path"
     assert r.is_json, "an unknown /api/ path returned the SPA instead of JSON"
     assert r.get_json()["error"] == "Not found"
-    # the browser-facing catch-all still serves the SPA
-    page = client.get("/some/spa/route")
-    assert page.status_code == 200
-    assert not page.is_json, "the SPA catch-all stopped working for non-API paths"
+
+
+def test_unknown_page_paths_return_a_real_404(client):
+    """A mistyped page URL is a 404, not index.html with status 200.
+
+    There is no client-side router, so answering every unknown path with the
+    generator page hid broken links from users and from crawlers.
+    """
+    page = client.get("/some/mistyped/page")
+    assert page.status_code == 404
+    assert not page.is_json
+    assert "That page does not exist" in page.get_data(as_text=True)
 
 
 def test_token_is_single_use(client, registered):

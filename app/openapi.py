@@ -14,6 +14,7 @@ inline, so there is no decorator to introspect; an explicit table is honest
 about which schema documents which endpoint and fails loudly if a route is
 added without one.
 """
+from html import escape
 from typing import Any
 
 from app import schemas
@@ -293,32 +294,69 @@ def build_spec() -> dict:
     return spec
 
 
-def swagger_ui_html(spec_url: str = "/api/v1/openapi.json") -> str:
-    """Swagger UI that loads the generated spec.
+def api_reference_html(spec_url: str = "/api/v1/openapi.json") -> str:
+    """A self-contained API reference rendered from the generated spec.
 
-    Loaded from the CDN rather than bundled, so the frontend does not need a
-    build step to serve docs. The spec URL is the generated document, so the
-    UI can never show something the code does not implement.
+    This replaces the Swagger UI page. Swagger fetched its CSS and JavaScript
+    from unpkg, which the app's own Content-Security-Policy blocks, so the page
+    rendered completely blank. Rendering the endpoint index on the server keeps
+    the reference working offline and adds no dependency.
     """
+    spec = build_spec()
+    server = (spec.get("servers") or [{}])[0].get("url", "").rstrip("/")
+    grouped: dict[str, list[tuple[str, str, dict]]] = {}
+    for path, operations in sorted(spec["paths"].items()):
+        for method, operation in operations.items():
+            tag = (operation.get("tags") or ["other"])[0]
+            grouped.setdefault(tag, []).append((method.upper(), f"{server}{path}", operation))
+
+    sections = []
+    for tag in sorted(grouped):
+        rows = "".join(
+            "<tr>"
+            f"<td>{escape(method)}</td>"
+            f"<td><code>{escape(path)}</code></td>"
+            f"<td>{escape(operation.get('summary', ''))}</td>"
+            "</tr>"
+            for method, path, operation in grouped[tag]
+        )
+        sections.append(
+            f"<h2>{escape(tag)}</h2>"
+            '<div class="table-scroll">'
+            "<table><thead><tr><th>Method</th><th>Path</th><th>Summary</th></tr></thead>"
+            f"<tbody>{rows}</tbody></table>"
+            "</div>"
+        )
+
     return f"""<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <title>DRQR — API Reference</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>API reference - DRQR</title>
+    <link rel="stylesheet" href="/static/css/fonts.css" />
+    <link rel="stylesheet" href="/static/css/style.css" />
   </head>
   <body>
-    <div id="swagger-ui"></div>
-    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-    <script>
-      SwaggerUIBundle({{
-        url: "{spec_url}",
-        dom_id: "#swagger-ui",
-        docExpansion: "list",
-        deepLinking: true,
-      }});
-    </script>
+    <main class="section">
+      <div class="container">
+        <div class="doc-page">
+          <span class="badge badge-accent">Reference</span>
+          <h1>DRQR API</h1>
+          <p>
+            Generated from the same Pydantic models the routes validate against,
+            so this list cannot drift from the code. The machine-readable document
+            is at <a href="{escape(spec_url)}"><code>{escape(spec_url)}</code></a>.
+            Paths below include the <code>{escape(server)}</code> prefix; the same
+            endpoints are also published without the version segment (for example
+            <code>/api/login</code>). Authenticated routes expect
+            <code>Authorization: Bearer &lt;token&gt;</code>.
+          </p>
+          {''.join(sections)}
+          <p><a href="/">&larr; Back to the generator</a></p>
+        </div>
+      </div>
+    </main>
   </body>
 </html>
 """

@@ -389,7 +389,6 @@ function openAuth(mode){
 }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 function openModal(which){
-  if(which==="demo") document.getElementById('demoModal').classList.add('open');
   if(which==="register") openAuth("register");
   if(which==="login") openAuth("login");
 }
@@ -502,8 +501,7 @@ function toast(msg, isErr=false){
   const t=document.getElementById('toast');
   t.textContent=msg;
   t.classList.add('show');
-  t.style.background=isErr?"var(--danger)":"var(--text)";
-  t.style.borderColor=isErr?"#FCA5A5":"#333";
+  t.classList.toggle('error', !!isErr);
   clearTimeout(t._hide);
   t._hide=setTimeout(()=>t.classList.remove('show'), 3200);
 }
@@ -724,7 +722,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(el) el.addEventListener('keydown', e=>{ if(e.key==='Enter') submitAuth(); });
   });
   document.getElementById('authModal').onclick=e=>{ if(e.target.id==="authModal") closeModal('authModal'); };
-  document.getElementById('demoModal').onclick=e=>{ if(e.target.id==="demoModal") closeModal('demoModal'); };
   const ham=document.getElementById('ham');
   if(ham){
     ham.onclick=()=>{

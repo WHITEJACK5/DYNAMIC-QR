@@ -90,12 +90,18 @@ def test_the_docs_endpoint_serves_the_spec(client):
     assert body["paths"]
 
 
-def test_swagger_ui_is_served_at_the_documented_path(client):
+def test_the_api_reference_is_served_at_the_documented_path(client):
     r = client.get("/api/v1/docs")
     assert r.status_code == 200
     html = r.get_data(as_text=True)
-    assert "swagger" in html.lower()
+    assert "DRQR API" in html
     assert "/api/v1/openapi.json" in html
+    # The page is a real index, not an empty shell: every auth path appears.
+    for path in ("/register", "/login", "/refresh", "/logout"):
+        assert path in html, f"{path} missing from the reference page"
+    # Swagger's CDN assets are blocked by the app's own CSP, so the reference
+    # must not depend on them.
+    assert "unpkg.com" not in html
 
 
 def test_the_spec_documents_the_auth_flow(client):

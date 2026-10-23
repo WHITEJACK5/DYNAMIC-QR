@@ -30,11 +30,7 @@
         <a href="/" class="logo"
           ><div class="logo-type">DR<span class="logo-heart"><img src="/static/img/heart.png" alt="DRQR" width="26" height="26" /></span><span class="qr">QR</span></div></a
         >
-        <nav class="nav">
-          <a href="/">Generator</a>
-          <a href="/#features">Features</a>
-          <a href="/dashboard" class="active">Dashboard</a>
-        </nav>
+        <!-- NAV -->
         <div class="header-cta">
           <span
             id="userEmail"
@@ -259,28 +255,20 @@
               >
             </div>
             <div style="margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap">
-              <button
-                class="btn btn-ghost btn-sm"
-                onclick="
-                  localStorage.clear()
-                  toast('Local storage cleared')
-                "
-              >
-                Clear Local Cache</button
-              ><button class="btn btn-dark btn-sm" onclick="load()">Reload Data</button
-              ><button
-                class="btn btn-ghost btn-sm"
-                onclick="
-                  if (confirm('Reset local DB? This deletes data/DR.db')) {
-                    fetch('/api/health').then(() =>
-                      toast('Delete data/DR.db and restart server'),
-                    )
-                  }
-                "
-              >
-                Reset DB Help
+              <button class="btn btn-ghost btn-sm" onclick="clearLocalCache()">
+                Clear Local Cache
               </button>
+              <button class="btn btn-dark btn-sm" onclick="load()">Reload Data</button>
             </div>
+            <details class="help" style="margin-top: 14px">
+              <summary style="cursor: pointer; font-weight: 600">
+                Reset the local database
+              </summary>
+              <p style="margin-top: 8px">
+                Stop the server, delete <code>data/DR.db</code>, then start it again.
+                The schema is recreated empty on boot. This cannot be undone.
+              </p>
+            </details>
           </div>
         </div>
       </main>
@@ -430,8 +418,25 @@
         const t = document.getElementById('toast')
         t.textContent = m
         t.classList.add('show')
-        t.style.background = err ? 'var(--danger)' : 'var(--text)'
-        setTimeout(() => t.classList.remove('show'), 3000)
+        t.classList.toggle('error', !!err)
+        clearTimeout(t._hide)
+        t._hide = setTimeout(() => t.classList.remove('show'), 3000)
+      }
+
+      // Clearing the cache used to call localStorage.clear(), which also wiped
+      // DR_token, DR_refresh and DR_user and logged the user out silently.
+      function clearLocalCache() {
+        const sessionKeys = ['DR_token', 'DR_refresh', 'DR_user']
+        const kept = {}
+        sessionKeys.forEach((key) => {
+          const value = localStorage.getItem(key)
+          if (value !== null) kept[key] = value
+        })
+        localStorage.clear()
+        sessionKeys.forEach((key) => {
+          if (key in kept) localStorage.setItem(key, kept[key])
+        })
+        toast('Local cache cleared — you are still signed in')
       }
       function auth() {
         const tok = localStorage.getItem('DR_token')
@@ -447,78 +452,190 @@
 
       let allQrs = []
       let currentEditId = null
+      let authFailureHandled = false
+
+      // Each panel loads and fails on its own, in parallel. Previously the four
+      // requests ran in sequence, three of them swallowed every error, and a
+      // failure left the panel blank with no way to retry.
+      const panelTargets = {
+        qrs: 'qrList',
+        analytics: 'analyticsBody',
+        folders: 'folderList',
+        templates: 'tplList',
+      }
+
+      const panelLoaders = {
+        qrs: loadQrs,
+        analytics: loadAnalytics,
+        folders: loadFolders,
+        templates: loadTemplates,
+      }
+
+      async function apiGet(path, token) {
+        const r = await fetch(`${API}${path}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        let payload = null
+        try {
+          payload = await r.json()
+        } catch (e) {
+          payload = null
+        }
+        if (!r.ok) {
+          const err = new Error((payload && payload.error) || `Request failed (${r.status})`)
+          err.status = r.status
+          throw err
+        }
+        return payload
+      }
+
+      function isAuthError(err) {
+        // A revoked, expired, or malformed token all come back as 401/403, so
+        // the status is the reliable signal and the message wording is not.
+        return err && (err.status === 401 || err.status === 403)
+      }
+
+      function handleAuthFailure() {
+        if (authFailureHandled) return
+        authFailureHandled = true
+        window.DRSession.clearSession()
+        location.href = '/?needAuth=1'
+      }
+
+      function panelEl(key) {
+        return document.getElementById(panelTargets[key])
+      }
+
+      function showPanelLoading(key) {
+        const el = panelEl(key)
+        if (!el) return
+        if (key === 'qrs') {
+          const empty = document.getElementById('empty')
+          if (empty) empty.style.display = 'none'
+        }
+        el.setAttribute('aria-busy', 'true')
+        el.innerHTML =
+          '<div class="skeleton-stack"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>'
+      }
+
+      function showPanelError(key, message) {
+        const el = panelEl(key)
+        if (!el) return
+        if (key === 'qrs') {
+          const empty = document.getElementById('empty')
+          if (empty) empty.style.display = 'none'
+        }
+        el.removeAttribute('aria-busy')
+        el.innerHTML = ''
+        const box = document.createElement('div')
+        box.className = 'panel-state'
+        const p = document.createElement('p')
+        p.textContent = message
+        const retry = document.createElement('button')
+        retry.type = 'button'
+        retry.className = 'btn btn-ghost btn-sm'
+        retry.textContent = 'Retry'
+        retry.addEventListener('click', () => loadPanel(key))
+        box.append(p, retry)
+        el.append(box)
+      }
+
+      async function runPanel(key, loader) {
+        showPanelLoading(key)
+        try {
+          await loader()
+          const el = panelEl(key)
+          if (el) el.removeAttribute('aria-busy')
+        } catch (err) {
+          if (isAuthError(err)) {
+            handleAuthFailure()
+            return
+          }
+          showPanelError(key, err.message || 'Could not load this panel')
+        }
+      }
+
+      async function loadPanel(key) {
+        const token = localStorage.getItem('DR_token')
+        if (!token) {
+          handleAuthFailure()
+          return
+        }
+        await runPanel(key, () => panelLoaders[key](token))
+      }
+
       async function load() {
         const token = auth()
         if (!token) return
-        const u = JSON.parse(localStorage.getItem('DR_user') || '{}')
-        document.getElementById('userEmail').textContent = u.email || 'User'
-        try {
-          const r = await fetch(`${API}/api/qrcodes`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          const j = await r.json()
-          if (!r.ok) throw new Error(j.error)
-          allQrs = j
-          renderQrs(allQrs)
-          const dyn = allQrs.filter((q) => q.is_dynamic).length
-          const sta = allQrs.length - dyn
-          const scans = allQrs.reduce((s, q) => s + (q.scan_count || 0), 0)
-          document.getElementById('sTotal').textContent = allQrs.length
-          document.getElementById('sScans').textContent = scans
-          document.getElementById('sDynamic').textContent = dyn
-          document.getElementById('sStatic').textContent = sta
-          document.getElementById('countBadge').textContent = allQrs.length
-        } catch (e) {
-          toast(e.message, true)
-          if (
-            e.message.includes('Missing token') ||
-            e.message.includes('Invalid') ||
-            e.message.includes('revoked') ||
-            e.message.includes('expired')
-          ) {
-            window.DRSession.clearSession()
-            location.href = '/?needAuth=1'
+        authFailureHandled = false
+        const user = (() => {
+          try {
+            return JSON.parse(localStorage.getItem('DR_user') || '{}')
+          } catch (e) {
+            return {}
           }
+        })()
+        document.getElementById('userEmail').textContent = user.email || 'User'
+        await Promise.allSettled(Object.keys(panelLoaders).map((key) => loadPanel(key)))
+      }
+
+      async function loadQrs(token) {
+        const rows = await apiGet('/api/qrcodes', token)
+        allQrs = Array.isArray(rows) ? rows : []
+        renderQrs(allQrs)
+        const dynamic = allQrs.filter((q) => q.is_dynamic).length
+        const scans = allQrs.reduce((sum, q) => sum + (q.scan_count || 0), 0)
+        document.getElementById('sTotal').textContent = allQrs.length
+        document.getElementById('sScans').textContent = scans
+        document.getElementById('sDynamic').textContent = dynamic
+        document.getElementById('sStatic').textContent = allQrs.length - dynamic
+        document.getElementById('countBadge').textContent = allQrs.length
+      }
+
+      async function loadAnalytics(token) {
+        const data = await apiGet('/api/analytics/overview', token)
+        const el = document.getElementById('analyticsBody')
+        const timeline = Array.isArray(data.timeline) ? data.timeline : []
+        const top = Array.isArray(data.top) ? data.top : []
+        if (!timeline.length && !top.length) {
+          el.innerHTML =
+            '<p class="panel-empty">No scans yet. Analytics appear after the first scan.</p>'
+          return
         }
-        try {
-          const r = await fetch(`${API}/api/analytics/overview`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          const j = await r.json()
-          document.getElementById('analyticsBody').innerHTML = `
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
-        <div><strong>Timeline</strong><pre style="padding:10px; overflow:auto; max-height:160px; font-size:11px">${JSON.stringify(j.timeline.slice(0, 7), null, 2)}</pre></div>
-        <div><strong>Devices</strong><pre style="padding:10px; overflow:auto; max-height:160px; font-size:11px">${JSON.stringify(j.devices, null, 2)}</pre></div>
+        const topRows = top
+          .map(
+            (row) =>
+              `<div class="list-row"><span>${row.name} <small>${row.type}</small></span><span class="chip">${row.scan_count} scans</span></div>`,
+          )
+          .join('')
+        el.innerHTML = `
+      <div class="two-col">
+        <div><strong>Timeline</strong><pre class="list-card">${JSON.stringify(timeline.slice(0, 7), null, 2)}</pre></div>
+        <div><strong>Devices</strong><pre class="list-card">${JSON.stringify(data.devices || {}, null, 2)}</pre></div>
       </div>
-      <div style="margin-top:10px"><strong>Top QRs</strong><div style="display:grid; gap:6px; margin-top:6px">${j.top.map((t) => `<div style="display:flex; justify-content:space-between; padding:8px"><span>${t.name} <small >${t.type}</small></span><span style="padding:2px 8px; font-weight:800">${t.scan_count} scans</span></div>`).join('') || '<span >No scans yet</span>'}</div></div>
+      <div style="margin-top:10px"><strong>Top QRs</strong><div style="display:grid; gap:6px; margin-top:6px">${topRows}</div></div>
     `
-        } catch {}
-        try {
-          const r = await fetch(`${API}/api/folders`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          const j = await r.json()
-          document.getElementById('folderList').innerHTML =
-            j
-              .map(
-                (f) =>
-                  `<div style="padding:8px; display:flex; justify-content:space-between; align-items:center"><span>${f.name}</span><small>${f.created_at?.slice(0, 10) || ''}</small></div>`,
-              )
-              .join('') || '<small >No folders</small>'
-        } catch {}
-        try {
-          const r = await fetch(`${API}/api/templates`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          const j = await r.json()
-          document.getElementById('tplList').innerHTML =
-            j
-              .map(
-                (t) =>
-                  `<div style="padding:10px; margin-bottom:6px"><strong>${t.name}</strong><pre style="font-size:11px; white-space:pre-wrap; padding:8px">${t.config_json.slice(0, 400)}</pre></div>`,
-              )
-              .join('') || '<small>No templates — save from generator</small>'
-        } catch {}
+      }
+
+      async function loadFolders(token) {
+        const data = await apiGet('/api/folders', token)
+        const rows = (Array.isArray(data) ? data : []).map(
+          (folder) =>
+            `<div class="list-row"><span>${folder.name}</span><small>${(folder.created_at || '').slice(0, 10)}</small></div>`,
+        )
+        document.getElementById('folderList').innerHTML =
+          rows.join('') || '<p class="panel-empty">No folders yet.</p>'
+      }
+
+      async function loadTemplates(token) {
+        const data = await apiGet('/api/templates', token)
+        const rows = (Array.isArray(data) ? data : []).map(
+          (template) =>
+            `<div class="list-card"><strong>${template.name}</strong><pre>${String(template.config_json || '').slice(0, 400)}</pre></div>`,
+        )
+        document.getElementById('tplList').innerHTML =
+          rows.join('') ||
+          '<p class="panel-empty">No templates yet — save one from the generator.</p>'
       }
 
       function renderQrs(list) {

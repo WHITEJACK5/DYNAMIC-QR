@@ -114,20 +114,23 @@ The two navs must be edited independently. They currently agree:
 
 ```
 GET /dashboard
-  └─ pages.py: dashboard_view()
-       └─ send_file(frontend/dashboard.html)
+  └─ pages.py: dashboard_page()
+       └─ _render_page("dashboard.html", active="dashboard")
+            └─ replaces <!-- NAV --> with frontend/partials/nav.html
 
 GET /static/js/session.js     ── Flask static handler, no processing
-GET /assets/index-<hash>.js   ── pages.py:/assets/<path>
+GET /assets/index-<hash>.js   ── pages.py:/assets/<path> and /frontend/<path>
+GET /api/anything-unknown     ── catch-all: JSON 404
 GET /anything-else            ── catch-all:
                                    file exists under frontend/? → send it
-                                   otherwise                    → index.html
+                                   otherwise                    → 404.html, 404
 ```
 
-The catch-all always answers `200`, including for paths that do not exist. It
-falls back to `index.html`, so a mistyped URL renders the generator rather than
-a 404. Any tooling that validates a page load must assert on document content,
-not on status code.
+`_render_page` is the only way a legacy page is served. It reads the page,
+injects the shared nav, and marks the active link with `aria-current="page"`.
+There is no client-side router, so an unmatched path is a real 404; the old
+fallback answered everything with `index.html` and status 200, which hid broken
+links and made preview routes silently render the generator.
 
 ### 5.3 Script loading and globals
 
@@ -684,7 +687,6 @@ Plus two `<select>` controls (`#filterType`, `#bulkType`), a text input
 | Back → | button | `/` |
 | Start generating | button | `/` |
 | Generator → | `a.btn-primary` | `/` |
-| API Docs | `a.btn-ghost` | `/api-docs` |
 | Dashboard | `a.btn-ghost` | `/dashboard` |
 
 ### 9.4 Manual — 4
@@ -738,25 +740,30 @@ globals, so nothing can be tree-shaken, unit-tested in isolation, or safely
 renamed. The inline dashboard script is also not separately cacheable: every
 dashboard visit re-downloads 25 KB that never changes between deploys.
 
-**Duplicated chrome.** The nav exists twice — once in each legacy HTML page
-(four copies) and once in `chrome.tsx`. Five definitions of a three-link nav.
-They agree today; nothing enforces that.
+**Duplicated chrome, now two copies.** The four legacy pages carry a
+`<!-- NAV -->` marker filled from `frontend/partials/nav.html`; `chrome.tsx`
+keeps its own `Nav()` because the rebuild tests require that component. Two
+definitions of a three-link nav remain, and nothing enforces that they agree.
 
-**Four dashboard requests per load.** `load()` issues four independent GETs
-with no combined failure state. Panels cannot distinguish "empty" from
-"failed".
+**Two export mechanisms behind one button.** Server-side for dynamic QRs,
+client-side for static. Correct, but the difference is invisible in the UI and
+only documented here.
 
-**Production sourcemaps.** `vite.config.ts` sets `sourcemap: true` for the
-build that ships. That publishes the original TypeScript to anyone who opens
-devtools. Fine for debugging, questionable for a production deploy.
+### Fixed in the hardening pass
 
-**Silent 200 fallback.** The catch-all returns `index.html` for any unmatched
-path, so broken links look fine and dead references never surface as 404s
-(this is why a preview route silently rendered the generator during
-development).
+**One failed dashboard request blanked the rest of the page.** `load()` now
+fans out with `Promise.allSettled`; every panel renders its own static
+skeleton, an empty state, and an error with a working Retry.
 
-**`/manual` and `/api-docs` are half-removed.** Neither is in the nav, but both
-routes still resolve and `pricing.html` still links to `/api-docs`.
+**Silent 200 fallback.** An unmatched path returns `frontend/404.html` with
+status 404, and an unmatched `/api/*` path returns JSON 404.
+
+**Production sourcemaps.** `vite.config.ts` sets `sourcemap: false`.
+
+**`/api-docs` rendered blank.** The Swagger UI page fetched its CSS and JS from
+unpkg, which the app's own Content-Security-Policy blocks. The route now
+renders the endpoint index from `build_spec()` on the server, with no external
+assets, and the manual links to it.
 
 **Two export mechanisms behind one button.** Server-side for dynamic QRs,
 client-side for static. Correct, but the difference is invisible in the UI and
@@ -772,14 +779,14 @@ only documented here.
 |---|---|---|
 | `/` | `pages.index` | `frontend/index.html` |
 | `/app` | `pages.react_app` | `frontend/app.html` |
-| `/dashboard` | `pages.dashboard_view` | `frontend/dashboard.html` |
-| `/pricing` | `pages.pricing_view` | `frontend/pricing.html` |
-| `/manual` | `pages.manual_view` | `frontend/manual.html` |
+| `/dashboard` | `pages.dashboard_page` | `frontend/dashboard.html` + nav |
+| `/pricing` | `pages.pricing_page` | `frontend/pricing.html` + nav |
+| `/manual` | `pages.manual_page` | `frontend/manual.html` + nav |
 | `/MANUAL.md` | `pages.manual_md` | raw markdown |
-| `/api-docs` | `pages.api_docs` | API reference |
-| `/assets/<path>` | `pages.assets` | Vite build output |
-| `/frontend/<path>` | `pages.frontend_file` | direct file |
-| `/<path>` | `pages.catch_all` | file or `index.html` |
+| `/api-docs` | `pages.api_docs_page` | API reference from `build_spec()` |
+| `/assets/<path>` | `pages.dist_assets` | Vite build output |
+| `/frontend/<path>` | `pages.frontend_static` | direct file |
+| `/<path>` | `pages.catch_all` | file or `404.html` (status 404) |
 
 ### API endpoints
 

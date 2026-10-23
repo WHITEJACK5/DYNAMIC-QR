@@ -15,7 +15,10 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    // Source maps ship the full original source to anyone who opens devtools,
+    // and nothing in this app needs them in production. Debug with a local
+    // `vite build --sourcemap` when you actually need them.
+    sourcemap: false,
     rollupOptions: {
       // index.html is the legacy multi-page generator Flask serves at '/'.
       // The React shell has its own entry so the two never collide.

@@ -151,7 +151,7 @@ textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
              color var(--duration-fast) var(--ease-standard);
 }
 .nav a:hover{background:var(--surface-2);color:var(--text)}
-.nav a.active{background:var(--surface-2);color:var(--accent)}
+.nav a[aria-current="page"]{background:var(--surface-2);color:var(--accent)}
 .header-cta{display:flex;gap:8px;align-items:center;min-width:0}
 .hamburger{
   display:none;width:42px;height:42px;border:1px solid var(--border-strong);
@@ -366,6 +366,66 @@ textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
 .card ul{padding-left:18px;font-size:var(--text-sm);line-height:1.9}
 .price-card ul{list-style:none;padding:0;font-size:var(--text-sm);line-height:1.9}
 .price-card li{display:flex;gap:8px}
+
+/* 404 */
+.page-404{min-height:100vh;display:flex;flex-direction:column}
+.page-404 main{flex:1}
+.notfound{max-width:640px;padding:32px 0}
+.notfound h1{font-size:var(--text-3xl);line-height:1.05;margin:12px 0}
+.notfound-copy{color:var(--text-muted);font-size:var(--text-base);margin-bottom:20px}
+.notfound-meta{
+  margin-top:24px;font-family:var(--font-mono);font-size:var(--text-xs);
+  color:var(--text-muted);word-break:break-all;
+}
+.notfound-meta code{
+  background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--radius-xs);padding:2px 6px;color:var(--text);
+}
+
+/* API reference: rendered on the server from the generated spec */
+.doc-page{
+  max-width:900px;margin:0 auto;padding:32px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;
+}
+.doc-page h1{font-size:var(--text-2xl);margin:10px 0 12px}
+.doc-page h2{
+  font-family:var(--font-mono);font-size:var(--text-sm);letter-spacing:.06em;
+  text-transform:uppercase;color:var(--text-muted);margin:26px 0 8px;
+  padding-bottom:6px;border-bottom:1px solid var(--border);
+}
+.doc-page p{color:var(--text-muted);font-size:var(--text-sm);line-height:1.7;margin-bottom:10px}
+.doc-page a{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.doc-page code{
+  font-family:var(--font-mono);font-size:12px;background:var(--surface-2);
+  border:1px solid var(--border);border-radius:var(--radius-xs);padding:1px 5px;
+}
+.doc-page table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0 4px}
+.table-scroll{overflow-x:auto;margin:8px 0 4px}
+.table-scroll table{margin:0}
+.doc-page th{
+  text-align:left;background:var(--surface-2);padding:8px;
+  border:1px solid var(--border);font-family:var(--font-mono);font-weight:500;
+}
+.doc-page td{padding:8px;border:1px solid var(--border);vertical-align:top}
+
+/* Below 620px a three-column endpoint table cannot stay readable, so each
+   endpoint becomes a small card: method, path, then summary. */
+@media (max-width:620px){
+  .table-scroll{overflow:visible}
+  .doc-page table,.doc-page tbody,.doc-page tr,.doc-page td{display:block;width:100%}
+  .doc-page thead{display:none}
+  .doc-page tr{
+    border:1px solid var(--border);border-radius:var(--radius-sm);
+    padding:10px 12px;margin-bottom:10px;
+  }
+  .doc-page td{border:0;padding:2px 0}
+  .doc-page td:first-child{
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--text-muted);
+  }
+  .doc-page td:nth-child(2){padding:4px 0}
+  .doc-page td:nth-child(3){color:var(--text-muted);font-size:12px}
+}
 .section-dark{
   background:var(--surface);color:var(--text);
   border-top:1px solid var(--border);border-bottom:1px solid var(--border);
@@ -585,6 +645,28 @@ textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
 /* Skeletons are static: a shimmer is motion for decoration, which this design
    does not use. The shape alone communicates "loading". */
 .skeleton{background:var(--surface-2);border-radius:var(--radius-sm);height:16px}
+/* Each dashboard panel owns its own loading, empty and error state. Before
+   this, one failed request blanked the page and the only signal was a toast
+   that had already faded. */
+.panel-state{display:grid;gap:10px;justify-items:start;padding:12px 0}
+.panel-state p{color:var(--text-muted);font-size:var(--text-sm);margin:0}
+.panel-empty{color:var(--text-muted);font-size:var(--text-sm);padding:12px 0}
+.skeleton-stack{display:grid;gap:8px;padding:4px 0}
+.skeleton-stack .skeleton:nth-child(1){width:60%}
+.skeleton-stack .skeleton:nth-child(2){width:85%}
+.skeleton-stack .skeleton:nth-child(3){width:45%}
+.list-row{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:9px 0;border-bottom:1px solid var(--border);font-size:var(--text-sm);
+}
+.list-row small{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)}
+.list-card{padding:10px 0;border-bottom:1px solid var(--border)}
+.list-card strong{font-size:var(--text-sm)}
+.list-card pre{
+  font-family:var(--font-mono);font-size:11px;white-space:pre-wrap;
+  padding:6px 0 0;margin:0;color:var(--text-muted);overflow:auto;max-height:120px;
+}
+.toast.error{background:var(--danger);border-color:var(--danger);color:var(--on-accent)}
 
 /* Respect users who prefer reduced motion. A continuously spinning brand
    mark is exactly what this query exists to stop, so it is opt-out. */

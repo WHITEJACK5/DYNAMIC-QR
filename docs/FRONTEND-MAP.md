@@ -13,17 +13,17 @@ repo: the legacy HTML pages served at `/` and the React shell served at
 | `/pricing` | `frontend/pricing.html` | Pricing statement |
 | `/manual` | `frontend/manual.html` | Working manual |
 | `/MANUAL.md` | `MANUAL.md` | Manual source, served raw |
-| `/api-docs` | — | API reference |
+| `/api-docs` | `app/openapi.py` | API reference, rendered from the generated spec |
 | `/app` | `frontend/app.html` → `frontend/src/` | React shell |
 | `/assets/<path>` | `frontend/dist/assets/` | Built React bundle |
-| `/<path>` | `frontend/<path>` | Static passthrough, else SPA fallback to `index.html` |
+| `/<path>` | `frontend/<path>` | Static passthrough, else `404.html` with status 404 |
 
 ## `/` — Generator
 
 ```
 header
 ├── brand (DR + heart + QR)
-├── nav ............ Generator · Solutions · Dashboard
+├── nav ............ Generator · Features · Dashboard
 └── actions
     ├── Log In              #loginBtn
     ├── Register — Free     #registerBtn
@@ -73,7 +73,7 @@ modals
 
 ```
 header
-├── nav ............ Generator · Solutions · Dashboard
+├── nav ............ Generator · Features · Dashboard
 ├── Log Out ....... #logout
 └── ＋ Create New QR
 
@@ -120,7 +120,7 @@ this shell yet.
 SkipLink ....... "Skip to main content"
 Header
 ├── brand (DR + heart + QR)
-└── Nav ......... Generator · Solutions · Dashboard
+└── Nav ......... Generator · Features · Dashboard
 Footer .......... one line
 ```
 
@@ -184,12 +184,17 @@ Every button is a `<button>` except the marketing/CTA links, which are
 
 ## Notes
 
-Two shell implementations of the same chrome exist, so the nav is duplicated
-and must be edited in both places.
+Two shell implementations of the same chrome exist. The four legacy pages no
+longer carry their own nav: each has a `<!-- NAV -->` marker that
+`app/routes/pages.py::_render_page` replaces with `frontend/partials/nav.html`.
+The React shell keeps its own `Nav()` in `chrome.tsx` because the rebuild tests
+require that component; that is the only remaining copy.
 
-`/manual`, `/MANUAL.md` and `/api-docs` are still live routes, and
-`pricing.html` still links to `/api-docs`, even though neither appears in the
-nav.
+`/manual` and `/api-docs` are deliberately outside the nav. `/api-docs` is a
+developer reference linked from the manual's API section, and it is rendered on
+the server from `build_spec()` so it works offline. The earlier Swagger UI page
+fetched its CSS and JS from unpkg, which the app's own Content-Security-Policy
+blocks, so it rendered blank.
 
 Six anchors across `dashboard.html`, `pricing.html` and `manual.html` are
 formatted with `</a` and `>` split across two lines. Valid HTML, but `grep

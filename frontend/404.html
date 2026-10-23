@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Page not found - DRQR</title>
+    <meta name="robots" content="noindex" />
+    <link rel="stylesheet" href="/static/css/fonts.css" />
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body class="page-404">
+    <header class="header">
+      <div class="container header-inner">
+        <a href="/" class="logo">
+          <div class="logo-type">
+            DR<span class="logo-heart"
+              ><img src="/static/img/heart.png" alt="DRQR" width="26" height="26" /></span
+            ><span class="qr">QR</span>
+          </div>
+        </a>
+        <!-- NAV -->
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container">
+        <div class="notfound">
+          <p class="kicker">404</p>
+          <h1>That page does not exist.</h1>
+          <p class="notfound-copy">
+            The link may be mistyped, or the page may have been removed. Nothing
+            was generated and nothing was changed.
+          </p>
+          <div class="btn-row">
+            <a class="btn btn-primary" href="/">Go to the generator</a>
+            <a class="btn btn-ghost" href="/dashboard">Open your dashboard</a>
+          </div>
+          <p class="notfound-meta">
+            Requested path: <code id="missingPath">/</code>
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <span>DRQR — local-first QR codes. <a href="/manual">Manual</a></span>
+      </div>
+    </footer>
+
+    <script>
+      document.getElementById('missingPath').textContent =
+        location.pathname + location.search
+    </script>
+  </body>
+</html>
