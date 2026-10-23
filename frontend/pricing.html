@@ -4,10 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Pricing — DRQR</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="stylesheet" href="/static/css/fonts.css" />
     <link rel="stylesheet" href="/static/css/style.css" />
   </head>
   <body>
@@ -18,7 +15,7 @@
         >
         <nav class="nav">
           <a href="/">Generator</a>
-          <a href="/#features">Solutions</a>
+          <a href="/#features">Features</a>
           <a href="/dashboard">Dashboard</a>
         </nav>
         <div class="header-cta">
@@ -30,18 +27,16 @@
     </header>
     <section class="section">
       <div class="container">
-        <div style="text-align: center; margin-bottom: 22px">
-          <span class="badge badge-neon">No billing</span>
-          <h1 style="font-size: 40px; letter-spacing: -0.05em">
-            Free, and there is no paid tier
-          </h1>
+        <div class="page-head">
+          <span class="badge badge-accent">No billing</span>
+          <h1>Free, and there is no paid tier</h1>
         </div>
 
         <div class="pricing-grid">
           <div class="price-card popular">
             <h3>Everything, free</h3>
             <div class="price">$0</div>
-            <ul style="font-size: 13px; line-height: 2">
+            <ul>
               <li>✓ All 25+ QR types</li>
               <li>✓ Static and dynamic QR codes</li>
               <li>✓ Dynamic: editable after printing, password, expiry, scan limit</li>
@@ -62,27 +57,26 @@
 
         <div class="card" style="margin-top: 22px">
           <h3>Why is there no pricing table?</h3>
-          <p style="color: #666; font-size: 13px">
+          <p style="font-size: 13px">
             Because none is implemented. This build has no payment processor, no
             subscription records, and no plan-based limits — an earlier version of this
             page advertised paid tiers that the code never enforced. Everything the
             software can do is available to every account at no cost.
           </p>
-          <p style="color: #666; font-size: 13px; margin-top: 10px">
+          <p style="font-size: 13px; margin-top: 10px">
             It is a self-hosted project: run it locally, or point it at your own database
             and storage. See the <code>README</code> for the <code>DATABASE_URL</code> and
-            <code>S3_BUCKET</code> settings, and <code>/api-docs</code> for the API.
+            <code>S3_BUCKET</code> settings, and the manual for the API.
           </p>
-          <div style="display: flex; gap: 8px; margin-top: 12px">
+          <div class="btn-row">
             <a class="btn btn-primary" href="/">Generator →</a
-            ><a class="btn btn-ghost" href="/api-docs">API Docs</a
             ><a class="btn btn-ghost" href="/dashboard">Dashboard</a>
           </div>
         </div>
 
         <div class="card" style="margin-top: 16px">
           <h3>What this build does not claim</h3>
-          <ul style="color: #666; font-size: 13px; line-height: 1.9">
+          <ul>
             <li>No uptime or availability guarantee — self-hosted software, no SLA.</li>
             <li>
               No compliance certifications. Scan IPs are stored in the
@@ -99,7 +93,7 @@
         style="font-size: 12px; display: flex; justify-content: space-between"
       >
         <span>© 2026 DRQR — personal use</span
-        ><span style="color: var(--accent)">Self-hosted • No billing</span>
+        ><span >Self-hosted • No billing</span>
       </div>
     </footer>
   </body>

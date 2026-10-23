@@ -9,23 +9,85 @@
  */
 
 :root {
-  --black: #0a0a0a;
-  --white: #ffffff;
-  --accent: #f5a623;
-  --grey-100: #f5f5f5;
-  --grey-300: #d4d4d4;
-  --grey-600: #525252;
-  --grey-900: #171717;
-  /* AA contrast on --black: --accent is ~7:1, --grey-300 is ~10:1 */
-  --focus-ring: #4d9fff;
+  /* surfaces */
+  --bg: #0e0f11;
+  --surface: #16181b;
+  --surface-2: #1d2024;
+  --border: #2a2d32;
+  /* 3.22:1 on --bg; WCAG 1.4.11 needs 3:1 for a control boundary */
+  --border-strong: #5e646e;
+
+  /* text */
+  --text: #ecebe8;
+  --text-muted: #9a9a95;
+
+  /* single accent */
+  --accent: #d9f26b;
+  --accent-hover: #e4f78a;
+  --accent-pressed: #bfd84f;
+  --on-accent: #0e0f11;
+  --danger: #ff6b5e;
+
+  /* the QR sits on a light panel; inverted codes fail to scan */
+  --brand-red: #ff3b1f;
+  --panel: #ecebe8;
+  --on-panel: #0e0f11;
+
+  /* geometry */
+  --radius: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* type */
+  --font-display: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 18px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+  --text-3xl: 44px;
+
+  /* motion */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --duration-fast: 120ms;
-  --duration-base: 180ms;
-  --text-sm: 0.875rem;
-  --text-base: 1rem;
-  --text-lg: 1.25rem;
-  --text-xl: 2rem;
-  --text-2xl: 3rem;
+  --duration-base: 160ms;
+
+  /* focus */
+  --focus: 2px solid var(--accent);
+  --focus-offset: 2px;
+
+  /* Contrast, measured against --bg #0E0F11:
+       --text        16.09:1
+       --text-muted   6.79:1
+       --accent      15.40:1
+       --danger       6.86:1
+     All pass WCAG AA for body text (4.5:1). */
+}
+
+/* Self-hosted faces. Paths are absolute because Flask serves /static. */
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("/static/fonts/space-grotesk.woff2") format("woff2");
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("/static/fonts/inter.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/static/fonts/jetbrains-mono.woff2") format("woff2");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
 }
 
 * {
@@ -34,13 +96,9 @@
 
 body {
   margin: 0;
-  font-family:
-    'Inter',
-    system-ui,
-    -apple-system,
-    sans-serif;
-  background: var(--black);
-  color: var(--white);
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
   line-height: 1.6;
 }
 
@@ -50,7 +108,7 @@ body {
   left: -9999px;
   top: 0;
   background: var(--accent);
-  color: var(--black);
+  color: var(--on-accent);
   padding: 0.5rem 1rem;
   font-weight: 700;
   z-index: 100;
@@ -66,8 +124,8 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 [tabindex]:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 2px;
+  outline: var(--focus);
+  outline-offset: var(--focus-offset);
 }
 
 /* Keyboard users can reach main without tabbing through the nav */
@@ -80,13 +138,13 @@ textarea:focus-visible,
   align-items: center;
   justify-content: space-between;
   padding: 1rem 2rem;
-  border-bottom: 1px solid var(--grey-900);
+  border-bottom: 1px solid var(--border);
 }
 
 .brand {
   font-weight: 900;
   font-size: 1.75rem;
-  color: var(--white);
+  color: var(--text);
   text-decoration: none;
   display: flex;
   align-items: center;
@@ -116,7 +174,7 @@ textarea:focus-visible,
 /* DR in white, QR in the heart red. No text-stroke — at this size the black
    outline bleeds into the counters and reads as clutter. */
 .brand .amp {
-  color: #ff3b1f;
+  color: var(--brand-red);
 }
 
 .nav-list,
@@ -130,7 +188,7 @@ textarea:focus-visible,
 
 .nav-list a,
 .footer-list a {
-  color: var(--grey-300);
+  color: var(--text-muted);
   text-decoration: none;
   font-weight: 600;
 }
@@ -158,9 +216,9 @@ h1 {
 }
 
 .site-footer {
-  border-top: 1px solid var(--grey-900);
+  border-top: 1px solid var(--border);
   padding: 1.5rem 2rem;
-  color: var(--grey-600);
+  color: var(--text-muted);
   font-size: 0.875rem;
 }
 

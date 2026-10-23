@@ -1,4 +1,4 @@
-// DRQR — Industry Grade Frontend | Grid White / Black / Amber
+// DRQR — dark, sharp, local-first frontend
 const API = location.origin;
 let state = {
   type: "url",
@@ -95,13 +95,13 @@ function renderTypeGrid(filter="all"){
 function renderForm(){
   const defs = FORM_DEFS[state.type] || FORM_DEFS.url;
   const area=document.getElementById('formArea');
-  let html = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><strong style="font-size:13px">Step 1 • Enter ${state.type.toUpperCase()} details</strong><span class="badge ${state.isDynamic?'badge-neon':'badge-white'}" style="border:1.5px solid var(--black)">${state.isDynamic?'DYNAMIC • Editable':'STATIC • Free'}</span></div>`;
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><strong style="font-size:13px">Step 1 • Enter ${state.type.toUpperCase()} details</strong><span class="badge ${state.isDynamic?'badge-accent':'badge-white'}">${state.isDynamic?'DYNAMIC • Editable':'STATIC • Free'}</span></div>`;
   defs.forEach(f=>{
     if(f.type==="help"){
       html+=`<div class="help" role="note">${f.text}</div>`;
       return;
     }
-    const req = f.required ? ' <span style="color:#DC2626">*</span>' : '';
+    const req = f.required ? ' <span style="color:var(--danger)">*</span>' : '';
     if(f.type==="textarea"){
       html+=`<div class="field"><label for="f_${f.key}">${f.label}${req}</label><textarea id="f_${f.key}" rows="3" placeholder="${f.placeholder||''}" ${f.required?'required':''}></textarea><div class="field-error" id="err_${f.key}"></div></div>`;
     } else if(f.type==="select"){
@@ -115,7 +115,7 @@ function renderForm(){
     <div class="field"><label for="f_folder">Campaign Folder</label><select id="f_folder"><option>My QR Codes</option><option>Marketing</option><option>Events</option><option>Retail</option></select></div>
   </div>`;
   if(state.isDynamic){
-    html+=`<details style="background:var(--grid-white);border:1px solid var(--black);border-radius:12px;padding:10px" open><summary style="font-weight:800;cursor:pointer;font-size:12px">🔒 Security & Expiry (Dynamic only)</summary>
+    html+=`<details style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:10px" open><summary style="font-weight:800;cursor:pointer;font-size:12px">Security &amp; expiry (dynamic only)</summary>
       <div class="two-col" style="margin-top:10px">
         <div class="field"><label for="f_password">Password (optional)</label><input id="f_password" type="password" placeholder="Leave blank for public"></div>
         <div class="field"><label for="f_scan_limit">Scan Limit</label><input id="f_scan_limit" type="number" min="1" placeholder="e.g. 1000"></div>
@@ -123,7 +123,7 @@ function renderForm(){
       <div class="field"><label for="f_expiry">Expiry Date (optional)</label><input id="f_expiry" type="datetime-local"></div>
     </details>`;
   } else {
-    html+=`<div class="help">💡 <b>Static</b> is free forever. Switch to <b>Dynamic</b> to edit URL after print and track scans.</div>`;
+    html+=`<div class="help"><b>Static</b> is free forever. Switch to <b>Dynamic</b> to edit URL after print and track scans.</div>`;
   }
   area.innerHTML=html;
   area.querySelectorAll('input,textarea,select').forEach(el=>{
@@ -267,8 +267,6 @@ function updatePreviewMeta(){
   const el=document.getElementById('previewType');
   if(!el) return;
   el.textContent=`${state.type.toUpperCase()} • ${state.isDynamic?'Dynamic':'Static'}`;
-  el.style.background=state.isDynamic?'var(--accent)':'white';
-  el.style.color='var(--black)';
 }
 
 function validateEmail(email){
@@ -341,15 +339,15 @@ async function generate(){
     if(!bar){
       bar=document.createElement('div');
       bar.id='genSuccess';
-      bar.style.cssText='margin:0 18px 14px;background:var(--black);color:var(--accent);padding:12px 14px;border-radius:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--black)';
+      bar.style.cssText='margin:0 18px 14px;background:var(--surface-2);color:var(--text);padding:12px 14px;border-radius:var(--radius);display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--border)';
       document.getElementById('generateBtn').parentElement.insertAdjacentElement('afterend', bar);
     }
     const dlName=`DRQR-${state.type}-${Date.now()}.png`;
     bar.innerHTML=`
-      <span style="font-size:12px;font-weight:800">✔ ${j.is_dynamic?'Dynamic saved to Dashboard':'Static ready'} • <span style="color:white">${j.is_dynamic?`/r/${j.short_code}`: 'Static'}</span></span>
+      <span style="font-size:12px;font-weight:600">${j.is_dynamic?'Dynamic saved to Dashboard':'Static ready'} • <span style="color:var(--text-muted)">${j.is_dynamic?`/r/${j.short_code}`: 'Static'}</span></span>
       <span style="display:flex;gap:6px">
-        <button class="btn btn-primary btn-sm" onclick="download(state.lastImage, '${dlName}')">⬇ PNG</button>
-        <button class="btn btn-ghost btn-sm" style="background:white" onclick="location.href='/dashboard'">Dashboard →</button>
+        <button class="btn btn-primary btn-sm" onclick="download(state.lastImage, '${dlName}')">PNG</button>
+        <button class="btn btn-ghost btn-sm" onclick="location.href='/dashboard'">Dashboard →</button>
       </span>
     `;
     bar.style.display='flex';
@@ -502,9 +500,9 @@ function updateAuthUI(){
 }
 function toast(msg, isErr=false){
   const t=document.getElementById('toast');
-  t.textContent= (isErr?"⚠ ":"✔ ")+msg;
+  t.textContent=msg;
   t.classList.add('show');
-  t.style.background=isErr?"#DC2626":"var(--black)";
+  t.style.background=isErr?"var(--danger)":"var(--text)";
   t.style.borderColor=isErr?"#FCA5A5":"#333";
   clearTimeout(t._hide);
   t._hide=setTimeout(()=>t.classList.remove('show'), 3200);
@@ -533,9 +531,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if(tog){
     tog.addEventListener('change', ()=>{
       state.isDynamic=tog.checked;
-      document.getElementById('toggleBg').style.background= tog.checked ? "var(--accent)" : "#333";
-      document.getElementById('toggleKnob').style.transform= tog.checked ? "translateX(22px)" : "translateX(0)";
-      document.getElementById('toggleKnob').style.background= tog.checked ? "var(--black)" : "white";
       renderForm();
       updatePreviewMeta();
       preview();
@@ -622,10 +617,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
   if(dropZone){
     dropZone.ondragover=e=>{ e.preventDefault(); dropZone.style.borderColor='var(--accent)'; dropZone.style.background='rgba(245,166,35,0.08)'; };
-    dropZone.ondragleave=()=>{ dropZone.style.borderColor='var(--black)'; dropZone.style.background='var(--grid-white)'; };
+    dropZone.ondragleave=()=>{ dropZone.style.borderColor='var(--border-strong)'; dropZone.style.background='var(--surface-2)'; };
     dropZone.ondrop=e=>{
       e.preventDefault();
-      dropZone.style.borderColor='var(--black)'; dropZone.style.background='var(--grid-white)';
+      dropZone.style.borderColor='var(--border-strong)'; dropZone.style.background='var(--surface-2)';
       const file=e.dataTransfer.files[0];
       handleLogoFile(file);
     };
@@ -659,10 +654,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.querySelectorAll('[data-template]').forEach(b=>{
     b.onclick=()=>{
       const t=b.dataset.template;
-      if(t==="neon"){ state.fg="#0A0A0A"; state.bg="#FFFFFF"; state.pattern="dots"; state.eyeStyle="circle"; state.frameText="SCAN ME • DRQR"; state.frameColor="#F5A623"; }
+      if(t==="lime"){ state.fg="#0E0F11"; state.bg="#D9F26B"; state.pattern="dots"; state.eyeStyle="circle"; state.frameText="SCAN ME • DRQR"; state.frameColor="#0E0F11"; }
       if(t==="mono"){ state.fg="#0A0A0A"; state.bg="#FFFFFF"; state.pattern="square"; state.eyeStyle="square"; state.frameText=""; }
-      if(t==="grid"){ state.fg="#1A1A1A"; state.bg="#F8F9FA"; state.pattern="gapped"; state.eyeStyle="rounded"; }
-      if(t==="neonBlack"){ state.fg="#F5A623"; state.bg="#0A0A0A"; state.pattern="rounded"; state.eyeStyle="circle"; state.frameText="DRQR — SCAN"; state.frameColor="#F5A623"; }
+      if(t==="paper"){ state.fg="#0E0F11"; state.bg="#ECEBE8"; state.pattern="gapped"; state.eyeStyle="rounded"; state.frameText=""; }
+      if(t==="sharp"){ state.fg="#0E0F11"; state.bg="#FFFFFF"; state.pattern="square"; state.eyeStyle="square"; state.frameText=""; }
       if(fg) fg.value=state.fg; if(bg) bg.value=state.bg; if(fgt) fgt.value=state.fg; if(bgt) bgt.value=state.bg;
       const ft=document.getElementById('frameText');
       const fc=document.getElementById('frameColor');
@@ -721,7 +716,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('togglePass').onclick=()=>{
     const inp=document.getElementById('authPass');
     const btn=document.getElementById('togglePass');
-    if(inp.type==='password'){ inp.type='text'; btn.textContent='🙈'; } else { inp.type='password'; btn.textContent='👁'; }
+    if(inp.type==='password'){ inp.type='text'; btn.setAttribute('aria-label','Hide password'); } else { inp.type='password'; btn.setAttribute('aria-label','Show password'); }
   };
   // Enter to submit
   ['authEmail','authPass','authName'].forEach(id=>{
@@ -734,13 +729,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if(ham){
     ham.onclick=()=>{
       const nav=document.getElementById('nav');
-      const isFlex=nav.style.display==="flex";
-      if(isFlex){
-        nav.style.display="none";
-      } else {
-        nav.style.display="flex";
-        nav.style.position="absolute"; nav.style.top="64px"; nav.style.right="16px"; nav.style.background="white"; nav.style.border="1.5px solid var(--black)"; nav.style.borderRadius="16px"; nav.style.padding="12px"; nav.style.flexDirection="column"; nav.style.boxShadow="6px 6px 0 var(--black)"; nav.style.zIndex="60";
-      }
+      const open=nav.classList.toggle('nav-open');
+      ham.setAttribute('aria-expanded', open ? 'true' : 'false');
     };
   }
   // Forgot link — professional flow

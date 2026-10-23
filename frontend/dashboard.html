@@ -4,10 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard — DRQR</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="stylesheet" href="/static/css/fonts.css" />
     <link rel="stylesheet" href="/static/css/style.css" />
     <meta name="sentry-dsn" content="" />
     <script>
@@ -35,20 +32,13 @@
         >
         <nav class="nav">
           <a href="/">Generator</a>
-          <a href="/#features">Solutions</a>
+          <a href="/#features">Features</a>
           <a href="/dashboard" class="active">Dashboard</a>
         </nav>
         <div class="header-cta">
           <span
             id="userEmail"
-            style="
-              font-size: 12px;
-              font-weight: 800;
-              background: var(--grid-white);
-              padding: 6px 10px;
-              border-radius: 999px;
-              border: 1px solid var(--black);
-            "
+            style="font-size: 12px; font-weight: 800; padding: 6px 10px"
           ></span>
           <button class="btn btn-ghost btn-sm" id="logout">Log Out</button>
         </div>
@@ -59,45 +49,28 @@
       <aside class="sidebar">
         <div style="display: flex; align-items: center; gap: 10px; padding: 8px 4px">
           <div
-            style="
-              width: 40px;
-              height: 40px;
-              border-radius: 50%;
-              background: var(--accent);
-              border: 1.5px solid var(--black);
-              display: grid;
-              place-items: center;
-              font-weight: 900;
-            "
+            style="width: 40px; height: 40px; display: grid; place-items: center; font-weight: 900"
           >
-            ◉
+            <span class="side-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg></span>
           </div>
           <div>
             <strong style="font-size: 13px">Workspace</strong>
-            <div style="font-size: 11px; color: #666">DRQR Grid</div>
+            <div style="font-size: 11px">DRQR Grid</div>
           </div>
         </div>
         <a href="#" class="active" data-view="qrs"
-          >▦ My QR Codes
+          ><span class="side-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg></span>My QR Codes
           <span
             id="countBadge"
-            style="
-              margin-left: auto;
-              background: var(--accent);
-              color: var(--black);
-              padding: 2px 8px;
-              border-radius: 999px;
-              font-size: 11px;
-              border: 1px solid var(--black);
-            "
+            style="margin-left: auto; padding: 2px 8px; font-size: 11px"
             >0</span
           ></a
         >
-        <a href="#" data-view="analytics">◉ Analytics</a>
-        <a href="#" data-view="folders">📁 Folders</a>
-        <a href="#" data-view="bulk">⬆ Bulk Upload</a>
-        <a href="#" data-view="templates">🎨 Templates</a>
-        <a href="#" data-view="settings">⚙ Settings</a>
+        <a href="#" data-view="analytics"><span class="side-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20V10M10 20V4M16 20v-7M2 20h20"/></svg></span>Analytics</a>
+        <a href="#" data-view="folders"><span class="side-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>Folders</a>
+        <a href="#" data-view="bulk"><span class="side-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></span>Bulk Upload</a>
+        <a href="#" data-view="templates"><span class="side-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></span>Templates</a>
+        <a href="#" data-view="settings"><span class="side-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></span>Settings</a>
       </aside>
 
       <main class="dash-main">
@@ -109,34 +82,16 @@
         </div>
 
         <div
-          style="
-            display: flex;
-            gap: 10px;
-            margin: 16px 0;
-            flex-wrap: wrap;
-            align-items: center;
-          "
+          style="display: flex; gap: 10px; margin: 16px 0; flex-wrap: wrap; align-items: center"
         >
           <input
             id="search"
             placeholder="Search QRs by name/type…"
-            style="
-              flex: 1;
-              min-width: 220px;
-              padding: 12px 14px;
-              border: 1.5px solid var(--black);
-              border-radius: 12px;
-            "
+            style="flex: 1; min-width: 220px; padding: 12px 14px"
           />
           <select
             id="filterType"
-            style="
-              padding: 12px;
-              border: 1.5px solid var(--black);
-              border-radius: 12px;
-              background: white;
-              font-weight: 700;
-            "
+            style="padding: 12px; font-weight: 700"
           >
             <option value="">All Types</option>
             <option value="url">URL</option>
@@ -147,8 +102,8 @@
             <option value="email">Email</option>
             <option value="whatsapp">WhatsApp</option>
           </select>
-          <button class="btn btn-primary btn-sm" onclick="location.href = '/'">
-            ＋ Create New QR
+          <button class="btn btn-dark btn-sm" onclick="location.href = '/'">
+            + Create New QR
           </button>
         </div>
 
@@ -156,18 +111,11 @@
           <div class="qr-list" id="qrList"></div>
           <div
             id="empty"
-            style="
-              display: none;
-              text-align: center;
-              padding: 40px;
-              background: white;
-              border: 1.5px dashed var(--black);
-              border-radius: 18px;
-            "
+            style="display: none; text-align: center; padding: 40px"
           >
-            <div style="font-size: 40px">⬢</div>
+            <div style="color: var(--text-muted)"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v3M17 20h4"/></svg></div>
             <h3>No QR codes yet</h3>
-            <p style="color: #666">
+            <p >
               Create your first DRQR QR — static free or dynamic trackable.
             </p>
             <button
@@ -190,18 +138,14 @@
         <div id="view-bulk" style="display: none">
           <div class="card">
             <h3>Bulk QR Generator — up to 3,000</h3>
-            <p style="color: #666; font-size: 13px">
+            <p style="font-size: 13px">
               Upload CSV with <b>url,name</b> per line. First row can be header. Stored
               instantly in your local DB.
             </p>
             <div style="display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap">
               <select
                 id="bulkType"
-                style="
-                  padding: 12px;
-                  border: 1.5px solid var(--black);
-                  border-radius: 12px;
-                "
+                style="padding: 12px"
               >
                 <option value="url">URL</option>
                 <option value="text">Text</option>
@@ -210,28 +154,13 @@
                 type="file"
                 id="bulkFile"
                 accept=".csv"
-                style="
-                  flex: 1;
-                  padding: 10px;
-                  border: 1.5px dashed var(--black);
-                  border-radius: 12px;
-                  background: white;
-                "
+                style="flex: 1; padding: 10px"
               />
               <button class="btn btn-primary" id="bulkBtn">Generate Bulk →</button>
             </div>
             <pre
               id="bulkOut"
-              style="
-                margin-top: 12px;
-                background: var(--black);
-                color: var(--accent);
-                padding: 12px;
-                border-radius: 12px;
-                overflow: auto;
-                display: none;
-                max-height: 240px;
-              "
+              style="margin-top: 12px; padding: 12px; overflow: auto; display: none; max-height: 240px"
             ></pre>
           </div>
         </div>
@@ -244,12 +173,7 @@
               <input
                 id="newFolder"
                 placeholder="New folder name"
-                style="
-                  flex: 1;
-                  padding: 10px;
-                  border: 1.5px solid var(--black);
-                  border-radius: 10px;
-                "
+                style="flex: 1; padding: 10px"
               /><button class="btn btn-dark btn-sm" id="addFolder">Add</button>
             </div>
           </div>
@@ -263,24 +187,18 @@
         <div id="view-settings" style="display: none">
           <div class="card">
             <h3>Settings & Security</h3>
-            <p style="color: #666; font-size: 13px">
-              DRQR — Grid White / Black / Amber • Database: SQLite
+            <p style="font-size: 13px">
+              DRQR — local-first QR • Database: SQLite
               <code>data/DR.db</code> by default, PostgreSQL when
               <code>DATABASE_URL</code> is set • HOST restricted to 127.0.0.1 •
               Rate-limited • POST-only passwords. No uptime guarantee and no GDPR/CCPA
               compliance claimed.
             </p>
             <div
-              style="
-                margin-top: 14px;
-                background: var(--grid-white);
-                border: 1.5px solid var(--black);
-                border-radius: 12px;
-                padding: 14px;
-              "
+              style="margin-top: 14px; padding: 14px"
             >
-              <strong style="font-size: 13px">🔐 Two-Factor Authentication (TOTP)</strong>
-              <div style="font-size: 12px; color: #666; margin: 6px 0">
+              <strong style="font-size: 13px">Two-Factor Authentication (TOTP)</strong>
+              <div style="font-size: 12px; margin: 6px 0">
                 Protect your account with authenticator app (Google Authenticator, Authy).
                 Secret stored in <code>users.twofa_secret</code> (plaintext in local DB —
                 personal use only).
@@ -301,43 +219,19 @@
               </div>
               <div
                 id="twofaBox"
-                style="
-                  display: none;
-                  margin-top: 12px;
-                  background: white;
-                  border: 1.5px solid var(--black);
-                  border-radius: 12px;
-                  padding: 12px;
-                "
+                style="display: none; margin-top: 12px; padding: 12px"
               >
                 <div style="text-align: center">
                   <img
                     id="twofaQR"
-                    style="
-                      width: 200px;
-                      height: 200px;
-                      object-fit: contain;
-                      border: 1px solid #eee;
-                      border-radius: 8px;
-                      background: white;
-                      padding: 8px;
-                    "
+                    style="width: 200px; height: 200px; object-fit: contain; padding: 8px"
                   />
-                  <div style="font-size: 11px; color: #666; margin-top: 6px">
+                  <div style="font-size: 11px; margin-top: 6px">
                     Scan with authenticator, then enter code
                   </div>
                 </div>
                 <div
-                  style="
-                    font-size: 11px;
-                    font-family: monospace;
-                    background: var(--black);
-                    color: var(--accent);
-                    padding: 6px 8px;
-                    border-radius: 8px;
-                    margin: 8px 0;
-                    word-break: break-all;
-                  "
+                  style="font-size: 11px; padding: 6px 8px; margin: 8px 0; word-break: break-all"
                   id="twofaSecret"
                 ></div>
                 <div style="display: flex; gap: 8px">
@@ -345,15 +239,7 @@
                     id="twofaCodeSetup"
                     placeholder="123456"
                     maxlength="6"
-                    style="
-                      flex: 1;
-                      padding: 10px;
-                      border: 1.5px solid var(--black);
-                      border-radius: 10px;
-                      text-align: center;
-                      letter-spacing: 0.2em;
-                      font-weight: 800;
-                    "
+                    style="flex: 1; padding: 10px; text-align: center; letter-spacing: 0.2em; font-weight: 800"
                   /><button class="btn btn-primary btn-sm" id="btn2faVerify">
                     Verify & Enable
                   </button>
@@ -404,7 +290,7 @@
       <div class="modal-card" style="max-width: 560px">
         <div class="modal-head">
           <h3 id="qrModalTitle">QR Details</h3>
-          <button class="btn btn-ghost btn-sm" onclick="closeModal('qrModal')">✕</button>
+          <button class="btn btn-ghost btn-sm" onclick="closeModal('qrModal')">×</button>
         </div>
         <div class="modal-body" id="qrModalBody"></div>
       </div>
@@ -416,12 +302,12 @@
         <div class="modal-head">
           <div>
             <h3>Edit QR — All Fields</h3>
-            <div style="font-size: 11px; color: #666; font-weight: 600" id="editSubtitle">
+            <div style="font-size: 11px; font-weight: 600" id="editSubtitle">
               Change anything, saved to SQLite instantly
             </div>
           </div>
           <button class="btn btn-ghost btn-sm" onclick="closeModal('editModal')">
-            ✕
+            ×
           </button>
         </div>
         <div class="modal-body" id="editBody" style="max-height: 70vh; overflow: auto">
@@ -460,7 +346,7 @@
               id="editDataJson"
               rows="3"
               placeholder='{"url":"https://..."}'
-              style="font-family: monospace; font-size: 12px"
+              style="font-size: 12px"
             ></textarea>
           </div>
           <div class="two-col">
@@ -501,7 +387,7 @@
             ><input
               id="editFrameColor"
               type="color"
-              value="#F5A623"
+              value="#0E0F11"
               style="height: 44px"
             />
           </div>
@@ -521,13 +407,13 @@
           <div id="editError" class="auth-error" style="display: none"></div>
           <div style="display: flex; gap: 8px">
             <button class="btn btn-primary" style="flex: 1" id="editSave">
-              💾 Save Changes
+              Save Changes
             </button>
             <button class="btn btn-ghost" onclick="closeModal('editModal')">
               Cancel
             </button>
           </div>
-          <div style="font-size: 11px; color: #666">
+          <div style="font-size: 11px">
             Dynamic QR content remains at <code>/r/&lt;short&gt;</code> — editing updates
             destination & style, rescanned instantly. Static QR content updates directly.
           </div>
@@ -542,9 +428,9 @@
       const API = location.origin
       function toast(m, err = false) {
         const t = document.getElementById('toast')
-        t.textContent = (err ? '⚠ ' : '✔ ') + m
+        t.textContent = m
         t.classList.add('show')
-        t.style.background = err ? '#DC2626' : 'var(--black)'
+        t.style.background = err ? 'var(--danger)' : 'var(--text)'
         setTimeout(() => t.classList.remove('show'), 3000)
       }
       function auth() {
@@ -600,11 +486,11 @@
           })
           const j = await r.json()
           document.getElementById('analyticsBody').innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div><strong>Timeline</strong><pre style="background:var(--grid-white);padding:10px;border-radius:10px;overflow:auto;max-height:160px;font-size:11px">${JSON.stringify(j.timeline.slice(0, 7), null, 2)}</pre></div>
-        <div><strong>Devices</strong><pre style="background:var(--grid-white);padding:10px;border-radius:10px;overflow:auto;max-height:160px;font-size:11px">${JSON.stringify(j.devices, null, 2)}</pre></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+        <div><strong>Timeline</strong><pre style="padding:10px; overflow:auto; max-height:160px; font-size:11px">${JSON.stringify(j.timeline.slice(0, 7), null, 2)}</pre></div>
+        <div><strong>Devices</strong><pre style="padding:10px; overflow:auto; max-height:160px; font-size:11px">${JSON.stringify(j.devices, null, 2)}</pre></div>
       </div>
-      <div style="margin-top:10px"><strong>Top QRs</strong><div style="display:grid;gap:6px;margin-top:6px">${j.top.map((t) => `<div style="display:flex;justify-content:space-between;padding:8px;background:var(--grid-white);border-radius:8px;border:1px solid #EEE"><span>${t.name} <small style="color:#666">${t.type}</small></span><span style="background:var(--accent);padding:2px 8px;border-radius:999px;border:1px solid var(--black);font-weight:800">${t.scan_count} scans</span></div>`).join('') || '<span style="color:#888">No scans yet</span>'}</div></div>
+      <div style="margin-top:10px"><strong>Top QRs</strong><div style="display:grid; gap:6px; margin-top:6px">${j.top.map((t) => `<div style="display:flex; justify-content:space-between; padding:8px"><span>${t.name} <small >${t.type}</small></span><span style="padding:2px 8px; font-weight:800">${t.scan_count} scans</span></div>`).join('') || '<span >No scans yet</span>'}</div></div>
     `
         } catch {}
         try {
@@ -616,9 +502,9 @@
             j
               .map(
                 (f) =>
-                  `<div style="padding:8px;border:1px solid #EEE;border-radius:8px;display:flex;justify-content:space-between;align-items:center"><span>📁 ${f.name}</span><small>${f.created_at?.slice(0, 10) || ''}</small></div>`,
+                  `<div style="padding:8px; display:flex; justify-content:space-between; align-items:center"><span>${f.name}</span><small>${f.created_at?.slice(0, 10) || ''}</small></div>`,
               )
-              .join('') || '<small style="color:#888">No folders</small>'
+              .join('') || '<small >No folders</small>'
         } catch {}
         try {
           const r = await fetch(`${API}/api/templates`, {
@@ -629,7 +515,7 @@
             j
               .map(
                 (t) =>
-                  `<div style="padding:10px;border:1px solid #EEE;border-radius:10px;margin-bottom:6px"><strong>${t.name}</strong><pre style="font-size:11px;white-space:pre-wrap;background:var(--grid-white);padding:8px;border-radius:8px">${t.config_json.slice(0, 400)}</pre></div>`,
+                  `<div style="padding:10px; margin-bottom:6px"><strong>${t.name}</strong><pre style="font-size:11px; white-space:pre-wrap; padding:8px">${t.config_json.slice(0, 400)}</pre></div>`,
               )
               .join('') || '<small>No templates — save from generator</small>'
         } catch {}
@@ -650,26 +536,26 @@
             return `
     <div class="qr-item">
       <div class="qr-item-top">
-        <img src="${API}/api/preview" alt="qr" id="img-${q.id}" style="background:white">
+        <img src="${API}/api/preview" alt="qr" id="img-${q.id}" >
         <div class="qr-meta">
           <strong title="${q.name}">${q.name}</strong>
-          <div style="font-size:11px;color:#666;display:flex;gap:4px;flex-wrap:wrap;align-items:center">${q.type.toUpperCase()} • ${q.is_dynamic ? '<span style="background:var(--accent);padding:2px 6px;border-radius:999px;border:1px solid var(--black);font-weight:800">DYNAMIC</span>' : 'STATIC'} • ${new Date(q.created_at).toLocaleDateString()}</div>
-          <div style="font-size:11px;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px" title="${shortUrl}">${shortUrl.slice(0, 48)}</div>
+          <div style="font-size:11px; display:flex; gap:4px; flex-wrap:wrap; align-items:center">${q.type.toUpperCase()} • ${q.is_dynamic ? '<span style="padding:2px 6px; font-weight:800">DYNAMIC</span>' : 'STATIC'} • ${new Date(q.created_at).toLocaleDateString()}</div>
+          <div style="font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:190px" title="${shortUrl}">${shortUrl.slice(0, 48)}</div>
         </div>
       </div>
-      <div style="padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;background:#F8F9FA;border-top:1px solid #EEE;border-bottom:1px solid #EEE">
+      <div style="padding:8px 14px; display:flex; gap:6px; flex-wrap:wrap">
         <span class="chip">${q.scan_count || 0} scans</span>
-        <span class="chip" style="background:var(--black);color:var(--accent)">● Live</span>
+        <span class="chip" >● Live</span>
         <span class="chip" title="Colors">${q.fg_color || ''} → ${q.bg_color || ''}</span>
         ${q.frame_text ? `<span class="chip">${q.frame_text.slice(0, 12)}</span>` : ''}
       </div>
       <div class="qr-item-actions">
         <button class="btn btn-primary btn-sm" onclick="openQr(${q.id})">View</button>
-        <button class="btn btn-ghost btn-sm" onclick="editQr(${q.id})">✎ Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="editQr(${q.id})">Edit</button>
         <button class="btn btn-ghost btn-sm" onclick="duplicateQr(${q.id})">⎘ Duplicate</button>
         <button class="btn btn-ghost btn-sm" onclick="downloadQr(${q.id},'png')">PNG</button>
         <button class="btn btn-ghost btn-sm" onclick="downloadQr(${q.id},'pdf')">PDF</button>
-        <button class="btn btn-ghost btn-sm" style="color:#DC2626" onclick="delQr(${q.id})">Delete</button>
+        <button class="btn btn-ghost btn-sm"  onclick="delQr(${q.id})">Delete</button>
       </div>
     </div>
   `
@@ -756,24 +642,24 @@
         const a = await ar.json()
         document.getElementById('qrModalTitle').textContent = q.name
         document.getElementById('qrModalBody').innerHTML = `
-    <div style="background:var(--grid-white);padding:12px;border-radius:12px;border:1px solid var(--black)">
-      <div style="font-size:11px;font-weight:800;letter-spacing:.08em">CONTENT → ${q.is_dynamic ? 'SHORT URL (trackable)' : 'STATIC'}</div>
-      <div style="word-break:break-all;font-size:13px;background:white;padding:10px;border-radius:8px;margin-top:6px;border:1px solid #EEE">${q.is_dynamic ? `${API}/r/${q.short_code}<br><small style="color:#666">→ ${q.content.slice(0, 120)}</small>` : q.content}</div>
-      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-        <span class="chip chip-neon">${q.scan_count} scans</span><span class="chip">${q.type}</span><span class="chip">${q.pattern || 'square'} • ${q.eye_style || 'square'}</span><span class="chip">${q.fg_color}→${q.bg_color}</span>
+    <div style="padding:12px">
+      <div style="font-size:11px; font-weight:800; letter-spacing:.08em">CONTENT → ${q.is_dynamic ? 'SHORT URL (trackable)' : 'STATIC'}</div>
+      <div style="word-break:break-all; font-size:13px; padding:10px; margin-top:6px">${q.is_dynamic ? `${API}/r/${q.short_code}<br><small >→ ${q.content.slice(0, 120)}</small>` : q.content}</div>
+      <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap">
+        <span class="chip chip-accent">${q.scan_count} scans</span><span class="chip">${q.type}</span><span class="chip">${q.pattern || 'square'} • ${q.eye_style || 'square'}</span><span class="chip">${q.fg_color}→${q.bg_color}</span>
       </div>
     </div>
-    <div style="margin-top:12px"><strong>Analytics</strong><pre style="background:var(--black);color:var(--accent);padding:10px;border-radius:10px;overflow:auto;font-size:11px;max-height:120px">${JSON.stringify(a.timeline.slice(-8), null, 2)}</pre>
-    <div style="margin-top:6px"><strong>Recent scans</strong><div style="max-height:160px;overflow:auto;display:grid;gap:4px;margin-top:6px">${
+    <div style="margin-top:12px"><strong>Analytics</strong><pre style="padding:10px; overflow:auto; font-size:11px; max-height:120px">${JSON.stringify(a.timeline.slice(-8), null, 2)}</pre>
+    <div style="margin-top:6px"><strong>Recent scans</strong><div style="max-height:160px; overflow:auto; display:grid; gap:4px; margin-top:6px">${
       a.scans
         .slice(0, 10)
         .map(
           (s) =>
-            `<div style="font-size:11px;padding:6px;background:var(--grid-white);border-radius:6px;display:flex;justify-content:space-between;border:1px solid #EEE"><span>${s.device} • ${s.browser} • ${s.os}</span><span>${new Date(s.timestamp).toLocaleString()}</span></div>`,
+            `<div style="font-size:11px; padding:6px; display:flex; justify-content:space-between"><span>${s.device} • ${s.browser} • ${s.os}</span><span>${new Date(s.timestamp).toLocaleString()}</span></div>`,
         )
         .join('') || '<small>No scans yet — scan the QR!</small>'
     }</div></div></div>
-    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn btn-primary" onclick="downloadQr(${q.id},'png')">⬇ PNG</button><button class="btn btn-ghost" onclick="downloadQr(${q.id},'pdf')">PDF</button><button class="btn btn-ghost" onclick="closeModal('qrModal')">Close</button></div>
+    <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap"><button class="btn btn-primary" onclick="downloadQr(${q.id},'png')">⬇ PNG</button><button class="btn btn-ghost" onclick="downloadQr(${q.id},'pdf')">PDF</button><button class="btn btn-ghost" onclick="closeModal('qrModal')">Close</button></div>
   `
         document.getElementById('qrModal').classList.add('open')
       }
@@ -854,7 +740,7 @@
         document.getElementById('editPattern').value = q.pattern || 'square'
         document.getElementById('editEye').value = q.eye_style || 'square'
         document.getElementById('editFrameText').value = q.frame_text || ''
-        document.getElementById('editFrameColor').value = q.frame_color || '#F5A623'
+        document.getElementById('editFrameColor').value = q.frame_color || '#0E0F11'
         document.getElementById('editPassword').value = ''
         document.getElementById('editScanLimit').value = q.scan_limit || ''
         document.getElementById('editExpiry').value = q.expiry_date
@@ -918,7 +804,7 @@
           err.style.display = 'block'
         } finally {
           document.getElementById('editSave').disabled = false
-          document.getElementById('editSave').textContent = '💾 Save Changes'
+          document.getElementById('editSave').textContent = 'Save Changes'
         }
       }
 
@@ -1013,8 +899,8 @@
           const me = await r.json()
           const enabled = me.twofa_enabled
           document.getElementById('twofaStatus').innerHTML = enabled
-            ? '<span style="color:#16A34A">● Enabled</span> — 2FA protects login'
-            : '<span style="color:#DC2626">● Disabled</span> — Enable for extra security'
+            ? '<span >● Enabled</span> — 2FA protects login'
+            : '<span >● Disabled</span> — Enable for extra security'
         } catch {}
       }
       document.getElementById('btn2faSetup').onclick = async () => {

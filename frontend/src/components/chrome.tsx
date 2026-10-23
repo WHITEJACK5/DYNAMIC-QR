@@ -52,7 +52,7 @@ export function Nav() {
           <Link href="/">Generator</Link>
         </li>
         <li>
-          <Link href="/#features">Solutions</Link>
+          <Link href="/#features">Features</Link>
         </li>
         <li>
           <Link href="/dashboard">Dashboard</Link>

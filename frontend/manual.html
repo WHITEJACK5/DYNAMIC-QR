@@ -4,55 +4,53 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Manual — DRQR</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&family=JetBrains+Mono:wght@600&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="stylesheet" href="/static/css/fonts.css" />
     <link rel="stylesheet" href="/static/css/style.css" />
     <style>
       .manual {
         max-width: 900px;
         margin: 0 auto;
-        padding: 24px;
-        background: white;
-        border: 1.5px solid var(--black);
-        border-radius: 20px;
-        box-shadow: 6px 6px 0 var(--black);
+        padding: 32px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
         overflow: hidden;
       }
       .manual h1 {
-        font-size: 32px;
-        letter-spacing: -0.04em;
+        font-size: var(--text-2xl);
         margin-bottom: 8px;
       }
       .manual h2 {
-        font-size: 20px;
+        font-size: var(--text-lg);
         margin: 28px 0 10px;
         padding-bottom: 6px;
-        border-bottom: 1.5px solid var(--black);
+        border-bottom: 1px solid var(--border);
       }
       .manual h3 {
-        font-size: 14px;
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
         margin: 18px 0 8px;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
+        color: var(--text-muted);
       }
       .manual pre {
-        background: var(--black);
-        color: var(--accent);
+        background: var(--bg);
+        color: var(--text);
         padding: 14px;
-        border-radius: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
         overflow: auto;
-        font-family: 'JetBrains Mono', monospace;
+        font-family: var(--font-mono);
         font-size: 12px;
         line-height: 1.6;
       }
       .manual code {
-        font-family: 'JetBrains Mono', monospace;
-        background: var(--grid-white);
+        font-family: var(--font-mono);
+        background: var(--surface-2);
         padding: 2px 6px;
-        border-radius: 6px;
-        border: 1px solid #e5e7eb;
+        border-radius: var(--radius-xs);
+        border: 1px solid var(--border);
         font-size: 12px;
       }
       .manual table {
@@ -63,19 +61,23 @@
       }
       .manual th {
         text-align: left;
-        background: var(--black);
-        color: white;
+        background: var(--surface-2);
+        color: var(--text);
         padding: 8px;
-        border: 1px solid #222;
+        border: 1px solid var(--border);
       }
       .manual td {
         padding: 8px;
-        border: 1px solid #e5e7eb;
+        border: 1px solid var(--border);
       }
-      .manual a {
-        color: var(--black);
+      .manual p a,
+      .manual li a,
+      .manual td a,
+      .manual summary a {
+        color: var(--accent);
         text-decoration: underline;
-        font-weight: 700;
+        text-underline-offset: 3px;
+        font-weight: 500;
       }
     </style>
   </head>
@@ -87,7 +89,7 @@
         >
         <nav class="nav">
           <a href="/">Generator</a>
-          <a href="/#features">Solutions</a>
+          <a href="/#features">Features</a>
           <a href="/dashboard">Dashboard</a>
         </nav>
         <div class="header-cta">
@@ -99,21 +101,15 @@
       <div class="container">
         <div class="manual">
           <div
-            style="
-              display: flex;
-              gap: 10px;
-              align-items: center;
-              flex-wrap: wrap;
-              margin-bottom: 12px;
-            "
+            style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px"
           >
-            <span class="badge badge-neon">Working Manual</span>
+            <span class="badge badge-accent">Working Manual</span>
             <span class="badge badge-white">Personal Edition</span>
             <span class="badge badge-black">v1.1.0</span>
           </div>
           <h1>DRQR — Working Manual</h1>
-          <p style="color: #666">
-            Grid White / Black / Amber • Local SQLite <code>data/DR.db</code> •
+          <p >
+            Local-first QR • Local SQLite <code>data/DR.db</code> •
             Tested on fresh Windows 11 + Python 3.11. Every command below was executed.
           </p>
           <div style="display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0">
@@ -123,8 +119,8 @@
           </div>
           <h2>Fresh Install (Any PC)</h2>
           <pre>
-git clone https://github.com/WHITEJACK5/DRQR..git
-cd DRQR.
+git clone https://github.com/WHITEJACK5/DYNAMIC-QR.git
+cd DYNAMIC-QR
 cp .env.example .env   # or ./start.sh auto-creates
 pip install -r requirements.txt
 python app.py
@@ -208,15 +204,7 @@ curl http://127.0.0.1:5000/api/health</pre>
           </table>
           <p>See <code>MANUAL.md</code> for full 25-type table + troubleshooting.</p>
           <div
-            style="
-              margin-top: 18px;
-              padding: 12px;
-              background: var(--grid-white);
-              border: 1px dashed var(--black);
-              border-radius: 12px;
-              font-size: 12px;
-              color: #666;
-            "
+            style="margin-top: 18px; padding: 12px; font-size: 12px"
           >
             Full working manual: <code>MANUAL.md</code> at repo root — also served at
             <a href="/MANUAL.md">/MANUAL.md</a>. This page is a quick start; read
@@ -231,7 +219,7 @@ curl http://127.0.0.1:5000/api/health</pre>
         style="font-size: 12px; display: flex; justify-content: space-between"
       >
         <span>© 2026 DRQR — Manual v1.1.0</span
-        ><span style="color: var(--accent)">Personal Use • Local DB</span>
+        ><span >Personal Use • Local DB</span>
       </div>
     </footer>
   </body>
