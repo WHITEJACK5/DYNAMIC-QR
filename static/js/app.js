@@ -5,12 +5,14 @@ let state = {
   isDynamic: false,
   pattern: "square",
   eyeStyle: "square",
-  fg: "#0A0A0A",
+  fg: "#0E0F11",
   bg: "#FFFFFF",
   gradient: "solid",
   frameText: "",
-  frameColor: "#F5A623",
+  frameColor: "#0E0F11",
   logoB64: null,
+  template: null,
+  baseUrl: "",
   lastImage: null,
   lastId: null,
   previewAbort: null
@@ -103,11 +105,11 @@ function renderForm(){
     }
     const req = f.required ? ' <span style="color:var(--danger)">*</span>' : '';
     if(f.type==="textarea"){
-      html+=`<div class="field"><label for="f_${f.key}">${f.label}${req}</label><textarea id="f_${f.key}" rows="3" placeholder="${f.placeholder||''}" ${f.required?'required':''}></textarea><div class="field-error" id="err_${f.key}"></div></div>`;
+      html+=`<div class="field"><label for="f_${f.key}">${f.label}${req}</label><textarea id="f_${f.key}" rows="3" placeholder="${f.placeholder||''}" autocomplete="off" ${f.required?'required':''}></textarea><div class="field-error" id="err_${f.key}"></div></div>`;
     } else if(f.type==="select"){
       html+=`<div class="field"><label for="f_${f.key}">${f.label}${req}</label><select id="f_${f.key}">${f.opts.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>`;
     } else {
-      html+=`<div class="field"><label for="f_${f.key}">${f.label}${req}</label><input id="f_${f.key}" type="${f.type||'text'}" placeholder="${f.placeholder||''}" ${f.required?'required':''}></div>`;
+      html+=`<div class="field"><label for="f_${f.key}">${f.label}${req}</label><input id="f_${f.key}" type="${f.type||'text'}" placeholder="${f.placeholder||''}" autocomplete="off" ${f.required?'required':''}></div>`;
     }
   });
   html+=`<div class="two-col">
@@ -115,20 +117,50 @@ function renderForm(){
     <div class="field"><label for="f_folder">Campaign Folder</label><select id="f_folder"><option>My QR Codes</option><option>Marketing</option><option>Events</option><option>Retail</option></select></div>
   </div>`;
   if(state.isDynamic){
-    html+=`<details style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:10px" open><summary style="font-weight:800;cursor:pointer;font-size:12px">Security &amp; expiry (dynamic only)</summary>
-      <div class="two-col" style="margin-top:10px">
-        <div class="field"><label for="f_password">Password (optional)</label><input id="f_password" type="password" placeholder="Leave blank for public"></div>
-        <div class="field"><label for="f_scan_limit">Scan Limit</label><input id="f_scan_limit" type="number" min="1" placeholder="e.g. 1000"></div>
+    const base=(state.baseUrl||location.origin).replace(/\/$/,'');
+    let loopback=false;
+    try{ loopback=['localhost','127.0.0.1','::1'].includes(new URL(base).hostname); }catch{}
+    html+=`<details class="security-block" open>
+      <summary><span>Security &amp; expiry</span><span class="security-tag">Dynamic only</span></summary>
+      <div class="security-fields">
+        <div class="field">
+          <label for="f_password">Password <span class="optional">Optional</span></label>
+          <input id="f_password" type="password" placeholder="Leave blank for public" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="f_scan_limit">Scan limit</label>
+          <input id="f_scan_limit" type="number" min="1" placeholder="e.g. 1000" inputmode="numeric">
+        </div>
+        <div class="field security-expiry">
+          <label for="f_expiry">Expiry date <span class="optional">Optional</span></label>
+          <input id="f_expiry" type="datetime-local" autocomplete="off">
+        </div>
       </div>
-      <div class="field"><label for="f_expiry">Expiry Date (optional)</label><input id="f_expiry" type="datetime-local"></div>
-    </details>`;
+    </details>
+    <div class="help">Dynamic links open <code>${base}/r/…</code>. ${loopback
+      ? '<b>This is a localhost address — a phone cannot open it.</b> Set <code>BASE_URL</code> to your computer’s LAN IP and run with <code>HOST=0.0.0.0</code>.'
+      : 'Test the final QR with your phone before printing.'}</div>`;
   } else {
     html+=`<div class="help"><b>Static</b> is free forever. Switch to <b>Dynamic</b> to edit URL after print and track scans.</div>`;
   }
   area.innerHTML=html;
   area.querySelectorAll('input,textarea,select').forEach(el=>{
-    el.addEventListener('input', debounce(preview, 350));
+    el.addEventListener('input', () => preview(350));
     el.addEventListener('change', preview);
+  });
+  // Chrome sometimes ignores autocomplete="off" on email/text fields and
+  // fills a saved address after insertion. These are fresh QR form fields,
+  // not a login: they must start blank. Track real typing so a clear is
+  // never able to wipe a value the user entered.
+  area.querySelectorAll('input,textarea').forEach(el=>{
+    el.setAttribute('autocomplete','off');
+    const textLike=['text','email','url','tel','password','search','number'];
+    if(!textLike.includes(el.type)) return;
+    el.dataset.userTyped='0';
+    el.addEventListener('input', ()=>{ el.dataset.userTyped='1'; }, {once:true});
+    setTimeout(()=>{
+      if(el.isConnected && el.dataset.userTyped==='0') el.value='';
+    }, 400);
   });
 }
 
@@ -190,9 +222,14 @@ function buildContentForPreview(){
 }
 
 let previewTimer=null;
-function debounce(fn,ms){ return (...a)=>{ clearTimeout(previewTimer); previewTimer=setTimeout(()=>fn(...a), ms)} }
+// Every control schedules the same render. Buttons feel immediate; the
+// colour picker and typing coalesce instead of firing one request per event.
+function preview(delay=120){
+  clearTimeout(previewTimer);
+  previewTimer=setTimeout(renderPreview, delay);
+}
 
-async function preview(){
+async function renderPreview(){
   const content = buildContentForPreview();
   const img=document.getElementById('qrImage');
   const frame=document.getElementById('qrFrame');
@@ -269,6 +306,55 @@ function updatePreviewMeta(){
   el.textContent=`${state.type.toUpperCase()} • ${state.isDynamic?'Dynamic':'Static'}`;
 }
 
+// The customization strip is driven by two sources: manual clicks and
+// templates (which set several state fields at once). Keep every control
+// showing the truth in state so a template can never leave "Square Eyes"
+// selected while the preview is actually using rounded eyes.
+function setActiveGroup(selector, key, value){
+  document.querySelectorAll(selector).forEach(el=>{
+    const on = el.dataset[key] === value;
+    el.classList.toggle('active', on);
+    el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+function syncPresetChips(){
+  document.querySelectorAll('[data-preset]').forEach(el=>{
+    const [f,b] = el.dataset.preset.split(',');
+    const on = f.toLowerCase() === state.fg.toLowerCase() && b.toLowerCase() === state.bg.toLowerCase();
+    el.classList.toggle('chip-accent', on);
+    el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+function clearTemplate(){
+  if(state.template === null) return;
+  state.template = null;
+  document.querySelectorAll('[data-template]').forEach(el=>{
+    el.classList.remove('active');
+    el.setAttribute('aria-pressed','false');
+  });
+}
+function syncCustomUI(){
+  setActiveGroup('[data-pattern]', 'pattern', state.pattern);
+  setActiveGroup('[data-eye]', 'eye', state.eyeStyle);
+  setActiveGroup('[data-gradient]', 'gradient', state.gradient);
+  document.querySelectorAll('[data-template]').forEach(el=>{
+    const on = el.dataset.template === state.template;
+    el.classList.toggle('active', on);
+    el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  syncPresetChips();
+  const fg = document.getElementById('fgColor'), bg = document.getElementById('bgColor');
+  const fgt = document.getElementById('fgText'), bgt = document.getElementById('bgText');
+  if(fg) fg.value = state.fg;
+  if(bg) bg.value = state.bg;
+  if(fgt) fgt.value = state.fg;
+  if(bgt) bgt.value = state.bg;
+  const ft = document.getElementById('frameText');
+  const fc = document.getElementById('frameColor');
+  if(ft) ft.value = state.frameText;
+  if(fc) fc.value = state.frameColor;
+}
+
 function validateEmail(email){
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -343,8 +429,11 @@ async function generate(){
       document.getElementById('generateBtn').parentElement.insertAdjacentElement('afterend', bar);
     }
     const dlName=`DRQR-${state.type}-${Date.now()}.png`;
+    const liveLink = j.is_dynamic && j.content
+      ? `<a href="${j.content}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;overflow-wrap:anywhere">${j.content}</a>`
+      : 'Static';
     bar.innerHTML=`
-      <span style="font-size:12px;font-weight:600">${j.is_dynamic?'Dynamic saved to Dashboard':'Static ready'} • <span style="color:var(--text-muted)">${j.is_dynamic?`/r/${j.short_code}`: 'Static'}</span></span>
+      <span style="font-size:12px;font-weight:600">${j.is_dynamic?'Dynamic saved':'Static ready'} • <span style="color:var(--text-muted)">${liveLink}</span></span>
       <span style="display:flex;gap:6px">
         <button class="btn btn-primary btn-sm" onclick="download(state.lastImage, '${dlName}')">PNG</button>
         <button class="btn btn-ghost btn-sm" onclick="location.href='/dashboard'">Dashboard →</button>
@@ -375,7 +464,19 @@ let authMode="login";
 function openAuth(mode){
   authMode=mode;
   const m=document.getElementById('authModal');
+  const wasOpen=m.classList.contains('open');
   m.classList.add('open');
+  // Never preload the account email from browser autofill. A value the user
+  // actually typed is kept; an autofilled one is removed when the dialog
+  // opens (and again shortly after focus, when some browsers autofill).
+  const emailEl=document.getElementById('authEmail');
+  if(emailEl){
+    emailEl.setAttribute('autocomplete','off');
+    if(!wasOpen && emailEl.dataset.userTyped!=='1') emailEl.value='';
+    setTimeout(()=>{
+      if(emailEl.isConnected && !wasOpen && emailEl.dataset.userTyped!=='1') emailEl.value='';
+    }, 350);
+  }
   document.getElementById('authTitle').textContent= mode==="login" ? "Welcome back" : "Create your free account";
   document.getElementById('authSubtitle').textContent= mode==="login" ? "Log in to manage your QRs" : "Free • Unlimited static • 3 dynamic";
   document.getElementById('nameField').style.display= mode==="register" ? "block" : "none";
@@ -385,7 +486,7 @@ function openAuth(mode){
   document.getElementById('forgotLink').style.display= mode==="login" ? "block" : "none";
   hideAuthErrors();
   // focus email
-  setTimeout(()=>document.getElementById('authEmail').focus(), 100);
+  setTimeout(()=>emailEl?.focus(), 100);
 }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 function openModal(which){
@@ -508,8 +609,12 @@ function toast(msg, isErr=false){
 
 // Init
 document.addEventListener('DOMContentLoaded', ()=>{
+  const baseMeta=document.querySelector('meta[name="drqr-base-url"]');
+  const metaBase=baseMeta ? baseMeta.content.trim() : "";
+  state.baseUrl=(metaBase && !metaBase.includes("__DRQR_")) ? metaBase : location.origin;
   renderTypeGrid("all");
   renderForm();
+  syncCustomUI();
   preview();
   updateAuthUI();
 
@@ -560,25 +665,27 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
 
   document.querySelectorAll('[data-pattern]').forEach(b=>{
-    b.onclick=()=>{ document.querySelectorAll('[data-pattern]').forEach(x=>x.classList.remove('active')); b.classList.add('active'); state.pattern=b.dataset.pattern; preview(); };
+    b.onclick=()=>{ clearTemplate(); state.pattern=b.dataset.pattern; syncCustomUI(); preview(); };
   });
   document.querySelectorAll('[data-eye]').forEach(b=>{
-    b.onclick=()=>{ document.querySelectorAll('[data-eye]').forEach(x=>x.classList.remove('active')); b.classList.add('active'); state.eyeStyle=b.dataset.eye; preview(); };
+    b.onclick=()=>{ clearTemplate(); state.eyeStyle=b.dataset.eye; syncCustomUI(); preview(); };
   });
   document.querySelectorAll('[data-gradient]').forEach(b=>{
-    b.onclick=()=>{ document.querySelectorAll('[data-gradient]').forEach(x=>x.classList.remove('active')); b.classList.add('active'); state.gradient=b.dataset.gradient; preview(); };
+    b.onclick=()=>{ clearTemplate(); state.gradient=b.dataset.gradient; syncCustomUI(); preview(); };
   });
 
   const fg=document.getElementById('fgColor'), bg=document.getElementById('bgColor');
   const fgt=document.getElementById('fgText'), bgt=document.getElementById('bgText');
   if(fg){
-    fg.oninput=()=>{ if(fgt) fgt.value=fg.value; state.fg=fg.value; preview(); };
-    bg.oninput=()=>{ if(bgt) bgt.value=bg.value; state.bg=bg.value; preview(); };
-    if(fgt) fgt.onchange=()=>{ state.fg=fgt.value; fg.value=fgt.value; preview(); };
-    if(bgt) bgt.onchange=()=>{ state.bg=bgt.value; bg.value=bgt.value; preview(); };
+    fg.oninput=()=>{ clearTemplate(); if(fgt) fgt.value=fg.value; state.fg=fg.value; syncPresetChips(); preview(); };
+    bg.oninput=()=>{ clearTemplate(); if(bgt) bgt.value=bg.value; state.bg=bg.value; syncPresetChips(); preview(); };
+    if(fgt) fgt.onchange=()=>{ clearTemplate(); state.fg=fgt.value; fg.value=fgt.value; syncPresetChips(); preview(); };
+    if(bgt) bgt.onchange=()=>{ clearTemplate(); state.bg=bgt.value; bg.value=bgt.value; syncPresetChips(); preview(); };
   }
   document.querySelectorAll('[data-preset]').forEach(b=>{
-    b.onclick=()=>{ const [f,back]=b.dataset.preset.split(','); state.fg=f; state.bg=back; if(fg) fg.value=f; if(bg) bg.value=back; if(fgt) fgt.value=f; if(bgt) bgt.value=back; preview(); toast("Preset applied"); };
+    b.onclick=()=>{ clearTemplate(); const [f,back]=b.dataset.preset.split(','); state.fg=f; state.bg=back; if(fg) fg.value=f; if(bg) bg.value=back; if(fgt) fgt.value=f; if(bgt) bgt.value=back;
+      syncPresetChips();
+      preview(); toast("Preset applied"); };
   });
 
   // Logo - enhanced with drag & validation
@@ -629,11 +736,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   const frameTextEl=document.getElementById('frameText');
-  if(frameTextEl) frameTextEl.oninput=e=>{ state.frameText=e.target.value; preview(); };
+  if(frameTextEl) frameTextEl.oninput=e=>{ clearTemplate(); state.frameText=e.target.value; preview(); };
   const frameColorEl=document.getElementById('frameColor');
-  if(frameColorEl) frameColorEl.oninput=e=>{ state.frameColor=e.target.value; preview(); };
+  if(frameColorEl) frameColorEl.oninput=e=>{ clearTemplate(); state.frameColor=e.target.value; preview(); };
   document.querySelectorAll('[data-frame]').forEach(b=>{
     b.onclick=()=>{
+      clearTemplate();
       const val=b.dataset.frame;
       const inp=document.getElementById('frameText');
       if(inp) inp.value=val;
@@ -649,19 +757,27 @@ document.addEventListener('DOMContentLoaded', ()=>{
     };
   });
 
+  // Mono and Sharp used to resolve to the exact same settings, so clicking
+  // Sharp after Mono produced no visible change. Sharp now differs in both
+  // ink (pure black) and eye shape (rounded).
+  const TEMPLATE_PRESETS = {
+    lime:  {label:"Lime Pop",   fg:"#0E0F11", bg:"#D9F26B", pattern:"dots",   eye:"circle",  frame:"SCAN ME • DRQR", frameColor:"#0E0F11"},
+    mono:  {label:"Mono Black", fg:"#0E0F11", bg:"#FFFFFF", pattern:"square", eye:"square",  frame:"",              frameColor:"#0E0F11"},
+    paper: {label:"Paper",      fg:"#0E0F11", bg:"#ECEBE8", pattern:"gapped", eye:"rounded", frame:"",              frameColor:"#0E0F11"},
+    sharp: {label:"Sharp",      fg:"#000000", bg:"#FFFFFF", pattern:"square", eye:"rounded", frame:"",              frameColor:"#000000"},
+  };
   document.querySelectorAll('[data-template]').forEach(b=>{
     b.onclick=()=>{
-      const t=b.dataset.template;
-      if(t==="lime"){ state.fg="#0E0F11"; state.bg="#D9F26B"; state.pattern="dots"; state.eyeStyle="circle"; state.frameText="SCAN ME • DRQR"; state.frameColor="#0E0F11"; }
-      if(t==="mono"){ state.fg="#0A0A0A"; state.bg="#FFFFFF"; state.pattern="square"; state.eyeStyle="square"; state.frameText=""; }
-      if(t==="paper"){ state.fg="#0E0F11"; state.bg="#ECEBE8"; state.pattern="gapped"; state.eyeStyle="rounded"; state.frameText=""; }
-      if(t==="sharp"){ state.fg="#0E0F11"; state.bg="#FFFFFF"; state.pattern="square"; state.eyeStyle="square"; state.frameText=""; }
-      if(fg) fg.value=state.fg; if(bg) bg.value=state.bg; if(fgt) fgt.value=state.fg; if(bgt) bgt.value=state.bg;
-      const ft=document.getElementById('frameText');
-      const fc=document.getElementById('frameColor');
-      if(ft) ft.value=state.frameText;
-      if(fc) fc.value=state.frameColor;
-      preview(); toast(`Template: ${t}`);
+      const t = TEMPLATE_PRESETS[b.dataset.template];
+      if(!t) return;
+      state.template = b.dataset.template;
+      state.fg = t.fg; state.bg = t.bg;
+      state.pattern = t.pattern; state.eyeStyle = t.eye;
+      state.frameText = t.frame; state.frameColor = t.frameColor;
+      state.gradient = "solid";
+      syncCustomUI();
+      preview();
+      toast(`Template: ${t.label}`);
     };
   });
   const saveTpl=document.getElementById('saveTemplateBtn');
@@ -707,6 +823,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   // Auth wiring
+  const authEmailEl=document.getElementById('authEmail');
+  if(authEmailEl) authEmailEl.addEventListener('input', ()=>{ authEmailEl.dataset.userTyped='1'; });
   document.getElementById('loginBtn').onclick=()=>openAuth('login');
   document.getElementById('registerBtn').onclick=()=>openAuth('register');
   document.getElementById('authSubmit').onclick=submitAuth;

@@ -253,6 +253,9 @@ def preview():
     _pkey = _qr_cache.key_for("preview", {
         "content": content, "fg": fg, "bg": bg, "pat": pat, "eye": eye,
         "grad": grad, "frame": frame, "fcol": fcol, "logo": logo_b64,
+        # Bump when the renderer changes: previews are byte-cached for an
+        # hour, and a renderer fix must not keep serving the old image.
+        "renderer": "eyes-v2",
     })
     _hit = _qr_cache.cache_get(_pkey)
     if _hit:
@@ -601,6 +604,6 @@ def duplicate(qr_id):
 @qr.route("/api/health")
 @qr.route("/api/v1/health")
 def health():
-    return jsonify({"status":"ok","service":"DRQR","version":"1.1.0","theme":"grid-white / black / amber"})
+    return jsonify({"status":"ok","service":"DRQR","version":"1.1.0","theme":"ink / paper / lime"})
 
 # Catch-all for frontend routes — safe

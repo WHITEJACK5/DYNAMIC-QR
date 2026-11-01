@@ -28,26 +28,26 @@ from app.services import storage as _storage
 from app.utils import hex_to_rgb
 
 
-def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="square",
+def create_qr_image(content, fg_color="#0E0F11", bg_color="#FFFFFF", pattern="square",
                     eye_style="square", gradient=None, logo_path=None, frame_text=None,
-                    frame_color="#F5A623", size=1000,
+                    frame_color="#0E0F11", size=1000,
                     error_correction=qrcode.constants.ERROR_CORRECT_H, logo_bytes=None):
     if pattern == "dots" or pattern == "dot":
         drawer = CircleModuleDrawer()
-        eye_drawer = CircleModuleDrawer()
     elif pattern == "rounded":
         drawer = RoundedModuleDrawer()
-        eye_drawer = RoundedModuleDrawer()
     elif pattern == "gapped":
         drawer = GappedSquareModuleDrawer()
-        eye_drawer = GappedSquareModuleDrawer()
     elif pattern == "extra-rounded":
         drawer = RoundedModuleDrawer(radius_ratio=0.8)
-        eye_drawer = RoundedModuleDrawer()
     else:
         drawer = SquareModuleDrawer()
-        eye_drawer = SquareModuleDrawer()
 
+    # The data pattern never changes the finder patterns. A gapped eye
+    # drawer in particular removes the solid 7x7 corners scanners lock onto,
+    # which made "Gapped + Square Eyes" undecodable. Eyes are controlled
+    # only by eye_style; "square" must mean solid squares.
+    eye_drawer = SquareModuleDrawer()
     if eye_style == "circle":
         eye_drawer = CircleModuleDrawer()
     elif eye_style == "rounded":
@@ -56,11 +56,11 @@ def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="sq
         eye_drawer = RoundedModuleDrawer()
 
     try:
-        fg_rgb = hex_to_rgb(fg_color) if fg_color else (10, 10, 10)
+        fg_rgb = hex_to_rgb(fg_color) if fg_color else (14, 15, 17)
         bg_rgb = hex_to_rgb(bg_color) if bg_color else (255, 255, 255)
     except Exception as e:
         logger.warning("Color parse failed %s/%s: %s", fg_color, bg_color, e)
-        fg_rgb = (10, 10, 10)
+        fg_rgb = (14, 15, 17)
         bg_rgb = (255, 255, 255)
 
     qr = qrcode.QRCode(version=None, error_correction=error_correction, box_size=10, border=4)
@@ -71,10 +71,10 @@ def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="sq
         try:
             if gradient == "radial":
                 color_mask = RadialGradiantColorMask(
-                    back_color=bg_rgb, center_color=fg_rgb, edge_color=hex_to_rgb("#F5A623"))
+                    back_color=bg_rgb, center_color=fg_rgb, edge_color=hex_to_rgb("#D9F26B"))
             else:
                 color_mask = SquareGradiantColorMask(
-                    back_color=bg_rgb, center_color=fg_rgb, edge_color=hex_to_rgb("#F5A623"))
+                    back_color=bg_rgb, center_color=fg_rgb, edge_color=hex_to_rgb("#D9F26B"))
         except Exception as e:
             logger.warning("Gradient mask failed: %s", e)
             color_mask = SolidFillColorMask(back_color=bg_rgb, front_color=fg_rgb)
@@ -128,9 +128,9 @@ def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="sq
             frame_h = int(size * 0.14)
             new_h = size + frame_h
             try:
-                fc = hex_to_rgb(frame_color) if frame_color else hex_to_rgb("#F5A623")
+                fc = hex_to_rgb(frame_color) if frame_color else hex_to_rgb("#0E0F11")
             except Exception:
-                fc = (0, 255, 136)
+                fc = (14, 15, 17)
             framed = Image.new("RGBA", (size, new_h), fc + (255,))
             framed.paste(img, (0, 0))
             draw = ImageDraw.Draw(framed)
@@ -163,7 +163,7 @@ def create_qr_image(content, fg_color="#0A0A0A", bg_color="#FFFFFF", pattern="sq
     return img
 
 
-def create_qr_svg(content, fg_color="#0A0A0A", bg_color="#FFFFFF", size=400):
+def create_qr_svg(content, fg_color="#0E0F11", bg_color="#FFFFFF", size=400):
     """Real vector SVG (SvgPathImage) — not a PNG with the wrong name."""
     qr = qrcode.QRCode(version=None, error_correction=qrcode.constants.ERROR_CORRECT_M,
                        box_size=10, border=4)

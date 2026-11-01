@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DRQR — Most Advanced QR Code Generator with Logo</title>
 <meta name="description" content="DRQR - Create unlimited free QR codes, dynamic trackable, 25+ types, bulk, API. Dark, sharp, local-first.">
+<meta name="drqr-base-url" content="__DRQR_BASE_URL__">
 <!-- Phase 7a: Sentry. The deployment sets the content attribute to the DSN.
      With an empty attribute the loader below no-ops. -->
 <meta name="sentry-dsn" content="">
@@ -47,7 +48,7 @@
   <div class="container">
     <div class="hero-grid">
       <!-- Left: intro -->
-      <div>
+      <div class="hero-intro">
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
           <span class="badge badge-accent">Local QR generator</span>
           <span class="badge badge-white">Personal deployment • SQLite or PostgreSQL</span>
@@ -80,6 +81,14 @@
             <div style="font-size:12px">Change URL after print. No reprinting.</div>
           </div>
         </div>
+
+        <!-- Decorative: fills the leftover column space on desktop -->
+        <figure class="hero-art">
+          <picture>
+            <source srcset="/static/img/computer-still.webp" type="image/webp" media="(prefers-reduced-motion: reduce)">
+            <img src="/static/img/computer.gif" alt="" width="1200" height="1200" loading="lazy" decoding="async">
+          </picture>
+        </figure>
       </div>
 
       <!-- Right: Generator -->
@@ -123,10 +132,29 @@
   </div>
 </section>
 
-<!-- PREVIEW FLOAT ON MOBILE SEPARATE, DESKTOP SIDE -->
+<!-- PREVIEW + DESKTOP PRINT PROOF -->
 <section style="padding:0 0 28px">
   <div class="container hero-grid" style="align-items:start">
-    <div></div>
+    <aside class="preview-aside">
+      <div class="preview-aside-meta">
+        <span>Field note / 01</span>
+        <span>Print / scan / update</span>
+      </div>
+      <div class="preview-aside-body">
+        <div class="preview-aside-copy">
+          <p class="preview-aside-kicker"><span class="preview-aside-mark" aria-hidden="true"></span>Built for the real world</p>
+          <p class="preview-aside-title">Print it once.<br>Change it <span class="preview-aside-highlight">anytime</span>.</p>
+          <p class="preview-aside-text">The QR on the wall stays the same. The destination behind it doesn’t have to.</p>
+        </div>
+        <figure class="preview-aside-figure">
+          <img src="/static/img/stand.png" alt="Line illustration of a traveler with a backpack looking up" width="520" height="1400" loading="lazy" decoding="async">
+        </figure>
+      </div>
+      <div class="preview-aside-foot">
+        <span>No reprints. No dead links.</span>
+        <span>01 / 01</span>
+      </div>
+    </aside>
     <div class="preview-card" id="previewCard">
       <div class="preview-head">
         <h3>Live Preview • DRQR</h3>
@@ -149,7 +177,7 @@
       <div class="custom-panel">
         <div class="custom-head">
           <h4>Customize Your QR</h4>
-          <span style="font-size:11px">Scan to test</span>
+          <span style="font-size:11px">Scan with your phone to test</span>
         </div>
         <div class="tabs-small" id="customTabs">
           <button class="active" data-tab="pattern">Pattern</button>
@@ -181,8 +209,8 @@
             <div style="flex:1">
               <label class="help" style="margin-bottom:6px; display:block">Foreground</label>
               <div style="display:flex; gap:8px; align-items:center">
-                <input type="color" id="fgColor" value="#0A0A0A">
-                <input type="text" id="fgText" value="#0A0A0A" style="flex:1; padding:10px">
+                <input type="color" id="fgColor" value="#0E0F11">
+                <input type="text" id="fgText" value="#0E0F11" style="flex:1; padding:10px">
               </div>
             </div>
             <div style="flex:1">
@@ -200,9 +228,9 @@
           </div>
           <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap">
             <span style="font-size:11px; font-weight:800">Quick:</span>
-            <button class="chip" data-preset="#0E0F11,#FFFFFF" style="cursor:pointer">Ink/White</button>
-            <button class="chip chip-accent" data-preset="#0E0F11,#D9F26B" style="cursor:pointer">Ink/Lime</button>
-            <button class="chip" data-preset="#0E0F11,#ECEBE8" style="cursor:pointer">Ink/Paper</button>
+            <button type="button" class="chip chip-accent" data-preset="#0E0F11,#FFFFFF" aria-pressed="true">Ink/White</button>
+            <button type="button" class="chip" data-preset="#0E0F11,#D9F26B" aria-pressed="false">Ink/Lime</button>
+            <button type="button" class="chip" data-preset="#0E0F11,#ECEBE8" aria-pressed="false">Ink/Paper</button>
           </div>
         </div>
         <div class="custom-pane" id="pane-logo" style="display:none">
@@ -235,7 +263,7 @@
             <div class="field" style="flex:1; min-width:160px">
               <label>Frame Color</label>
               <div style="display:flex; gap:8px; align-items:center">
-                <input type="color" id="frameColor" value="#00FF88" style="width:48px; height:48px">
+                <input type="color" id="frameColor" value="#0E0F11" style="width:48px; height:48px">
                 <span style="font-size:12px">High contrast = better scan</span>
               </div>
             </div>
@@ -252,7 +280,7 @@
             <button class="opt-btn" data-template="lime" style="flex-direction:column; align-items:flex-start"><b>Lime Pop</b><span style="font-weight:400">Ink on lime • Dots • Rounded</span></button>
             <button class="opt-btn" data-template="mono" style="flex-direction:column; align-items:flex-start"><b>Mono Black</b><span style="font-weight:400">Minimal • Square</span></button>
             <button class="opt-btn" data-template="paper" style="flex-direction:column; align-items:flex-start"><b>Paper</b><span style="font-weight:400">Soft • Gapped</span></button>
-            <button class="opt-btn" data-template="sharp" style="flex-direction:column; align-items:flex-start"><b>Sharp</b><span style="font-weight:400">Max contrast • Square</span></button>
+            <button class="opt-btn" data-template="sharp" style="flex-direction:column; align-items:flex-start"><b>Sharp</b><span style="font-weight:400">Max contrast • Round eyes</span></button>
           </div>
           <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:8px" id="saveTemplateBtn">Save as Template</button>
         </div>
@@ -264,7 +292,7 @@
         <button class="btn btn-primary btn-sm" style="flex:1.5" id="downloadBtn">⬇ Download QR</button>
       </div>
       <div style="padding:10px 14px; font-size:11px; display:flex; gap:8px; justify-content:space-between; align-items:center">
-        <span>┬⌐ 2026 DRQR • Personal use • Local DB</span>
+        <span>&copy; 2026 DRQR • Personal use • Local DB</span>
         <span >● Live</span>
       </div>
     </div>
@@ -329,7 +357,7 @@
       </div>
       <div class="stats" style="grid-template-columns:repeat(2,1fr); min-width:280px">
         <div class="stat" ><strong >Yours</strong><span>SQLite or Postgres</span></div>
-        <div class="stat" ><strong >25+</strong><span>QR types</span></div>
+        <div class="stat stat-accent"><strong>25+</strong><span>QR types</span></div>
       </div>
     </div>
 
@@ -374,7 +402,7 @@
     <div class="footer-grid">
       <div>
         <div class="logo" style="margin-bottom:10px"><div class="logo-type">DR<span class="logo-heart"><img src="/static/img/heart.png" alt="DRQR" width="26" height="26" /></span><span class="qr">QR</span></div></div>
-        <p style="font-size:13px; line-height:1.7">Print once. Redirect forever.</p>
+        <p class="footer-tagline">Print once. Redirect forever.</p>
       </div>
     </div>
   </div>
@@ -395,7 +423,7 @@
       <div id="authSuccess" class="auth-success"></div>
       <div class="field">
         <label for="authEmail">Email Address <span >*</span></label>
-        <input id="authEmail" type="email" placeholder="you@drqr.com" autocomplete="email" required>
+        <input id="authEmail" type="email" placeholder="you@drqr.com" autocomplete="off" required>
         <div class="field-error" id="emailError"></div>
       </div>
       <div class="field">

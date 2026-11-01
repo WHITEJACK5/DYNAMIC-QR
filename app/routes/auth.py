@@ -2,7 +2,7 @@
 
 import datetime, hashlib, secrets
 
-from app.config import JWT_ALGO, JWT_SECRET, logger
+from app.config import AUTO_VERIFY_EMAIL, JWT_ALGO, JWT_SECRET, logger
 from flask import Blueprint, g, jsonify, request
 from pydantic import ValidationError
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -43,11 +43,22 @@ def register():
         folders_repo.create_for_user(s, uid, "My QR Codes")
         token, refresh = _tokens.mint_pair(uid, email, JWT_SECRET, JWT_ALGO)
         # Phase 4d: issue the confirmation link. Unverified accounts may use
-        # static QRs but not dynamic ones.
-        sent, _raw = _issue_verification(s, email, get_base_url(request))
+        # static QRs but not dynamic ones. A local deployment without SMTP can
+        # opt into AUTO_VERIFY_EMAIL so dynamic QRs remain usable.
+        sent = False
+        verified = False
+        if AUTO_VERIFY_EMAIL:
+            users_repo.mark_email_verified(s, email)
+            verified = True
+            logger.warning(
+                "AUTO_VERIFY_EMAIL is on; marked %s verified without email",
+                email,
+            )
+        else:
+            sent, _raw = _issue_verification(s, email, get_base_url(request))
         s.close()
         logger.info("New user registered: %s", email)
-        if not sent:
+        if not sent and not verified:
             logger.warning(
                 "Registration succeeded but the verification email was not "
                 "delivered for %s; account is unverified until it is sent",
@@ -57,7 +68,7 @@ def register():
         # the frontend keep working; it is the 15-minute access token.
         return jsonify({"token":token,"access_token":token,"refresh_token":refresh,
                         "expires_in":_tokens.ACCESS_MINUTES * 60,
-                        "email_verified": False,
+                        "email_verified": verified,
                         "verification_email_sent": sent,
                         "user":{"id":uid,"email":email,"name":name}})
     except Exception as e:

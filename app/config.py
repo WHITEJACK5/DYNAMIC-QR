@@ -181,6 +181,10 @@ BASE_URL = os.getenv("BASE_URL", "").rstrip("/")
 HOST = os.getenv("HOST", "127.0.0.1")
 PORT = int(os.getenv("PORT", "5000"))
 FLASK_DEBUG = os.getenv("FLASK_DEBUG", "false").lower() in ("1", "true", "yes")
+# Local personal deployments usually have no SMTP. With this on, registration
+# marks the account verified so dynamic QRs are usable without an outbound
+# mail service. Keep it off for shared/production deployments.
+AUTO_VERIFY_EMAIL = os.getenv("AUTO_VERIFY_EMAIL", "").strip().lower() in ("1", "true", "yes", "on")
 
 # CORS — restrict to allowed origins
 _raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5000,http://127.0.0.1:5000,http://localhost:3000")

@@ -147,7 +147,7 @@ if __name__ == "__main__":
     # DEV-ONLY entrypoint. Production serves wsgi:application via gunicorn
     # behind a reverse proxy — never app.run().
     print("=== DRQR - Personal Edition (dev server) ===")
-    print("Grid White / Black / Amber")
+    print("Ink / Paper / Lime")
     print(f"Base URL: {get_base_url()}")
     print(f"Allowed Origins: {ALLOWED_ORIGINS}")
     if FLASK_DEBUG:

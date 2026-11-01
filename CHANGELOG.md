@@ -28,6 +28,16 @@ All notable changes to DRQR, in the spirit of
 - **Presets that scan.** `Ink/White`, `Ink/Lime`, and `Ink/Paper` replace the
   inverted `Neon/Black` preset, which produced light-on-dark codes.
 
+### Added
+
+- **A print proof beside the live preview.** The supplied field illustration
+  fills the empty desktop column on a paper panel, with a short
+  print/scan/update caption. It uses the existing ink and paper tokens, and it
+  is hidden below `1024px`, where the preview takes the full width.
+- **A glowing footer sign-off.** The site footer line carries a soft lime halo
+  — the one deliberate exception to the no-glow rule, requested after the
+  first visual pass.
+
 ### Fixed
 
 - The dashboard loads its four panels in parallel with `Promise.allSettled`.
@@ -46,3 +56,22 @@ All notable changes to DRQR, in the spirit of
 - `/api-docs` rendered blank because its Swagger UI assets were blocked by the
   app's own Content-Security-Policy. It is now a server-rendered endpoint
   reference with no external requests.
+- **Eyes now follow the Eyes control.** Finder patterns have their own renderer
+  path instead of inheriting the data pattern, so every Pattern × Eyes
+  combination and every template decodes in OpenCV.
+- **Templates stay in sync with the customizer.** Choosing a template updates
+  Pattern, Eyes, Colors, and the active preset; manual changes clear the
+  template highlight. Sharp is black ink with rounded eyes, not a near-duplicate
+  of Mono.
+- **Addresses no longer preload into QR forms.** Auth and Email QR inputs ignore
+  saved browser addresses unless the user typed them.
+- **Security fields stay tidy.** Password and expiry use a two-column block with
+  a full-width date field and a visible native calendar control in dark mode.
+- **Live links use the reachable base URL.** Dynamic QRs encode the effective
+  `BASE_URL` (including LAN addresses), not localhost, and the success bar shows
+  the full link.
+- **Redirect pages contain scanned content.** Password and non-http destination
+  pages use the dark theme, escape scanned values, and no longer expose raw
+  content; the health labels now match the Ink / Paper / Lime palette.
+- The preview footer's mojibake corner glyph is now a real `©`, so the
+  `© 2026 DRQR • Personal use • Local DB` line reads correctly everywhere.

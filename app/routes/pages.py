@@ -7,10 +7,12 @@ apart without moving any page to the React shell.
 """
 
 import os
+from html import escape
 
-from flask import Blueprint, jsonify, send_from_directory
+from flask import Blueprint, jsonify, request, send_from_directory
 
 from app.config import APP_DIR, STATIC_DIR, logger
+from app.extensions import get_base_url
 from app.openapi import api_reference_html
 
 pages = Blueprint("pages", __name__)
@@ -43,6 +45,12 @@ def _render_page(filename: str, active: str = "", status: int = 200):
                 f'data-nav="{active}" aria-current="page"',
             )
         html = html.replace("<!-- NAV -->", nav)
+
+    # The generator needs the effective dynamic-link base (BASE_URL, or the
+    # request host) so it can show the exact URL a phone will open before the
+    # user prints. Static pages simply do not carry the marker.
+    if "__DRQR_BASE_URL__" in html:
+        html = html.replace("__DRQR_BASE_URL__", escape(get_base_url(request)))
 
     return html, status
 

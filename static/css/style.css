@@ -17,6 +17,8 @@
   --accent-hover:#E4F78A;
   --accent-pressed:#BFD84F;
   --on-accent:#0E0F11;
+  /* the footer sign-off is the one requested glow exception */
+  --glow-accent:rgba(217,242,107,.35);
   --danger:#FF6B5E;
 
   /* the QR itself sits on a light panel; inverted codes fail to scan */
@@ -73,7 +75,7 @@ a{color:inherit;text-decoration:none}
 h1,h2,h3,h4,.logo-type{font-family:var(--font-display);letter-spacing:-.02em}
 code,kbd,samp,.mono{font-family:var(--font-mono)}
 img{max-width:100%}
-.container{max-width:1280px;margin:0 auto;padding:0 24px}
+.container{max-width:1440px;margin:0 auto;padding:0 24px}
 
 /* Focus is the same everywhere and never removed. Offset keeps the ring
    clear of the element's own border so it stays visible on dark surfaces. */
@@ -99,7 +101,7 @@ textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
 .btn-dark:hover{background:var(--border);border-color:var(--border-strong)}
 .btn-ghost{background:transparent;color:var(--text);border-color:var(--border-strong)}
 .btn-ghost:hover{background:var(--surface-2)}
-.btn-sm{padding:8px 14px;font-size:var(--text-xs)}
+.btn-sm{padding:9px 16px;font-size:var(--text-sm)}
 .btn-loading{position:relative;pointer-events:none;opacity:.75}
 .btn-loading::after{content:"…";margin-left:2px}
 
@@ -119,7 +121,7 @@ textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
   background:var(--bg);
   border-bottom:1px solid var(--border);
 }
-.header-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0}
+.header-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:14px}
 .logo{display:flex;align-items:center;gap:10px;line-height:1}
 /* Wordmark. The heart sits inline BETWEEN "DR" and "QR" rather than in a
    separate tile, and is sized in em so it tracks the type at every
@@ -144,13 +146,13 @@ textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
 
 /* The heart is brand red, not the accent, and nothing else is red. */
 .logo-type .qr{color:var(--brand-red)}
-.nav{display:flex;gap:4px;align-items:center;font-size:var(--text-sm);font-weight:500}
+.nav{display:flex;gap:4px;align-items:center;font-size:var(--text-base);font-weight:500}
 .nav a{
-  padding:8px 12px;border-radius:var(--radius);color:var(--text-muted);
+  padding:9px 16px;border-radius:var(--radius);color:var(--text-muted);line-height:1.25;
   transition:background-color var(--duration-fast) var(--ease-standard),
              color var(--duration-fast) var(--ease-standard);
 }
-.nav a:hover{background:var(--surface-2);color:var(--text)}
+.nav a:hover{color:var(--text)}
 .nav a[aria-current="page"]{background:var(--surface-2);color:var(--accent)}
 .header-cta{display:flex;gap:8px;align-items:center;min-width:0}
 .hamburger{
@@ -177,6 +179,15 @@ textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
 .trust-avatars img{width:32px;height:32px;border-radius:var(--radius-round);border:2px solid var(--bg);margin-left:-8px;object-fit:cover}
 .trust-avatars img:first-child{margin-left:0}
 
+/* Hero art: fills the empty space left by the shorter intro column. */
+.hero-intro{display:flex;flex-direction:column;align-self:stretch;min-width:0}
+.hero-art{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  margin:0;padding-top:16px;min-height:0;
+}
+.hero-art picture{display:flex;justify-content:center;width:100%}
+.hero-art img{width:min(100%,400px,33vw);height:auto;display:block}
+
 /* Generator Card */
 .gen-card{
   background:var(--surface);border:1px solid var(--border);
@@ -198,8 +209,7 @@ textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
 .tab-pill.active{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .type-grid{
   display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:14px;
-  max-height:240px;overflow-y:auto;overflow-x:hidden;
-  scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent;
+  overflow-x:hidden;
 }
 .type-grid::-webkit-scrollbar{width:6px;height:6px}
 .type-grid::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:var(--radius-pill)}
@@ -268,6 +278,49 @@ textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
 .field-error{font-size:var(--text-xs);color:var(--danger);font-weight:600;margin-top:4px;display:none}
 .field-error.show{display:block}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* Dynamic-only security block: two short fields, then a full-width date.
+   The disclosure chevron is drawn so it stays visible on the dark surface. */
+.security-block{
+  background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;
+}
+.security-block summary{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 14px;font-size:var(--text-xs);font-weight:700;
+  color:var(--text);cursor:pointer;list-style:none;
+}
+.security-block summary::-webkit-details-marker{display:none}
+.security-block summary::before{
+  content:"";width:6px;height:6px;flex:0 0 auto;
+  border-right:1.5px solid var(--text-muted);border-bottom:1.5px solid var(--text-muted);
+  transform:rotate(-45deg);
+  transition:transform var(--duration-fast) var(--ease-standard);
+}
+.security-block[open] summary::before{transform:rotate(45deg)}
+.security-block[open] summary{border-bottom:1px solid var(--border)}
+.security-tag{
+  margin-left:auto;font-family:var(--font-mono);font-size:10px;font-weight:500;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);
+}
+.security-fields{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:12px;padding:14px;
+}
+.security-fields .field{min-width:0}
+.security-expiry{grid-column:1/-1}
+.optional{
+  font-family:var(--font-body);font-size:10px;font-weight:400;letter-spacing:0;
+  text-transform:none;color:var(--text-muted);margin-left:4px;
+}
+.field input[type="datetime-local"]{color-scheme:dark}
+.field input[type="datetime-local"]::-webkit-calendar-picker-indicator{
+  opacity:.8;cursor:pointer;
+}
+.field input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover{opacity:1}
+@media(max-width:740px){
+  .security-fields{grid-template-columns:1fr}
+  .security-expiry{grid-column:auto}
+}
 .help{
   font-size:var(--text-xs);color:var(--text-muted);background:var(--surface-2);
   padding:10px 12px;border-radius:var(--radius);border:1px dashed var(--border);
@@ -296,8 +349,57 @@ textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
   color:var(--text-muted);background:var(--surface);padding:5px 10px;
   border-radius:var(--radius-pill);border:1px solid var(--border);white-space:nowrap;
 }
-/* The preview is the one light surface in the app: scanners need dark modules
-   on a light field, so inverting it would break the product. */
+/* Editorial print proof beside the live preview. The illustration is ink on
+   transparent paper, so it needs a light surface to stay legible. */
+.preview-aside{
+  align-self:stretch;display:flex;flex-direction:column;min-width:0;
+  background:var(--panel);color:var(--on-panel);
+  border:1px solid var(--panel-border);border-radius:var(--radius-lg);
+  padding:24px;overflow:hidden;
+}
+.preview-aside-meta,.preview-aside-foot{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  font-family:var(--font-mono);font-size:var(--text-xs);font-weight:500;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--panel-muted);
+}
+.preview-aside-meta{padding-bottom:14px;border-bottom:1px solid var(--panel-border)}
+.preview-aside-foot{padding-top:14px;border-top:1px solid var(--panel-border)}
+.preview-aside-body{
+  flex:1;min-height:0;display:grid;align-items:center;
+  grid-template-columns:minmax(0,1fr) minmax(150px,.50fr);
+  grid-template-rows:minmax(0,1fr);gap:24px;padding:20px 0;
+}
+.preview-aside-copy{min-width:0}
+.preview-aside-kicker{
+  display:flex;align-items:center;gap:8px;margin-bottom:16px;
+  font-family:var(--font-mono);font-size:var(--text-xs);font-weight:500;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--panel-muted);
+}
+.preview-aside-mark{width:6px;height:6px;flex:0 0 auto;background:var(--on-panel)}
+.preview-aside-title{
+  margin:0 0 16px;font-family:var(--font-display);font-weight:700;
+  font-size:var(--text-2xl);line-height:1.04;letter-spacing:-.03em;
+  color:var(--on-panel);
+}
+.preview-aside-highlight{
+  background:var(--on-panel);color:var(--panel);padding:0 4px;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone;
+}
+.preview-aside-text{
+  max-width:32ch;font-size:var(--text-sm);line-height:1.7;
+  color:var(--panel-muted);
+}
+.preview-aside-figure{
+  margin:0;align-self:stretch;min-height:0;display:flex;
+  align-items:flex-end;justify-content:center;overflow:hidden;
+}
+.preview-aside-figure img{
+  width:auto;height:100%;min-width:0;min-height:0;
+  max-height:100%;max-width:100%;
+  object-fit:contain;object-position:bottom center;display:block;
+}
+/* The QR preview is the scanner-facing light surface: scanners need dark
+   modules on a light field, so inverting it would break the product. */
 .qr-stage{
   padding:20px;display:grid;place-items:center;background:var(--panel);
   min-height:360px;color:var(--panel-muted);
@@ -444,6 +546,23 @@ textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
   transition:border-color var(--duration-base) var(--ease-standard);
 }
 .card:hover{border-color:var(--border-strong)}
+/* Marketing tiles: the tile lifts to the next surface and its number/icon
+   fills with the accent. No scale, translate, or shadow — the accent is the
+   only thing that moves, and only for 140ms. */
+@media (hover:hover){
+  #features .card:hover{background:var(--surface-2);border-color:var(--border-strong)}
+  #features .card:hover .step-num,
+  #features .card:hover .feature-ico{
+    background:var(--accent);border-color:var(--accent);color:var(--on-accent);
+  }
+}
+#features .card,
+#features .step-num,
+#features .feature-ico{
+  transition:background-color var(--duration-base) var(--ease-standard),
+             border-color var(--duration-base) var(--ease-standard),
+             color var(--duration-base) var(--ease-standard);
+}
 .card-dark{background:var(--surface-2);border-color:var(--border);color:var(--text)}
 .card-dark .ico{color:var(--accent)}
 .feature-ico{
@@ -469,9 +588,13 @@ textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
   font-family:var(--font-mono);font-size:var(--text-xs);font-weight:500;
   letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);
 }
+/* The one highlighted figure on the page: filled accent, dark text. */
+.stat-accent{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.stat-accent strong{color:var(--on-accent)}
+.stat-accent span{color:var(--on-accent)}
 
 /* Pricing */
-.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:stretch}
+.pricing-grid{display:grid;grid-template-columns:minmax(0,480px);gap:16px;align-items:stretch}
 .price-card{
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--radius-lg);padding:24px;display:flex;flex-direction:column;
@@ -504,6 +627,10 @@ textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
 .footer a{color:var(--text-muted)}
 .footer a:hover{color:var(--accent)}
 .footer-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:24px}
+.footer-tagline{
+  font-size:var(--text-sm);line-height:1.7;color:var(--accent);
+  text-shadow:0 0 6px var(--glow-accent),0 0 18px var(--glow-accent);
+}
 
 /* Modal */
 .modal{position:fixed;inset:0;background:var(--scrim);display:none;place-items:center;z-index:100;padding:16px}
@@ -544,18 +671,19 @@ textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
 /* Responsive */
 @media(max-width:1024px){
   .hero-grid{grid-template-columns:1fr;gap:24px}
+  .hero-art,.preview-aside{display:none}
   .preview-card{position:static}
   .grid3{grid-template-columns:1fr 1fr}
-  .pricing-grid{grid-template-columns:1fr;max-width:480px;margin:0 auto}
+  .pricing-grid{grid-template-columns:1fr;max-width:480px}
   .footer-grid{grid-template-columns:1fr 1fr}
   .stats{grid-template-columns:1fr 1fr}
 }
-@media(max-width:700px){
+@media(max-width:740px){
   .header-inner{flex-wrap:wrap;gap:8px}
   /* The nav stays reachable instead of vanishing behind a menu that only the
      generator page has. It drops to its own row and scrolls if needed. */
   .nav{order:3;width:100%;display:flex;gap:2px;overflow-x:auto;padding-top:2px}
-  .nav a{padding:6px 10px;font-size:var(--text-xs)}
+  .nav a{padding:8px 10px;font-size:var(--text-xs)}
   .hamburger{display:none}
   #userEmail{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #loginBtn{display:none}
@@ -563,7 +691,11 @@ textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
   .logo-type{font-size:26px}
   .hero h1{font-size:32px;line-height:1.1}
   .hero{padding:28px 0 16px}
-  .type-grid{grid-template-columns:repeat(3,1fr);gap:6px;padding:10px}
+  .type-grid{
+    grid-template-columns:repeat(3,1fr);gap:6px;padding:10px;
+    max-height:340px;overflow-y:auto;
+    scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent;
+  }
   .type-btn{padding:8px 4px;font-size:10px}
   .two-col{grid-template-columns:1fr}
   .grid3{grid-template-columns:1fr}
@@ -641,6 +773,7 @@ textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
   border:1px solid var(--border);background:var(--surface-2);color:var(--text-muted);
   white-space:nowrap;
 }
+button.chip{cursor:pointer}
 .chip-accent{background:transparent;border-color:var(--accent);color:var(--accent)}
 /* Skeletons are static: a shimmer is motion for decoration, which this design
    does not use. The shape alone communicates "loading". */
